@@ -12,6 +12,7 @@ const SHOTS = path.join(__dirname, 'shots');
 const PORTRAIT = { width: 390, height: 844 };
 const LANDSCAPE = { width: 844, height: 390 };
 const DESKTOP = { width: 1280, height: 720 };
+const SMALL = { width: 360, height: 640 }; // smallest supported portrait: 180x320 logical
 const checks = [];
 const errors = [];
 const check = (name, ok, detail = '') => {
@@ -259,18 +260,34 @@ const check = (name, ok, detail = '') => {
   await rotate(LANDSCAPE); await shot('l_11_debug'); await rotate(PORTRAIT);
   await tap('debug_11');
 
-  // every tab, three shapes
-  for (const [prefix, vp] of [['p', PORTRAIT], ['l', LANDSCAPE], ['d', DESKTOP]]) {
+  // follower sheet and stat guide
+  await rotate(PORTRAIT);
+  const bad = [];
+  const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) {
+    await rotate(vp);
+    await tap('btn_roster'); await wait(250); await shot(`${prefix}_roster`); await audit(`${prefix} roster`);
+    await tap('card_open'); await wait(250); await shot(`${prefix}_follower`); await audit(`${prefix} follower`);
+    if (prefix === 'p') check('follower sheet opens from the roster', await page.evaluate(() => window.__ct.app().modals.active.id === 'follower'));
+    await tap('btn_close'); await tap('btn_stat_guide'); await wait(200); await shot(`${prefix}_stat_guide`); await audit(`${prefix} stat guide`);
+    await tap('btn_ok'); await tap('btn_close');
+  }
+  await rotate(PORTRAIT);
+
+  // every tab, four shapes
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) {
     await rotate(vp);
     for (const tab of ['compound', 'rituals', 'reliquary', 'alchemy', 'orders']) {
       await tap(`tab_${tab}`, { optional: tab === 'compound' });
       await wait(250);
       await shot(`${prefix}_tab_${tab}`);
+      await audit(`${prefix} ${tab}`);
     }
     await tap('tab_compound', { optional: true });
     const size = await page.evaluate(() => { const c = window.__ct.game.canvas; const r = c.getBoundingClientRect(); return { w: c.width, h: c.height, k: (r.width / c.width) * devicePixelRatio, fits: r.width <= innerWidth + 0.5 && r.height <= innerHeight + 0.5 }; });
     check(`layout ${prefix}: integer pixel scale and fits the window`, Number.isInteger(size.k) && size.fits, `${size.w}x${size.h} @${size.k}x`);
   }
+  check('no text runs outside its screen area or modal (4 screen sizes)', bad.length === 0, bad.slice(0, 6).join(' | '));
   check('no console or page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
   await browser.close();

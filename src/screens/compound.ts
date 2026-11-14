@@ -8,7 +8,7 @@ import { buildable, canAfford, canPlace, collect, placeBuilding, storageCap } fr
 import { t } from '../core/text';
 import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
 import { frame, modalWidth } from '../ui/modal';
-import { openRoster } from './modals';
+import { openFollower, openRoster } from './modals';
 import { Screen } from './screen';
 
 const TILE = 16;
@@ -303,7 +303,7 @@ export class CompoundScreen extends Screen {
     for (const f of run.followers) {
       const w = this.walkers.get(f.id);
       if (w && Math.abs(wx - w.x) <= 9 && wy <= w.y + 2 && wy >= w.y - 18) {
-        app.float(t('float.follower_fine', { name: f.name }), { x: this.world.x + w.x, y: this.world.y + w.y - 30 }, 'irony');
+        openFollower(app, f);
         return;
       }
     }

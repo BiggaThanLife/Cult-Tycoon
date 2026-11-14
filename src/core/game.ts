@@ -180,6 +180,30 @@ export function assignJobs(run: RunState): void {
   }
 }
 
+// ---------- follower stats: what each one does (shown to the player in the follower sheet) ----------
+
+/** Productivity sets work speed; Sanity nudges it up or down. Returns the share of a building's base output this follower adds (0.5 = +50%). */
+export function followerWork(f: Follower): number {
+  let pct = 0;
+  for (const tr of f.traits) pct += traitDef(tr).outputPct ?? 0;
+  const effort = 0.5 + f.stats.productivity / 100 + (f.stats.sanity - 50) * B.stats.sanityWorkPerPoint;
+  return Math.max(0, B.worker.bonusPerWorker * effort * (1 + pct / 100));
+}
+/** The part of followerWork that comes from Sanity alone (can be negative). */
+export const sanityWorkPart = (f: Follower) => B.worker.bonusPerWorker * (f.stats.sanity - 50) * B.stats.sanityWorkPerPoint;
+/** Devotion: each point adds to the Devotion paid by rituals. Percent for one follower. */
+export const followerRitualPct = (f: Follower) => f.stats.devotion * B.stats.devotionRitualPctPerPoint;
+/** Total ritual Devotion bonus from the whole flock, in percent. */
+export const ritualDevotionPct = (run: RunState) => run.followers.reduce((n, f) => n + followerRitualPct(f), 0);
+/** Doubt: the flock's average Doubt slows how fast Suspicion fades. Returns the slowdown as a fraction (0.2 = 20% slower). */
+export function doubtDecayPenalty(run: RunState): number {
+  if (run.followers.length === 0) return 0;
+  const avg = run.followers.reduce((n, f) => n + f.stats.doubt, 0) / run.followers.length;
+  return Math.min(0.9, avg * B.stats.doubtDecayPenaltyPerPoint);
+}
+/** One follower's share of that slowdown, in percent (for display). */
+export const followerDoubtPct = (run: RunState, f: Follower) => (run.followers.length ? (f.stats.doubt * B.stats.doubtDecayPenaltyPerPoint * 100) / run.followers.length : 0);
+
 /** Production per second for a building, including assigned followers. */
 export function productionRate(run: RunState, b: BuildingState): number {
   const def = buildingDef(b.type);
@@ -187,9 +211,7 @@ export function productionRate(run: RunState, b: BuildingState): number {
   let mult = 1;
   for (const f of run.followers) {
     if (f.job !== b.id) continue;
-    let pct = 0;
-    for (const tr of f.traits) pct += traitDef(tr).outputPct ?? 0;
-    mult += B.worker.bonusPerWorker * (0.5 + f.stats.productivity / 100) * (1 + pct / 100);
+    mult += followerWork(f);
   }
   return (def.produces.perMin / 60) * mult;
 }
@@ -321,13 +343,13 @@ export function startRitual(g: GameState, levelId: string): Match3State | null {
   return st;
 }
 
-export interface RitualReward { won: boolean; stars: number; firstTime: boolean; devotion: number; donations: number; basil: number; drafts: number; favor: number; entity: string | null }
+export interface RitualReward { won: boolean; stars: number; firstTime: boolean; flockPct: number; devotion: number; donations: number; basil: number; drafts: number; favor: number; entity: string | null }
 
 /** Close the active ritual and pay out. Call when its status is 'won' or 'lost' (or to abandon). */
 export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
   const run = g.run;
   const st = run.activeRitual as Match3State | null;
-  const out: RitualReward = { won: false, stars: 0, firstTime: false, devotion: 0, donations: 0, basil: 0, drafts: 0, favor: 0, entity: null };
+  const out: RitualReward = { won: false, stars: 0, firstTime: false, flockPct: 0, devotion: 0, donations: 0, basil: 0, drafts: 0, favor: 0, entity: null };
   run.activeRitual = null;
   if (!st || st.status !== 'won') return out;
   const level = st.level;
@@ -339,6 +361,8 @@ export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
   const replay = firstTime ? 1 : R.replayMult;
   let dev = (R.devotionBase + R.devotionPerIndex * idx) * R.starMult[stars];
   if (level.purpose === 'sermon') dev *= 1 + R.sermonBonus;
+  out.flockPct = Math.round(ritualDevotionPct(run));
+  dev *= 1 + ritualDevotionPct(run) / 100;
   out.won = true;
   out.stars = stars;
   out.firstTime = firstTime;
@@ -502,7 +526,7 @@ export function tick(g: GameState, dt: number, emit: Emit = noEmit, opts: { offl
   const don = traitSum(run, 'donationsPerMin');
   if (don > 0) addResource(run, 'donations', (don / 60) * dt * prodMult);
   if (run.suspicion > 0) {
-    const decay = (B.suspicion.decayPerMin / 60) * dt * (1 + traitSum(run, 'suspicionDecayPct') / 100) * (off ? B.offline.suspicionDecayMult : 1);
+    const decay = (B.suspicion.decayPerMin / 60) * dt * (1 + traitSum(run, 'suspicionDecayPct') / 100) * (1 - doubtDecayPenalty(run)) * (off ? B.offline.suspicionDecayMult : 1);
     run.suspicion = Math.max(0, run.suspicion - decay);
   }
   tickMerge(run.reliquary, DATA.merge, dt);

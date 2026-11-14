@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — Follower stats explained
+- Every follower stat now does something, and a follower sheet says exactly what (tap a follower, a Flock card or a recruit card). A "?" button explains the letters.
+- Fixed: portrait covering a stat in the Flock list; Relics help text cut off by the tab bar on short screens.
+- Tests: stat effects, and a text-overflow audit at four screen sizes.
+
 ## 0.2.0 — Ritual feel
 - Rituals now have match feedback: tile pops and particles, line/bomb/sigil effects with shake, squash on landing, chimes that climb with each cascade, combo callouts, goal tiles that fly to their counter, a leftover-moves bonus count and a star-by-star result card.
 - Sound and haptics toggle in Settings (save format v2, old saves migrate). Reduced motion keeps the information and drops the movement.

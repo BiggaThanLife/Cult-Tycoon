@@ -35,6 +35,11 @@ Each system lists: purpose · inputs → outputs · **why play it differently ne
 
 ### 3.1 Followers
 - Individuals with name, portrait seed, 1–2 traits, stats **Devotion, Sanity, Productivity, Doubt** (0–100) and a job slot.
+- **What the stats do** (shown on the follower sheet; numbers in `data/balance.json` `stats`):
+  - **Productivity**: work speed. A follower adds `0.5 x (0.5 + P/100)` of their building's base output (P 50 = +50%).
+  - **Sanity**: steadiness. Each point above or below 50 adds or removes 0.25% output. Low Sanity is played as comedy.
+  - **Devotion**: faith in the leader. Each point adds 0.1% to the Devotion paid by every ritual (flock total).
+  - **Doubt**: questions asked. The flock's average Doubt slows how fast Suspicion fades (0.5% per point). Later: schisms and defections.
 - Traits (v1, 10): Gullible, Zealous, Skeptic, Wealthy, Influencer, Ex-Accountant, Insomniac, Crafty, Green Thumb, Gossip.
 - Synergies (data-driven rules): Influencer + Wealthy in the same building → "Viral Tithe" donation bonus; two Skeptics in one dorm → Schism event; Ex-Accountant in Merch Tent → Suspicion from audits −50%; Gossip + Skeptic → Doubt spreads.
 - Recruitment is a **draft: choose 1 of 3 converts**, rolled from the recruit seed and weighted by buildings/patron.

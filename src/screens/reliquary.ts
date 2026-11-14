@@ -19,6 +19,7 @@ export class ReliquaryScreen extends Screen {
   private charge = new Map<number, { label: Phaser.GameObjects.BitmapText; last: string }>();
   private drag: { from: Loc; sprite: Phaser.GameObjects.Image; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
   private hint: Phaser.GameObjects.BitmapText | null = null;
+  private showHelp = true;
 
   private frameFor(cell: MergeCell): string {
     return cell.kind === 'gen' ? `g_${cell.gen}` : `m_${mergeItemKey(cell.chain, cell.tier)}`;
@@ -89,8 +90,13 @@ export class ReliquaryScreen extends Screen {
       else codex(D.x + Math.floor((D.w - 72) / 2), D.y + 14, false);
       txt(app, this.c, D.x + 5, this.shelf.y - 11, t('merge.shelf'), { color: 'dim' });
     } else {
+      // stack: codex (40) + grid + shelf label and shelf (13 + 24) + help text if there is room for it
       const top = 40;
-      this.grid = { x: B.x + Math.floor((B.w - gw) / 2), y: B.y + top + Math.max(0, Math.floor((B.h - top - gh - CELL - 16) / 2)) };
+      const need = top + gh + 2 + 13 + CELL;
+      const spare = B.h - need;
+      this.showHelp = spare >= 22;
+      const pad = Math.max(0, Math.floor((spare - (this.showHelp ? 22 : 0)) / 2));
+      this.grid = { x: B.x + Math.floor((B.w - gw) / 2), y: B.y + top + pad };
       this.shelf = { x: B.x + Math.floor((B.w - G.shelf * CELL) / 2), y: this.grid.y + gh + 13, cols: G.shelf };
       txt(app, this.c, B.x + 5, B.y + 3, t('merge.codex', { n: best, max: chain.tiers.length }), { color: 'white' });
       codex(B.x + Math.floor((B.w - chain.tiers.length * 24) / 2), B.y + 13, false);
@@ -122,7 +128,8 @@ export class ReliquaryScreen extends Screen {
     };
     rel.cells.forEach((cell, i) => place(cell, { area: 'grid', i }));
     rel.shelf.forEach((cell, i) => place(cell, { area: 'shelf', i }));
-    this.hint = L.dock ? null : txt(app, this.c, B.x + Math.floor(B.w / 2), this.shelf.y + CELL + 3, t('merge.help'), { align: 'center', color: 'pale', width: B.w - 8, maxLines: 2 });
+    // help text only where it fits; on short screens it would slide under the tab bar
+    this.hint = L.dock || !this.showHelp ? null : txt(app, this.c, B.x + Math.floor(B.w / 2), this.shelf.y + CELL + 3, t('merge.help'), { align: 'center', color: 'pale', width: B.w - 8, maxLines: 2 });
   }
 
   override onChanged(): void {

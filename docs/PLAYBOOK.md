@@ -104,6 +104,11 @@ Each recipe ends with **Verify**, which is always `npm run check` plus anything 
 2. Text: `trait.<id>.name`, `trait.<id>.desc` (<= 28 characters so it fits the recruit card). The follower is never the joke.
 3. **Verify**, and look at `p_03_draft.png` and `l_03_draft.png`.
 
+### R9b. Change what a follower stat does
+1. The four effects live in `src/core/game.ts` under "follower stats" (`followerWork`, `ritualDevotionPct`, `doubtDecayPenalty`); the numbers are in `data/balance.json` `stats`.
+2. The follower sheet (`openFollower` in `src/screens/modals.ts`) prints the live effect using those same functions. If you change a formula, change the matching `stat.<key>.effect` and `stat.<key>.guide` text so the sheet never lies.
+3. Update the unit tests in "follower stats do what the follower sheet says", and GDD 3.1 / ECONOMY section 3. Follow R2 (sim before and after). **Verify.**
+
 ### R10. Add or change a sprite
 1. `src/art/sprites.ts`: add `{ key, w, h, draw }` to the list. Draw with the `Pen` helpers (`r`, `box`, `disc`, `ring`, `diamond`, `map`). Colours come from `PAL` only.
 2. Keys must be unique (a test checks). Original art only: never imitate another game's sprites.
@@ -128,7 +133,8 @@ Each recipe ends with **Verify**, which is always `npm run check` plus anything 
 2. Everything must be drawn inside `rebuild()` from state, and must handle both `L.dock` present (landscape) and absent (portrait). In landscape call `this.dockBg()` before drawing into the dock.
 3. Give tappable things a `name` so the playthrough test can press them; minimum size about 20x18 logical pixels.
 4. Smallest screens to fit: 180x320 portrait, 320x180 landscape. The ritual board (160) and merge grid (168) never scale.
-5. **Verify**, then open every changed screen's `p_`, `l_` and `d_` screenshot and check for overlap or cut-off text.
+5. The playthrough runs a layout audit at four sizes (`s_` 360x640 is the smallest phone) and fails if any text leaves its area. It cannot see sprites overlapping text, so still open every changed screen's `s_`, `p_`, `l_` and `d_` screenshot.
+6. **Verify.**
 
 ### R14. Tune how rituals feel
 1. Read `docs/specs/ritual-feel.md`. Change timings in `FEEL` (`src/screens/rituals.ts`) and sounds in `src/ui/sfx.ts`.

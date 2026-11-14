@@ -2,11 +2,11 @@
 import type { App } from '../app';
 import { PAL } from '../art/palette';
 import { DATA, eventDef } from '../core/data';
-import { addResource, addSuspicion, choiceAvailable, debugSkip, draftPick, housing, resolveEvent, triggerEvent } from '../core/game';
+import { addResource, addSuspicion, choiceAvailable, debugSkip, draftPick, followerRitualPct, followerWork, housing, resolveEvent, sanityWorkPart, triggerEvent } from '../core/game';
 import { exportCode, importCode } from '../core/save';
 import { t } from '../core/text';
 import type { Follower } from '../core/types';
-import { bar, button, img, panel, rect, txt, textHeight, type C } from '../ui/kit';
+import { bar, button, hit, img, panel, rect, txt, textHeight, type C } from '../ui/kit';
 import { dialog, frame, modalWidth } from '../ui/modal';
 import { sfx } from '../ui/sfx';
 
@@ -55,32 +55,40 @@ function openOffline(app: App): void {
   });
 }
 
-function followerCard(app: App, c: C, f: Follower, x: number, y: number, w: number, h: number, onPick?: () => void, detail = true): void {
+const STAT_COLORS = { devotion: PAL.pink, sanity: PAL.blue, productivity: PAL.yellow, doubt: PAL.robeD } as const;
+type StatKey = keyof typeof STAT_COLORS;
+const STAT_ORDER: StatKey[] = ['productivity', 'sanity', 'devotion', 'doubt'];
+
+/** Compact follower card. Minimum height 48 in the wide layout so the portrait never covers the stat row. */
+function followerCard(app: App, c: C, f: Follower, x: number, y: number, w: number, h: number, opts: { onPick?: () => void; onOpen?: () => void; detail?: boolean } = {}): void {
   panel(app, c, x, y, w, h, PAL.white);
+  if (opts.onOpen) hit(app, c, x, y, w, h, opts.onOpen).setName('card_open');
   const narrow = w < 110;
   img(app, c, x + 4, y + 4, `fol_${f.skin}_${f.robe}_0`).setScale(2);
   const st = f.stats;
-  const statLine = `${t('stat.devotion.short')}${Math.round(st.devotion)} ${t('stat.sanity.short')}${Math.round(st.sanity)} ${t('stat.productivity.short')}${Math.round(st.productivity)} ${t('stat.doubt.short')}${Math.round(st.doubt)}`;
   if (narrow) {
-    // tall card (landscape draft): portrait on top, traits below, button at the bottom
+    // tall card (landscape draft): portrait on top, traits below, stats, button at the bottom
     txt(app, c, x + 40, y + 6, f.name, { width: w - 44, maxLines: 3 });
     let ty = y + 40;
     for (const tr of f.traits) {
       txt(app, c, x + 4, ty, t(`trait.${tr}.name`), { color: 'irony', width: w - 8, maxLines: 1 });
       ty += 9;
       const d = t(`trait.${tr}.desc`);
-      txt(app, c, x + 4, ty, d, { color: 'dim', width: w - 8, maxLines: 2 });
-      ty += Math.min(2, textHeight(d, w - 8) / 9) * 9 + 2;
+      const lines = f.traits.length > 1 ? 1 : 2;
+      txt(app, c, x + 4, ty, d, { color: 'dim', width: w - 8, maxLines: lines });
+      ty += Math.min(lines, textHeight(d, w - 8) / 9) * 9 + 2;
     }
-    txt(app, c, x + 4, y + h - (onPick ? 31 : 11), statLine, { width: w - 8, maxLines: 1 });
-    if (onPick) button(app, c, x + 3, y + h - 21, w - 6, 18, t('draft.pick'), onPick, { name: 'btn_pick' });
+    const sw = Math.floor((w - 8) / 2);
+    const sy = y + h - (opts.onPick ? 41 : 21);
+    STAT_ORDER.forEach((k, i) => stat(app, c, x + 4 + (i % 2) * sw, sy + Math.floor(i / 2) * 9, sw - 3, k, st[k]));
+    if (opts.onPick) button(app, c, x + 3, y + h - 21, w - 6, 18, t('draft.pick'), opts.onPick, { name: 'btn_pick' });
     return;
   }
   const tx = x + 40;
-  const tw = w - 44 - (onPick ? 40 : 0);
+  const tw = w - 44 - (opts.onPick ? 40 : 0);
   txt(app, c, tx, y + 4, f.name, { width: tw, maxLines: 1 });
   let ty = y + 14;
-  if (detail) {
+  if (opts.detail !== false) {
     for (const tr of f.traits) {
       txt(app, c, tx, ty, t(`trait.${tr}.name`), { color: 'irony', width: w - 44, maxLines: 1 });
       ty += 9;
@@ -90,19 +98,79 @@ function followerCard(app: App, c: C, f: Follower, x: number, y: number, w: numb
   } else {
     txt(app, c, tx, ty, f.traits.map((tr) => t(`trait.${tr}.name`)).join(', '), { color: 'irony', width: w - 44, maxLines: 2 });
   }
-  const sw = Math.floor((w - 12) / 4);
-  const sy = y + h - 9;
-  stat(app, c, x + 4, sy, sw - 2, 'devotion', st.devotion, PAL.pink);
-  stat(app, c, x + 4 + sw, sy, sw - 2, 'sanity', st.sanity, PAL.blue);
-  stat(app, c, x + 4 + sw * 2, sy, sw - 2, 'productivity', st.productivity, PAL.yellow);
-  stat(app, c, x + 4 + sw * 3, sy, sw - 2, 'doubt', st.doubt, PAL.robeD);
-  if (onPick) button(app, c, x + w - 40, y + 2, 38, 18, t('draft.pick'), onPick, { name: 'btn_pick' });
+  // stat row sits below the 32px portrait (y+4 .. y+36)
+  const sw = Math.floor((w - 8) / 4);
+  const sy = Math.max(y + 38, y + h - 10);
+  STAT_ORDER.forEach((k, i) => stat(app, c, x + 4 + i * sw, sy, sw - 3, k, st[k]));
+  if (opts.onPick) button(app, c, x + w - 40, y + 2, 38, 18, t('draft.pick'), opts.onPick, { name: 'btn_pick' });
 }
 
-function stat(app: App, c: C, x: number, y: number, w: number, key: string, value: number, color: string): void {
+function stat(app: App, c: C, x: number, y: number, w: number, key: StatKey, value: number): void {
   txt(app, c, x, y - 1, t(`stat.${key}.short`), { color: 'dim' });
-  bar(app, c, x + 10, y, Math.max(8, w - 24), 6, value / 100, color);
+  bar(app, c, x + 8, y, Math.max(8, w - 22), 6, value / 100, STAT_COLORS[key]);
   txt(app, c, x + w, y - 1, String(Math.round(value)), { align: 'right' });
+}
+
+/** What the four stats do, in general. */
+function openStatGuide(app: App): void {
+  dialog(app, { id: 'stat_guide', title: t('stats.guide.title'), body: STAT_ORDER.map((k) => `${t(`stat.${k}.short`)} = ${t(`stat.${k}.name`)}: ${t(`stat.${k}.guide`)}`).join('\n'), sprite: 'advisor', buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+}
+
+/** Full follower sheet: every stat by name, with what it is doing for you right now. `candidate` = not recruited yet. */
+export function openFollower(app: App, f: Follower, candidate = false): void {
+  app.modals.open({
+    id: 'follower',
+    build(c, _a, close) {
+      const run = app.store.state.run;
+      const land = app.L.landscape;
+      const w = land ? Math.min(app.L.w - 8, 320) : modalWidth(app);
+      const colW = land ? Math.floor((w - 16) / 2) : w - 10;
+      const job = run.buildings.find((b) => b.id === f.job);
+      const size = run.followers.length + (candidate ? 1 : 0);
+      const signed = (n: number) => (n >= 0 ? `+${n}` : String(n));
+      const effects: Record<StatKey, string> = {
+        productivity: t('stat.productivity.effect', { n: Math.round(DATA.balance.worker.bonusPerWorker * (0.5 + f.stats.productivity / 100) * 100) }),
+        sanity: t('stat.sanity.effect', { n: signed(Math.round(sanityWorkPart(f) * 100)) }),
+        devotion: t('stat.devotion.effect', { n: Math.round(followerRitualPct(f)) }),
+        doubt: t('stat.doubt.effect', { n: Math.round((f.stats.doubt * DATA.balance.stats.doubtDecayPenaltyPerPoint * 100) / Math.max(1, size)) }),
+      };
+      const total = t('follower.total', { n: Math.round(followerWork(f) * 100) });
+      const statsH = STAT_ORDER.reduce((n, k) => n + 10 + textHeight(effects[k], colW) + 3, 0) + textHeight(total, colW) + 2;
+      const traitsH = f.traits.reduce((n, tr) => n + 10 + textHeight(t(`trait.${tr}.desc`), colW) + 3, 11);
+      const headH = 38;
+      const bodyH = land ? Math.max(statsH, headH + traitsH) : headH + statsH + traitsH;
+      const r = frame(app, c, w, 16 + bodyH + 24, f.name);
+      // header
+      img(app, c, r.x, r.y, `fol_${f.skin}_${f.robe}_0`).setScale(2);
+      const where = candidate ? t('follower.candidate') : job ? t('follower.job', { building: t(`building.${job.type}.name`) }) : t('follower.idle');
+      txt(app, c, r.x + 38, r.y + 2, where, { width: colW - 38, maxLines: 2 });
+      txt(app, c, r.x + 38, r.y + 22, t('float.follower_fine', { name: f.name }), { color: 'irony', width: colW - 38, maxLines: 1 });
+      // stats
+      let x = land ? r.x + colW + 6 : r.x;
+      let y = land ? r.y : r.y + headH;
+      for (const k of STAT_ORDER) {
+        txt(app, c, x, y, t(`stat.${k}.name`));
+        bar(app, c, x + 72, y + 1, colW - 72 - 18, 6, f.stats[k] / 100, STAT_COLORS[k]);
+        txt(app, c, x + colW, y, String(Math.round(f.stats[k])), { align: 'right' });
+        txt(app, c, x, y + 10, effects[k], { color: 'dim', width: colW });
+        y += 10 + textHeight(effects[k], colW) + 3;
+      }
+      txt(app, c, x, y, total, { color: 'gain', width: colW });
+      y += textHeight(total, colW) + 2;
+      // traits
+      x = r.x;
+      y = land ? r.y + headH : y;
+      txt(app, c, x, y, t('follower.traits'), { color: 'irony' });
+      y += 11;
+      for (const tr of f.traits) {
+        txt(app, c, x, y, t(`trait.${tr}.name`));
+        const d = t(`trait.${tr}.desc`);
+        txt(app, c, x, y + 10, d, { color: 'dim', width: colW });
+        y += 10 + textHeight(d, colW) + 3;
+      }
+      button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
+    },
+  });
 }
 
 function openDraft(app: App): void {
@@ -117,18 +185,21 @@ function openDraft(app: App): void {
         app.modals.close('draft');
         if (f) app.float(t('float.joined', { name: f.name }), undefined, 'irony');
       };
+      const open = (f: Follower) => () => openFollower(app, f, true);
       if (land) {
         const w = Math.min(app.L.w - 8, 330);
         const r = frame(app, c, w, 172, t('draft.title'));
-        txt(app, c, r.x, r.y, t('draft.body'), { width: r.w, maxLines: 2 });
+        txt(app, c, r.x, r.y, t('draft.body'), { width: r.w - 24, maxLines: 2 });
+        button(app, c, r.x + r.w - 20, r.y, 20, 18, '?', () => openStatGuide(app), { fill: PAL.blue, name: 'btn_stat_guide' });
         const cw = Math.min(104, Math.floor((r.w - 8) / 3));
         const x0 = r.x + Math.floor((r.w - (cw * 3 + 8)) / 2);
-        draft.forEach((f, i) => followerCard(app, c, f, x0 + i * (cw + 4), r.y + 20, cw, 130, pick(i)));
+        draft.forEach((f, i) => followerCard(app, c, f, x0 + i * (cw + 4), r.y + 20, cw, 130, { onPick: pick(i), onOpen: open(f) }));
       } else {
         const w = modalWidth(app);
         const r = frame(app, c, w, 16 + 28 + 3 * 67 + 2, t('draft.title'));
-        txt(app, c, r.x, r.y, t('draft.body'), { width: r.w, maxLines: 3 });
-        draft.forEach((f, i) => followerCard(app, c, f, r.x, r.y + 28 + i * 67, r.w, 64, pick(i)));
+        txt(app, c, r.x, r.y, t('draft.body'), { width: r.w - 24, maxLines: 3 });
+        button(app, c, r.x + r.w - 20, r.y, 20, 18, '?', () => openStatGuide(app), { fill: PAL.blue, name: 'btn_stat_guide' });
+        draft.forEach((f, i) => followerCard(app, c, f, r.x, r.y + 28 + i * 67, r.w, 64, { onPick: pick(i), onOpen: open(f) }));
       }
     },
   });
@@ -160,18 +231,20 @@ export function openRoster(app: App): void {
     id: 'roster',
     build(c, _a, close) {
       const run = app.store.state.run;
-      const w = modalWidth(app);
       const land = app.L.landscape;
       const list = run.followers;
-      const rowH = 40;
+      const rowH = 50;
       const cols = land ? 2 : 1;
-      const fw = land ? Math.min(app.L.w - 8, 320) : w;
+      const fw = land ? Math.min(app.L.w - 8, 320) : modalWidth(app);
       const rows = Math.max(1, Math.ceil(list.length / cols));
-      const r = frame(app, c, fw, 16 + 12 + rows * (rowH + 2) + 24, t('roster.title', { n: list.length, cap: housing(run) }));
+      const r = frame(app, c, fw, 16 + rows * (rowH + 2) + 4 + 22, t('roster.title', { n: list.length, cap: housing(run) }));
       if (list.length === 0) txt(app, c, r.x, r.y, t('roster.empty'), { width: r.w });
       const cw = Math.floor((r.w - (cols - 1) * 4) / cols);
-      list.forEach((f, i) => followerCard(app, c, f, r.x + (i % cols) * (cw + 4), r.y + 2 + Math.floor(i / cols) * (rowH + 2), Math.max(cw, 110), rowH, undefined, false));
-      button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
+      list.forEach((f, i) => followerCard(app, c, f, r.x + (i % cols) * (cw + 4), r.y + Math.floor(i / cols) * (rowH + 2), Math.max(cw, 110), rowH, { detail: false, onOpen: () => openFollower(app, f) }));
+      const by = r.y + r.h - 18;
+      if (list.length) txt(app, c, r.x, by + 1, t('roster.hint'), { color: 'dim', width: r.w - 80, maxLines: 2 });
+      button(app, c, r.x + r.w - 76, by, 22, 18, '?', () => openStatGuide(app), { fill: PAL.blue, name: 'btn_stat_guide' });
+      button(app, c, r.x + r.w - 50, by, 50, 18, t('common.close'), close, { name: 'btn_close' });
     },
   });
 }

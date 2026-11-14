@@ -56,7 +56,8 @@ flowchart LR
 | Ritual Circle | +10% ritual rewards, unlocks Summoning | 400/200 | |
 | Dormitory | houses 4 followers (+2/lvl) | 40/15 | ×2 cost |
 | Compound Wall (segment) | −15% Suspicion gain from enclosed buildings | 40/20 each | |
-Follower productivity multiplier: `0.5 + Productivity/100` (range 0.5–1.5). Traits add flat % (additive).
+Follower work: each worker adds `0.5 x (0.5 + Productivity/100 + (Sanity-50) x 0.005) x (1 + trait %)` of the building's base output.
+Devotion: ritual Devotion rewards x `(1 + sum(Devotion) x 0.1%)`. Doubt: Suspicion decay x `(1 - avg(Doubt) x 0.5%)`.
 
 ## 4. Crops (real-time grow, harvest yield)
 | Crop | Grow | Yield | Seed cost (Don) |

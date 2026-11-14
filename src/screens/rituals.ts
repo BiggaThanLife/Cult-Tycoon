@@ -587,6 +587,7 @@ export class RitualScreen extends Screen {
     const app = this.app;
     const lines = [t('ritual.won.score', { n: score })];
     if (rw.devotion) lines.push(t('ritual.won.devotion', { n: rw.devotion }));
+    if (rw.flockPct) lines.push(t('ritual.won.flock', { n: rw.flockPct }));
     if (rw.donations) lines.push(t('ritual.won.donations', { n: rw.donations }));
     if (rw.basil) lines.push(t('ritual.won.basil', { n: rw.basil }));
     if (rw.drafts) lines.push(t('ritual.won.drafts', { n: rw.drafts }));

@@ -17,16 +17,16 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
 | 1:29 | step: draft1 | 172 | 36 | 0 | 1 |
 | 1:41 | step: ritual2 | 172 | 36 | 6 | 1 |
-| 2:48 | step: draft2 | 247 | 42 | 5 | 1 |
-| 3:12 | step: build_greenhouse | 247 | 42 | 23 | 1 |
-| 3:22 | step: plant | 222 | 32 | 23 | 1 |
-| 3:32 | step: merge | 222 | 28 | 23 | 1 |
-| 3:49 | step: harvest | 222 | 28 | 23 | 1 |
-| 6:28 | step: build_lab | 402 | 40 | 22 | 1 |
-| 6:38 | step: brew | 342 | 15 | 22 | 1 |
-| 6:53 | step: reporter | 342 | 15 | 21 | 1 |
-| 7:04 | step: ritual3 | 342 | 16 | 6 | 1 |
-| 8:03 | step: orders | 432 | 23 | 6 | 1 |
+| 2:48 | step: draft2 | 251 | 42 | 6 | 1 |
+| 3:12 | step: build_greenhouse | 251 | 42 | 23 | 1 |
+| 3:22 | step: plant | 226 | 32 | 23 | 1 |
+| 3:32 | step: merge | 226 | 28 | 23 | 1 |
+| 3:49 | step: harvest | 226 | 28 | 23 | 1 |
+| 6:28 | step: build_lab | 433 | 40 | 22 | 1 |
+| 6:38 | step: brew | 373 | 15 | 22 | 1 |
+| 6:53 | step: reporter | 373 | 15 | 22 | 1 |
+| 7:04 | step: ritual3 | 373 | 16 | 7 | 1 |
+| 8:03 | step: orders | 477 | 23 | 6 | 1 |
 | 8:23 | step: away | 500 | 58 | 6 | 2 |
 
 ## casual (1-star, fails hard rituals once, dawdles)
@@ -42,17 +42,17 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
 | 1:59 | step: draft1 | 132 | 36 | 0 | 1 |
 | 2:11 | step: ritual2 | 132 | 36 | 6 | 1 |
-| 5:23 | step: draft2 | 182 | 42 | 4 | 1 |
-| 5:47 | step: build_greenhouse | 182 | 42 | 16 | 1 |
-| 6:27 | step: plant | 157 | 32 | 16 | 1 |
-| 6:37 | step: merge | 157 | 28 | 16 | 1 |
-| 6:54 | step: harvest | 157 | 28 | 16 | 1 |
-| 9:33 | step: build_lab | 277 | 37 | 14 | 1 |
-| 10:13 | step: brew | 217 | 12 | 14 | 1 |
-| 10:28 | step: reporter | 217 | 12 | 14 | 1 |
-| 10:39 | step: ritual3 | 217 | 12 | 0 | 1 |
-| 13:51 | step: orders | 277 | 18 | 0 | 1 |
-| 14:11 | step: away | 417 | 53 | 0 | 2 |
+| 5:23 | step: draft2 | 184 | 42 | 5 | 1 |
+| 5:47 | step: build_greenhouse | 184 | 42 | 17 | 1 |
+| 6:27 | step: plant | 159 | 32 | 16 | 1 |
+| 6:37 | step: merge | 159 | 28 | 16 | 1 |
+| 6:54 | step: harvest | 159 | 28 | 16 | 1 |
+| 9:33 | step: build_lab | 297 | 37 | 15 | 1 |
+| 10:13 | step: brew | 237 | 12 | 15 | 1 |
+| 10:28 | step: reporter | 237 | 12 | 15 | 1 |
+| 10:39 | step: ritual3 | 237 | 12 | 0 | 1 |
+| 13:51 | step: orders | 306 | 18 | 0 | 1 |
+| 14:11 | step: away | 446 | 53 | 0 | 2 |
 
 ## slow reader (1-star, long pauses)
 
@@ -67,15 +67,15 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
 | 2:59 | step: draft1 | 132 | 36 | 0 | 1 |
 | 3:11 | step: ritual2 | 132 | 36 | 6 | 1 |
-| 7:23 | step: draft2 | 182 | 42 | 4 | 1 |
-| 7:47 | step: build_greenhouse | 182 | 42 | 16 | 1 |
-| 9:27 | step: plant | 157 | 33 | 15 | 1 |
-| 9:37 | step: merge | 157 | 30 | 15 | 1 |
-| 9:54 | step: harvest | 157 | 30 | 14 | 1 |
-| 12:33 | step: build_lab | 277 | 41 | 13 | 1 |
-| 14:13 | step: brew | 217 | 18 | 12 | 1 |
-| 14:28 | step: reporter | 217 | 18 | 12 | 1 |
-| 14:39 | step: ritual3 | 217 | 19 | 0 | 1 |
-| 18:51 | step: orders | 277 | 29 | 0 | 1 |
-| 19:11 | step: away | 417 | 64 | 0 | 2 |
+| 7:23 | step: draft2 | 185 | 42 | 4 | 1 |
+| 7:47 | step: build_greenhouse | 185 | 42 | 16 | 1 |
+| 9:27 | step: plant | 160 | 33 | 15 | 1 |
+| 9:37 | step: merge | 160 | 30 | 15 | 1 |
+| 9:54 | step: harvest | 160 | 30 | 15 | 1 |
+| 12:33 | step: build_lab | 301 | 41 | 13 | 1 |
+| 14:13 | step: brew | 241 | 18 | 12 | 1 |
+| 14:28 | step: reporter | 241 | 18 | 12 | 1 |
+| 14:39 | step: ritual3 | 241 | 19 | 0 | 1 |
+| 18:51 | step: orders | 311 | 29 | 0 | 1 |
+| 19:11 | step: away | 451 | 64 | 0 | 2 |
 

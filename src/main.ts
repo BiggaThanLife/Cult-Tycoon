@@ -79,7 +79,38 @@ function find(name: string): { x: number; y: number } | null {
   const k = r.width / game.canvas.width;
   return { x: r.left + (m.tx + z.width / 2) * k, y: r.top + (m.ty + z.height / 2) * k };
 }
-(window as unknown as { __ct: unknown }).__ct = { store, game, relayout, find, core, findHint, app: () => game.scene.getScene('app') };
+/** Layout audit for tests: texts in the current screen that poke outside the body/dock, and texts in the
+ *  open modal that poke outside the canvas. Returns short descriptions; empty means clean. */
+function audit(): string[] {
+  const app = game.scene.getScene('app') as App;
+  const L = app.L;
+  const out: string[] = [];
+  const texts = (list: Phaser.GameObjects.GameObject[], acc: Phaser.GameObjects.BitmapText[] = []) => {
+    for (const o of list) {
+      if (o instanceof Phaser.GameObjects.BitmapText && o.visible && o.alpha > 0.5 && o.text) acc.push(o);
+      else if (o instanceof Phaser.GameObjects.Container && o.visible) texts(o.list, acc);
+    }
+    return acc;
+  };
+  const screen = app.screens[app.tab];
+  const full = screen.fullHeight();
+  const top = full ? L.banner.y : L.body.y;
+  const bottom = L.body.y + L.body.h;
+  type Box = { l: number; t: number; r: number; b: number };
+  const inside = (b: { x: number; y: number; width: number; height: number }, box: Box) => b.x >= box.l - 1 && b.y >= box.t - 1 && b.x + b.width <= box.r + 1 && b.y + b.height <= box.b + 1;
+  const check = (list: Phaser.GameObjects.GameObject[], boxes: Box[], where: string) => {
+    for (const tx of texts(list)) {
+      const b = tx.getTextBounds(true).global;
+      if (!boxes.some((box) => inside(b, box))) out.push(`${where}: "${tx.text.slice(0, 24).replace(/\n/g, ' ')}" at ${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}`);
+    }
+  };
+  const bodyBox: Box = { l: L.body.x, t: top, r: L.body.x + L.body.w, b: bottom };
+  const boxes = L.dock ? [bodyBox, { l: L.dock.x, t: L.dock.y, r: L.dock.x + L.dock.w, b: L.dock.y + L.dock.h }] : [bodyBox];
+  if (app.modals.active) check((app as unknown as { modalLayer: Phaser.GameObjects.Container }).modalLayer.list, [{ l: 0, t: 0, r: L.w, b: L.h }], `modal ${app.modals.active.id}`);
+  else if (app.tab !== 'compound') check(screen.c.list, boxes, app.tab);
+  return out;
+}
+(window as unknown as { __ct: unknown }).__ct = { audit,  store, game, relayout, find, core, findHint, app: () => game.scene.getScene('app') };
 
 if ('serviceWorker' in navigator && import.meta.env.PROD && location.protocol === 'https:' && !document.documentElement.dataset.single) {
   navigator.serviceWorker.register('./sw.js').catch(() => { /* offline support is optional */ });

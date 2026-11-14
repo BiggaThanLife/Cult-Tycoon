@@ -121,6 +121,46 @@ describe('vertical slice (headless)', () => {
   });
 });
 
+describe('follower stats do what the follower sheet says', () => {
+  const mk = (stats: Partial<Record<'devotion' | 'sanity' | 'productivity' | 'doubt', number>>, traits: string[] = []) =>
+    ({ id: 1, name: 'Test', traits, stats: { devotion: 50, sanity: 50, productivity: 50, doubt: 0, ...stats }, skin: 0, robe: 0, job: null });
+  it('Productivity sets work speed, Sanity nudges it, Zealous multiplies it', () => {
+    expect(G.followerWork(mk({}))).toBeCloseTo(0.5, 5);                       // 0.5 x (0.5 + 50/100)
+    expect(G.followerWork(mk({ productivity: 100 }))).toBeCloseTo(0.75, 5);
+    expect(G.followerWork(mk({ sanity: 100 }))).toBeCloseTo(0.625, 5);        // +25 points of effort x 0.5
+    expect(G.followerWork(mk({ sanity: 0 }))).toBeCloseTo(0.375, 5);
+    expect(G.followerWork(mk({}, ['zealous']))).toBeCloseTo(0.6, 5);
+    expect(G.sanityWorkPart(mk({ sanity: 70 }))).toBeCloseTo(0.05, 5);
+    const g = G.newGame(1, T0);
+    g.run.tutorial = 'build_hall';
+    G.placeBuilding(g, 'sermon_hall', 8, 10);
+    const hall = g.run.buildings.find((b) => b.type === 'sermon_hall')!;
+    const base = G.productionRate(g.run, hall);
+    g.run.followers.push({ ...mk({ productivity: 100 }), job: hall.id });
+    expect(G.productionRate(g.run, hall)).toBeCloseTo(base * 1.75, 5);
+  });
+  it('Devotion raises ritual Devotion rewards', () => {
+    const plain = G.newGame(3, T0); plain.run.tutorial = 'ritual1';
+    const flock = G.newGame(3, T0); flock.run.tutorial = 'ritual1';
+    flock.run.followers.push(mk({ devotion: 100 }), { ...mk({ devotion: 50 }), id: 2 });
+    expect(G.ritualDevotionPct(flock.run)).toBeCloseTo(15, 5);
+    const a = win(plain, 'r1');
+    const b = win(flock, 'r1');
+    expect(b.flockPct).toBe(15);
+    expect(b.devotion).toBe(Math.round(a.devotion * 1.15));
+  });
+  it('Doubt slows how fast Suspicion fades', () => {
+    const calm = G.newGame(1, T0); const doubting = G.newGame(1, T0);
+    calm.run.followers.push(mk({ doubt: 0 }));
+    doubting.run.followers.push(mk({ doubt: 80 }));
+    expect(G.doubtDecayPenalty(doubting.run)).toBeCloseTo(0.4, 5);
+    calm.run.suspicion = 50; doubting.run.suspicion = 50;
+    G.tick(calm, 600); G.tick(doubting, 600);
+    expect(50 - calm.run.suspicion).toBeCloseTo(5, 5);
+    expect(50 - doubting.run.suspicion).toBeCloseTo(3, 5);
+  });
+});
+
 describe('save', () => {
   it('round-trips, keeps a backup and survives corruption', () => {
     const kv = memoryKV();
