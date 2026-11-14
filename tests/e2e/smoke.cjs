@@ -1,0 +1,260 @@
+// End-to-end smoke test: plays the whole vertical slice with real taps, in portrait and landscape,
+// rotates mid-ritual and mid-merge, and checks the offline summary after a reload.
+// Usage: npm run build && npm run e2e   (starts its own preview server)
+const { chromium } = require('playwright');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const PORT = 4179;
+const URL = `http://localhost:${PORT}/`;
+const SHOTS = path.join(__dirname, 'shots');
+const PORTRAIT = { width: 390, height: 844 };
+const LANDSCAPE = { width: 844, height: 390 };
+const DESKTOP = { width: 1280, height: 720 };
+const checks = [];
+const errors = [];
+const check = (name, ok, detail = '') => {
+  checks.push({ name, ok: !!ok });
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  ' + detail : ''}`);
+};
+
+(async () => {
+  fs.mkdirSync(SHOTS, { recursive: true });
+  const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { cwd: path.join(__dirname, '..', '..'), stdio: 'ignore' });
+  await new Promise((r) => setTimeout(r, 2500));
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: PORTRAIT, deviceScaleFactor: 1 });
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('dialog', (d) => d.dismiss());
+
+  const wait = (ms = 250) => page.waitForTimeout(ms);
+  const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
+  const st = () => page.evaluate(() => JSON.parse(JSON.stringify(window.__ct.store.state)));
+  const run = async () => (await st()).run;
+  const tap = async (name, opts = {}) => {
+    for (let i = 0; i < 20; i++) {
+      const pos = await page.evaluate((n) => window.__ct.find(n), name);
+      if (pos) { await page.mouse.click(pos.x, pos.y); await wait(opts.wait ?? 220); return true; }
+      await wait(100);
+    }
+    if (!opts.optional) check(`tap ${name}`, false, 'not found');
+    return false;
+  };
+  /** Logical (canvas) point → CSS point. */
+  const css = (p) => page.evaluate((q) => { const c = window.__ct.game.canvas; const r = c.getBoundingClientRect(); const k = r.width / c.width; return { x: r.left + q.x * k, y: r.top + q.y * k }; }, p);
+  const clickLogical = async (p) => { const c = await css(p); await page.mouse.click(c.x, c.y); await wait(); };
+  const dragLogical = async (a, b) => {
+    const ca = await css(a); const cb = await css(b);
+    await page.mouse.move(ca.x, ca.y); await page.mouse.down();
+    await page.mouse.move((ca.x + cb.x) / 2, (ca.y + cb.y) / 2, { steps: 4 });
+    await page.mouse.move(cb.x, cb.y, { steps: 4 }); await page.mouse.up(); await wait(300);
+  };
+  /** The curious cat can wander in at any time. Adopt it and carry on. */
+  const cat = async () => {
+    await wait(200);
+    if ((await run()).event?.id !== 'cat') return;
+    await tap('btn_choice_yes'); await tap('btn_ok');
+    check('event: the cat was adopted', (await run()).flags.cat_adopted === true);
+  };
+  const skip = async (sec) => { await page.evaluate((s) => window.__ct.store.act((g, e) => window.__ct.core.debugSkip(g, s, e)), sec); await cat(); };
+  const items = async () => JSON.stringify((await run()).reliquary.cells.map((c) => (c && c.kind === 'item' ? [c.id, c.tier] : c ? 'gen' : null)));
+  const rotate = async (vp) => { await page.setViewportSize(vp); await wait(450); };
+  const build = async (type) => { await cat(); await tap('btn_build'); await tap(`btn_pick_${type}`); await tap('btn_place'); };
+  const winRitual = async (id, { rotateMid = false } = {}) => {
+    await tap('tab_rituals');
+    await tap(`btn_play_${id}`);
+    await wait(300);
+    if (rotateMid) {
+      // one real swipe using the engine's hint, then rotate and compare state
+      const mv = await page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
+      await dragLogical(mv.a, mv.b);
+      await wait(1800);
+      const before = JSON.stringify((await run()).activeRitual);
+      check('ritual: a real swipe used a move', JSON.parse(before).movesUsed === 1);
+      await shot('p_ritual_play');
+      await rotate(LANDSCAPE);
+      const mid = JSON.stringify((await run()).activeRitual);
+      check('rotate mid-ritual keeps the board', before === mid);
+      await shot('l_ritual_play');
+      const mv2 = await page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
+      await dragLogical(mv2.a, mv2.b);
+      await wait(1800);
+      check('ritual: playable in landscape', (await run()).activeRitual.movesUsed === 2);
+      await rotate(PORTRAIT);
+    }
+    await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = Math.max(r.score, r.level.starScores[2]); }));
+    await wait(500);
+  };
+
+  await page.goto(URL);
+  await page.evaluate(() => { localStorage.clear(); });
+  await page.reload();
+  await wait(1000);
+
+  // 1. arrival
+  await shot('p_01_welcome');
+  check('boot: welcome step', (await run()).tutorial === 'welcome');
+  await tap('btn_ok');
+  // 2. build + collect
+  await build('sermon_hall');
+  check('build: Sermon Hall placed', (await run()).buildings.some((b) => b.type === 'sermon_hall'));
+  await skip(90);
+  await wait(300);
+  const hallPos = await page.evaluate(() => { const a = window.__ct.app(); const b = window.__ct.store.state.run.buildings.find((x) => x.type === 'sermon_hall'); return a.screens.compound.floatPos({ building: b.id }); });
+  const devBefore = (await run()).devotion;
+  await clickLogical({ x: hallPos.x, y: hallPos.y + 40 });
+  check('collect: tapping the hall pays Devotion', (await run()).devotion > devBefore);
+  await shot('p_02_compound');
+  // 3. rituals + recruits
+  await winRitual('r1', { rotateMid: true });
+  await shot('p_03_ritual_won');
+  await tap('btn_ok');
+  await wait(400);
+  await shot('p_03_draft');
+  await rotate(LANDSCAPE); await shot('l_03_draft'); await rotate(PORTRAIT);
+  await tap('btn_pick');
+  check('recruit: first follower', (await run()).followers.length === 1);
+  check('suspicion rises on recruit', (await run()).suspicion > 0);
+  await winRitual('r2');
+  await tap('btn_ok'); await wait(400);
+  await tap('btn_pick'); await wait(400);
+  await tap('btn_pick'); await wait(300);
+  const r3f = await run();
+  check('recruit: three followers with traits', r3f.followers.length === 3 && r3f.followers.every((f) => f.traits.length >= 1));
+  const suspPeak = r3f.suspicion;
+  // 4. greenhouse + planting
+  await tap('tab_compound');
+  await build('greenhouse');
+  await tap('tab_alchemy');
+  await tap('plot_0'); await tap('btn_seed_basil');
+  await tap('plot_1'); await tap('btn_seed_nightshade');
+  check('garden: two crops planted', (await run()).tutorial === 'merge');
+  await shot('p_04_garden');
+  // 5. merge to tier 3 (real taps and drags)
+  await tap('tab_reliquary');
+  const cellPos = (i) => page.evaluate((idx) => { const s = window.__ct.app().screens.reliquary; const p = s.locPos({ area: 'grid', i: idx }); return { x: p.x + 12, y: p.y + 12 }; }, i);
+  let rotated = false;
+  for (let guard = 0; guard < 40; guard++) {
+    const s = await st();
+    if ((s.meta.mergeCodex.paper || 1) >= 3) break;
+    const cells = s.run.reliquary.cells;
+    let pair = null;
+    for (let i = 0; i < cells.length && !pair; i++) for (let j = i + 1; j < cells.length; j++) {
+      const a = cells[i]; const b = cells[j];
+      if (a && b && a.kind === 'item' && b.kind === 'item' && a.tier === b.tier) { pair = [i, j]; break; }
+    }
+    if (pair) {
+      await dragLogical(await cellPos(pair[0]), await cellPos(pair[1]));
+      if (!rotated) {
+        rotated = true;
+        const before = await items();
+        await shot('p_05_reliquary');
+        await rotate(LANDSCAPE);
+        check('rotate mid-merge keeps the grid', before === (await items()));
+        await shot('l_05_reliquary');
+        await rotate(PORTRAIT);
+      }
+    } else {
+      const gen = cells.findIndex((c) => c && c.kind === 'gen');
+      if (cells[gen].charges <= 0) await skip(20);
+      await clickLogical(await cellPos(gen));
+    }
+  }
+  check('merge: reached Manifesto (tier 3)', ((await st()).meta.mergeCodex.paper || 1) >= 3);
+  await shot('p_05_reliquary_done');
+  // harvest
+  await skip(130);
+  await tap('tab_alchemy'); await wait(400);
+  await tap('plot_0'); await tap('plot_1');
+  const inv1 = (await run()).inventory;
+  check('garden: harvested basil and nightshade', inv1.basil >= 3 && inv1.nightshade >= 2, JSON.stringify(inv1));
+  // 6. lab + brew
+  await tap('tab_compound');
+  await build('alchemy_lab');
+  await shot('p_06_compound_full');
+  await tap('tab_alchemy');
+  await tap('chip_basil'); await tap('chip_nightshade');
+  await shot('p_06_lab');
+  await tap('btn_brew'); await wait(300);
+  await shot('p_06_stir');
+  await tap('btn_skip'); await wait(300);
+  await shot('p_06_brew_result');
+  check('brew: Amnesia Brew made and logged', (await run()).inventory.amnesia_brew >= 1 && (await st()).meta.grimoire.includes('amnesia_brew'));
+  await tap('btn_ok'); await wait(600);
+  // 7. reporter
+  await shot('p_07_reporter');
+  check('event: reporter arrives', (await run()).event && (await run()).event.id === 'reporter');
+  const suspBefore = (await run()).suspicion;
+  await tap('btn_choice_sample'); await wait(300);
+  await shot('p_07_reporter_result');
+  const suspAfter = (await run()).suspicion;
+  check('suspicion: rose with recruits, then fell', suspPeak >= 15 && suspAfter < suspBefore, `peak ${suspPeak.toFixed(1)} -> ${suspBefore.toFixed(1)} -> ${suspAfter.toFixed(1)}`);
+  await tap('btn_ok');
+  // 8. summon + orders
+  await winRitual('r3');
+  await tap('btn_ok'); await wait(400);
+  await shot('p_08_mothman');
+  await tap('btn_ok'); await wait(400);
+  await shot('p_08_orders');
+  await rotate(LANDSCAPE); await shot('l_08_orders'); await rotate(PORTRAIT);
+  await tap('btn_deliver_mothman_1'); await shot('p_08_order_thanks'); await tap('btn_ok');
+  await tap('btn_deliver_mothman_2'); await tap('btn_ok');
+  const afterOrders = await run();
+  check('orders: both Mothman orders filled', afterOrders.orders.length === 2 && afterOrders.orders.every((o) => o.filled));
+  check('orders: Favor earned and Compound Lv2', afterOrders.favor.mothman >= 40 && afterOrders.level >= 2, `favor ${afterOrders.favor.mothman} lv ${afterOrders.level}`);
+  check('tutorial: asks the player to leave', afterOrders.tutorial === 'away');
+  // 9. close, reopen an hour later
+  await page.evaluate(() => {
+    window.__ct.store.save();
+    const env = JSON.parse(localStorage.getItem('ct.save'));
+    env.data.lastSeenWall -= 3600 * 1000;
+    env.data.highWater -= 3600 * 1000;
+    localStorage.setItem('ct.save', JSON.stringify(env));
+    window.__ct.store.save = () => true; // keep the edited save until the reload
+  });
+  await page.reload();
+  await wait(1200);
+  await shot('p_09_welcome_back');
+  const back = await st();
+  check('offline: state survived the reload', back.run.followers.length === 3 && back.run.buildings.length === 4);
+  check('offline: summary shown after an hour away', await page.evaluate(() => !!(window.__ct.store.offline && window.__ct.store.offline.show && window.__ct.store.offline.appliedSec >= 3599)));
+  await tap('btn_ok');
+  check('tutorial: moved on to the Ascension tease', (await run()).tutorial === 'ascension');
+  // clock moved backwards: nothing gained, nothing lost
+  const roll = await page.evaluate(() => { const s = window.__ct.store; const d = s.state.run.buildings.reduce((n, b) => n + b.stored, 0); s.state.lastSeenWall = Date.now() + 86400000; s.state.highWater = s.state.lastSeenWall; const o = s.resume(); return { applied: o.appliedSec, rollback: o.rollback, same: Math.abs(s.state.run.buildings.reduce((n, b) => n + b.stored, 0) - d) < 0.5 }; });
+  check('clock rollback grants nothing', roll.rollback && roll.applied === 0 && roll.same);
+  // 10. ascension preview
+  await wait(600); await cat();
+  await tap('btn_menu'); await shot('p_10_menu'); await tap('menu_0'); await wait(300);
+  await shot('p_10_ascension');
+  await rotate(LANDSCAPE); await shot('l_10_ascension'); await rotate(PORTRAIT);
+  await tap('btn_close');
+  check('tutorial: slice complete', (await run()).tutorial === 'done');
+  // debug panel
+  await cat();
+  await tap('btn_menu'); await tap('menu_4'); await wait(300); await shot('p_11_debug');
+  await rotate(LANDSCAPE); await shot('l_11_debug'); await rotate(PORTRAIT);
+  await tap('debug_11');
+
+  // every tab, three shapes
+  for (const [prefix, vp] of [['p', PORTRAIT], ['l', LANDSCAPE], ['d', DESKTOP]]) {
+    await rotate(vp);
+    for (const tab of ['compound', 'rituals', 'reliquary', 'alchemy', 'orders']) {
+      await tap(`tab_${tab}`, { optional: tab === 'compound' });
+      await wait(250);
+      await shot(`${prefix}_tab_${tab}`);
+    }
+    await tap('tab_compound', { optional: true });
+    const size = await page.evaluate(() => { const c = window.__ct.game.canvas; const r = c.getBoundingClientRect(); return { w: c.width, h: c.height, k: (r.width / c.width) * devicePixelRatio, fits: r.width <= innerWidth + 0.5 && r.height <= innerHeight + 0.5 }; });
+    check(`layout ${prefix}: integer pixel scale and fits the window`, Number.isInteger(size.k) && size.fits, `${size.w}x${size.h} @${size.k}x`);
+  }
+  check('no console or page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
+
+  await browser.close();
+  server.kill();
+  const failed = checks.filter((c) => !c.ok);
+  console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`);
+  process.exit(failed.length ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

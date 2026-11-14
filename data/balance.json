@@ -1,0 +1,13 @@
+{
+  "start": { "devotion": 50, "donations": 30 },
+  "caps": { "devotion": 500, "donations": 300 },
+  "offline": { "capSec": 28800, "productionMult": 0.6, "suspicionDecayMult": 0.5, "maxSaneGapSec": 2592000, "summaryMinSec": 60 },
+  "suspicion": { "decayPerMin": 0.5, "perRecruit": 6, "max": 100, "bands": [25, 50, 75] },
+  "xp": { "base": 60, "exp": 1.6, "perOrderBase": 10, "perOrderPerLevel": 2, "entityOrderMult": 1.5, "perBuild": 10, "perStar": 2 },
+  "ritual": { "devotionBase": 40, "devotionPerIndex": 10, "donationsFlat": 6, "coinValue": 1, "starMult": [1, 1, 1.25, 1.5], "sermonBonus": 1, "replayMult": 0.5, "summonFavor": 20 },
+  "worker": { "bonusPerWorker": 0.5 },
+  "map": { "size": 24, "usable": { "x": 6, "y": 6, "w": 12, "h": 12 } },
+  "speeds": [1, 2, 4],
+  "stir": { "periodSec": 1.2, "zone": 0.22 },
+  "cat": { "minSec": 150, "maxSec": 300 }
+}

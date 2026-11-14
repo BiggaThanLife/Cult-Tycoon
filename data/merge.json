@@ -1,0 +1,10 @@
+{
+  "grid": { "w": 7, "h": 7, "shelf": 6 },
+  "chains": [
+    { "id": "paper", "tiers": ["pamphlet", "brochure", "manifesto", "scripture", "tome"] }
+  ],
+  "generators": [
+    { "id": "donation_box", "chain": "paper", "maxCharges": 6, "rechargeSec": 8, "tierWeights": [1] }
+  ],
+  "start": [ { "gen": "donation_box", "x": 3, "y": 3 } ]
+}

@@ -1,0 +1,18 @@
+{
+  "names": ["Bartholomew", "Agnes", "Cornelius", "Mildred", "Percival", "Dolores", "Ignatius", "Winifred", "Thaddeus", "Prudence", "Barnaby", "Hortense", "Ezekiel", "Beatrix", "Mortimer", "Philippa", "Rupert", "Clementine", "Gideon", "Octavia", "Leopold", "Tabitha", "Algernon", "Eudora"],
+  "traits": [
+    { "id": "gullible", "stats": { "devotion": 20, "doubt": -15 } },
+    { "id": "zealous", "stats": { "devotion": 15 }, "outputPct": 20 },
+    { "id": "skeptic", "stats": { "doubt": 25, "devotion": -10 } },
+    { "id": "wealthy", "donationsPerMin": 1 },
+    { "id": "influencer", "recruitSuspicion": 3, "stats": { "devotion": 5 } },
+    { "id": "ex_accountant", "suspicionDecayPct": 25 },
+    { "id": "insomniac", "stats": { "productivity": 20, "sanity": -15 } },
+    { "id": "crafty", "stats": { "productivity": 10 } },
+    { "id": "green_thumb", "cropYieldBonus": 1 },
+    { "id": "gossip", "stats": { "doubt": 10 } }
+  ],
+  "skins": 4,
+  "robes": 4,
+  "draftSize": 3
+}

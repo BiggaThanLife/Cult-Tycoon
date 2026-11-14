@@ -1,0 +1,9 @@
+{
+  "recipes": [
+    { "id": "amnesia_brew", "ingredients": ["basil", "nightshade"], "output": "amnesia_brew", "hinted": true },
+    { "id": "pesto", "ingredients": ["basil", "basil"], "output": "pesto", "hinted": false }
+  ],
+  "failOutput": "sludge",
+  "minIngredients": 2,
+  "maxIngredients": 4
+}

@@ -9,3 +9,6 @@
 - Follower yearbook photo booth
 - Capacitor/desktop wrappers
 - Second language
+- PNG sprite export + asset manifest (`tools/art/`), texture pooling
+- Coin tiles and 6-type ritual boards
+- GitHub Pages deploy workflow

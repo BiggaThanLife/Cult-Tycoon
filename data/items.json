@@ -1,0 +1,9 @@
+{
+  "items": [
+    { "id": "basil", "kind": "ingredient" },
+    { "id": "nightshade", "kind": "ingredient" },
+    { "id": "amnesia_brew", "kind": "potion" },
+    { "id": "pesto", "kind": "potion" },
+    { "id": "sludge", "kind": "potion" }
+  ]
+}

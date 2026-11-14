@@ -1,0 +1,18 @@
+{
+  "events": [
+    {
+      "id": "reporter", "sprite": "reporter",
+      "choices": [
+        { "id": "sample", "requires": { "item": "amnesia_brew", "count": 1 }, "effects": { "suspicion": -15, "consume": { "item": "amnesia_brew", "count": 1 } } },
+        { "id": "no_comment", "effects": { "suspicion": 5 } }
+      ]
+    },
+    {
+      "id": "cat", "sprite": "cat",
+      "choices": [
+        { "id": "yes", "effects": { "flag": "cat_adopted", "devotion": 5 } },
+        { "id": "also_yes", "effects": { "flag": "cat_adopted", "devotion": 5 } }
+      ]
+    }
+  ]
+}

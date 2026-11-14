@@ -1,0 +1,15 @@
+{
+  "entities": [
+    {
+      "id": "mothman",
+      "archetype": "omens",
+      "summonRitual": "r3",
+      "reviewStatus": "approved",
+      "reviewNotes": "Modern American cryptid (first reported 1966). Guardrail D-111: never reference the 1967 bridge collapse, bridges, or the real town. Omens only concern in-game events.",
+      "sources": [
+        "Keel, John A. The Mothman Prophecies. Saturday Review Press, 1975.",
+        "Sergent, Donnie Jr. & Wamsley, Jeff. Mothman: The Facts Behind the Legend. Mothman Lives Publishing, 2001 (some listings give 2002)."
+      ]
+    }
+  ]
+}

@@ -40,3 +40,17 @@ Format: `D-### — date — decision — why — reversible?`
 - **D-115** Vertical slice raises Suspicion via recruitment (+6 per recruit) and a scripted reporter visit, and lowers it with Amnesia Brew. The Merch Tent is not in the slice.
 - **D-116** Sim degeneracy check counts only active choices (build, upgrade, order, ritual, brew, merge, recruit); passive collection is excluded.
 - **D-117** Subagent `model`: judgment-heavy roles (designer, sensitivity reviewer, puzzle and systems engineers) use `inherit` so they follow the session model; production roles use `sonnet`.
+
+## Phase 2 — vertical slice (2026-11-14)
+- **D-118** One Phaser scene (`App`) with a `Screen` class per tab instead of one Phaser scene per mode. Screens redraw from state in `rebuild()`, which is what makes rotation and resize safe with no reload. Supersedes "scenes/" in ARCHITECTURE §1.
+- **D-119** Art is generated at runtime into one canvas atlas (`src/art/sprites.ts`) instead of PNG files from `tools/art/`. Why: zero asset pipeline, the single-file build needs no external files. An asset manifest and PNG export move to LATER.md.
+- **D-120** Font: the classic public 5x7 dot-matrix LCD glyph set (rendered proportionally, with reworked descenders) instead of hand-drawn original glyphs. Amends D-103. It is a generic, decades-old matrix with no known licence restriction; a bespoke font is flagged for a human pass. One pre-coloured texture per colour so it works without WebGL tinting. The 4x6 badge font and the 10x16 large-text mode are not built yet.
+- **D-121** Save code is base64(JSON) with a checksum prefix, no deflate. Saves are a few KB. Amends ARCHITECTURE §5.
+- **D-122** Landscape regions: 60px left rail (resources + tabs), 92px right dock, leaving exactly 168px at the 320px minimum for the merge grid. The ritual board and merge grid take the advisor strip's space on short landscape screens.
+- **D-123** Slice economy tweaks: start with 30 Donations (was 20) and rituals pay a flat 6 Donations, so the Alchemy Lab is always affordable without waiting. Completed rituals can be replayed for half rewards, so the player can never be stuck.
+- **D-124** A Fine brew (stir minigame) gives one extra bottle rather than a separate quality tier. Full quality tiers come with the Alchemy system pass.
+- **D-125** Ritual levels use 5 tile types (no Coin tile) for solvability targets; rituals pay a flat Donation amount instead. Coin tiles return with later levels.
+- **D-126** The Dormitory is pre-built ("the previous owners left in a hurry") so the first draft always has a bunk.
+- **D-127** Accessibility in the slice: reduced motion and relaxed rituals are implemented; shape-coded tiles are in. Colourblind palettes and large text are not built yet (TASKS).
+- **D-128** `main` holds docs; Phase 2 work is on `claude/vertical-slice`.
+- **D-129** Sensitivity review of the slice: 5 strings changed (Amnesia Brew is named when offered and visibly magical; Nightshade is 'not the real kind'; the Gullible trait displays as 'Trusting'). Open question for the owner: rename real poisonous plants (Nightshade, Mandrake, Wolfsbane) to invented ones.

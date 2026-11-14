@@ -1,0 +1,8 @@
+{
+  "buildings": [
+    { "id": "sermon_hall", "w": 3, "h": 2, "cost": { "devotion": 0, "donations": 0 }, "produces": { "resource": "devotion", "perMin": 6 }, "storageMin": 10, "max": 1, "availableFrom": "build_hall" },
+    { "id": "dormitory", "w": 2, "h": 2, "cost": { "devotion": 40, "donations": 15 }, "housing": 4, "max": 1, "availableFrom": "never" },
+    { "id": "greenhouse", "w": 2, "h": 2, "cost": { "devotion": 30, "donations": 10 }, "plots": 4, "max": 1, "availableFrom": "build_greenhouse" },
+    { "id": "alchemy_lab", "w": 2, "h": 2, "cost": { "devotion": 60, "donations": 25 }, "brewSlots": 1, "max": 1, "availableFrom": "build_lab" }
+  ]
+}

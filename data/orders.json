@@ -1,0 +1,6 @@
+{
+  "orders": [
+    { "id": "mothman_1", "from": "mothman", "kind": "entity", "needs": [ { "item": "nightshade", "count": 1 }, { "item": "basil", "count": 2 } ], "reward": { "devotion": 60, "donations": 15, "favor": 10 } },
+    { "id": "mothman_2", "from": "mothman", "kind": "entity", "needs": [ { "merge": "paper", "tier": 3, "count": 1 } ], "reward": { "devotion": 80, "donations": 20, "favor": 10 } }
+  ]
+}

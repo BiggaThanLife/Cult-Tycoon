@@ -17,7 +17,7 @@ Short lines. Pixel UI means every word costs space: aim for ≤ 60 characters fo
 | "A follower asked a question. Assign them to Latrine Duty: Eternal? [Yes] [Also yes]" | Jokes about followers dying, disappearing or being "taken care of" |
 | "The Great Disappointment — Predict the end of the world. Be wrong. Predict it again." | References to real mass-casualty events, real dates, real comet/ship deaths |
 | "Motivational Kombucha. Placebo. Effective placebo. We checked." | Drinks/potions that poison, drug, sedate or covertly dose anyone ("Kool-Aid" in any form) |
-| "Amnesia Brew — Free sample! The reporter loved it. Remembers nothing. Kept the tote bag." | Gas, poison, weapons, violence or threats against the public or press |
+| "Amnesia Brew? Don't mind if I do." One sparkly sip, the last hour blurs. Kept the tote bag. (Named, offered, accepted.) | Gas, poison, weapons, violence or threats against the public or press |
 | "The Mothman foresaw this. He foresees a lot. He's mostly right about the weather." | Any reference to the real bridge collapse or town tied to the Mothman legend (D-111) |
 | Low Sanity: "Bartholomew has named the cabbage. The cabbage has accepted." | Depicting distress, breakdowns, or mental illness as the punchline |
 | "Baba Yaga reviewed your hut. Two legs out of five." | Mocking Slavic (or any) culture, accents, food or faith |
@@ -46,7 +46,7 @@ Short lines. Pixel UI means every word costs space: aim for ≤ 60 characters fo
 - Entities are portrayed as their folklore self, generally powerful and dignified *on their own terms*; they find the leader as ridiculous as we do.
 - Use folklore figures, cryptids, public-domain literature or original creations. Avoid figures central to living worship
   or closed traditions without review (see DECISIONS D-104).
-- Each entity file in `data/entities/` must have `sources` and `reviewStatus: approved` before it ships.
+- Each entity in `data/entities.json` must have `sources` and `reviewStatus: approved` before it ships.
 
 ## 6. Field Notes voice
 Calm, factual, non-sensational, second person, no jokes. "What it looks like / Why it works / Warning signs / Learn more."

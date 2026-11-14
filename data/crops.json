@@ -1,0 +1,6 @@
+{
+  "crops": [
+    { "id": "basil", "growSec": 30, "yield": 3, "seedCost": 1 },
+    { "id": "nightshade", "growSec": 120, "yield": 2, "seedCost": 3 }
+  ]
+}

@@ -10,11 +10,11 @@ Personal project. **No monetization of any kind.**
 ## Stack
 - Phaser 3 + TypeScript (strict) + Vite, shipped as a web-first PWA.
 - Vitest for unit tests; Playwright (pre-installed Chromium) for screenshot/orientation smoke tests.
-- Pure game logic lives in `src/core/` and `src/puzzle/` and **must not import Phaser**. Rendering lives in `src/scenes/` and `src/ui/`.
+- Pure game logic lives in `src/core/` and `src/puzzle/` and **must not import Phaser**. Rendering lives in `src/app.ts`, `src/screens/` and `src/ui/`; art is generated in `src/art/`.
 - Headless economy sim lives in `tools/sim/` and imports the same `src/core/` code.
 
-## Commands (once scaffolded in Phase 2)
-`npm run dev` · `npm test` (Vitest) · `npm run e2e` (Playwright, `--trace off`) · `npm run sim` · `npm run validate-levels` · `npm run art` · `npm run build`
+## Commands
+`npm run dev` · `npm test` (Vitest) · `npm run build` · `npm run e2e` (Playwright playthrough + screenshots; build first) · `npm run sim` · `npm run validate-levels` · `npm run build:single` (one self-contained HTML file)
 
 Architecture, layout algorithm, save format and RNG streams: `docs/ARCHITECTURE.md`. Slice script: `docs/specs/vertical-slice.md`.
 
@@ -22,11 +22,11 @@ Architecture, layout algorithm, save format and RNG streams: `docs/ARCHITECTURE.
 | Path | Owner agent |
 |---|---|
 | `docs/GDD.md`, system specs | game-designer |
-| `docs/ECONOMY.md`, `data/balance/*.json`, `tools/sim/` | economy-balancer |
+| `docs/ECONOMY.md`, `data/balance.json`, `tools/sim/` | economy-balancer |
 | `src/puzzle/`, `data/levels/` | puzzle-engineer |
 | `src/core/` (state, save, time, events) | systems-engineer |
-| `docs/ART_BIBLE.md`, `assets/`, `tools/art/` | pixel-artist |
-| `src/ui/`, `src/scenes/` layout, onboarding | ui-ux-designer |
+| `docs/ART_BIBLE.md`, `src/art/` | pixel-artist |
+| `src/ui/`, `src/screens/`, `src/app.ts` layout, onboarding | ui-ux-designer |
 | `data/text/` | narrative-writer |
 | `docs/TONE_AND_CONTENT.md`, `docs/FIELD_NOTES_SOURCES.md` | lore-and-sensitivity-reviewer |
 | `tests/`, `docs/playtests/` | qa-tester |
@@ -63,7 +63,7 @@ Workflow: **designer spec → engineer build → QA test → sensitivity review 
 - Missing days never resets progress harshly.
 
 ## Engineering rules
-- Save schema is versioned (`saveVersion`) with ordered migrations in `src/core/save/migrations.ts`.
+- Save schema is versioned (`saveVersion`) with ordered migrations in `src/core/save.ts` (`MIGRATIONS`).
   Autosave atomically (write temp → swap) and keep one backup slot. Export/import as a base64 save code.
 - Time: never trust raw `Date.now()` deltas. Clamp offline time to the cap (8h), ignore negative deltas
   (clock moved back), and store a monotonic "last seen" high-water mark.
@@ -72,7 +72,8 @@ Workflow: **designer spec → engineer build → QA test → sensitivity review 
 - Layout: integer pixel scaling, logical canvas expands (never stretches) to fill the screen, safe areas respected.
   Portrait is primary; landscape shows **more** (wider map, side-docked panels), never **bigger**.
   Puzzle boards keep a fixed tile size and stay centered. Rotating keeps state with no reload.
-- Text: the 5×8 font is the minimum for words; the 4×6 font is for numbers on badges only.
+- Text: the 5×8 font is the minimum for words. The font is ASCII only; keep `data/text` ASCII (a unit test enforces it).
+- Screens are throwaway views: `rebuild()` redraws from state. Never keep game state in display objects.
 - Performance: texture atlases, object pooling for floaty text and particles, 60fps target on mid-range phones.
 - Local stats log only (time per mode, stall detection). No network telemetry, ever.
 
