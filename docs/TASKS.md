@@ -32,7 +32,10 @@
 - [ ] Object pooling for floaty text; asset manifest / PNG export (D-119)
 - [ ] Bespoke pixel font (D-120); human pass on Mothman portrait
 - [ ] Real-device test on a notched phone (safe areas are unit-tested only)
+- [ ] Listen to the sound effects on a real device and tune volumes (they cannot be heard in automated tests)
 - [ ] Sim covers the slice only; the 7-day / 3-ascension horizon needs the full loop
 
 ## Phase 3+ — Iterate (one system at a time)
+- [x] Ritual feel pass (docs/specs/ritual-feel.md) + sound toggle
+- [x] PLAYBOOK.md and `npm run check` for handover to other models
 - [ ] Next up (proposed): building upgrades + land expansion, then the Pilgrimage Bus and outsider orders

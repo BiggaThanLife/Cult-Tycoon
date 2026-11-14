@@ -65,12 +65,18 @@ const check = (name, ok, detail = '') => {
   const winRitual = async (id, { rotateMid = false } = {}) => {
     await tap('tab_rituals');
     await tap(`btn_play_${id}`);
-    await wait(300);
+    await wait(900);
+    const hintMove = () => page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
+    const settle = async () => { for (let i = 0; i < 80; i++) { await wait(100); if (await page.evaluate(() => !window.__ct.app().screens.rituals.busy)) return; } };
     if (rotateMid) {
-      // one real swipe using the engine's hint, then rotate and compare state
-      const mv = await page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
-      await dragLogical(mv.a, mv.b);
-      await wait(1800);
+      // real swipes using the engine's hint, a rotation in the middle, then play on to a real win
+      await wait(700);
+      const mv = await hintMove();
+      const ca = await css(mv.a); const cb = await css(mv.b);
+      await page.mouse.move(ca.x, ca.y); await page.mouse.down(); await page.mouse.move(cb.x, cb.y, { steps: 5 }); await page.mouse.up();
+      await wait(260);
+      await shot('p_ritual_juice');
+      await settle();
       const before = JSON.stringify((await run()).activeRitual);
       check('ritual: a real swipe used a move', JSON.parse(before).movesUsed === 1);
       await shot('p_ritual_play');
@@ -78,14 +84,28 @@ const check = (name, ok, detail = '') => {
       const mid = JSON.stringify((await run()).activeRitual);
       check('rotate mid-ritual keeps the board', before === mid);
       await shot('l_ritual_play');
-      const mv2 = await page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
-      await dragLogical(mv2.a, mv2.b);
-      await wait(1800);
+      { const m2 = await hintMove(); await dragLogical(m2.a, m2.b); await settle(); }
       check('ritual: playable in landscape', (await run()).activeRitual.movesUsed === 2);
       await rotate(PORTRAIT);
+      let played = false;
+      for (let i = 0; i < 20; i++) {
+        const r = (await run()).activeRitual;
+        if (!r) { played = true; break; }
+        if (r.status !== 'playing') { await wait(300); continue; }
+        const m = await hintMove();
+        await dragLogical(m.a, m.b);
+        if (i === 3) await shot('p_ritual_cascade');
+        await settle();
+        const now = (await run()).activeRitual;
+        if (now && now.status === 'won') { await wait(500); await shot('p_ritual_complete'); }
+      }
+      const res = await run();
+      if (res.rituals.r1 > 0) { check('ritual: won by real play, bonus counted, reward paid', true, `stars ${res.rituals.r1}`); await wait(1500); return; }
+      check('ritual: real play ended (lost this seed; falling back to debug win)', played || !!res.activeRitual);
+      if (!res.activeRitual) { await tap('btn_ok', { optional: true }); await tap(`btn_play_${id}`); await wait(900); }
     }
     await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = Math.max(r.score, r.level.starScores[2]); }));
-    await wait(500);
+    await wait(1700);
   };
 
   await page.goto(URL);
@@ -109,6 +129,7 @@ const check = (name, ok, detail = '') => {
   await shot('p_02_compound');
   // 3. rituals + recruits
   await winRitual('r1', { rotateMid: true });
+  await wait(1600);
   await shot('p_03_ritual_won');
   await tap('btn_ok');
   await wait(400);

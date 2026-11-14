@@ -66,7 +66,8 @@ export interface LevelDef {
 }
 
 export interface Snapshot {
-  kind: 'swap' | 'swapBack' | 'clear' | 'fall' | 'reshuffle';
+  /** 'bonus' is emitted once on a win: unused moves pay MOVE_BONUS each (scoreDelta = movesLeft * MOVE_BONUS) */
+  kind: 'swap' | 'swapBack' | 'clear' | 'fall' | 'reshuffle' | 'bonus';
   /** deep copy of the board AFTER this step, indexed [y][x], y=0 is the top row */
   cells: (Cell | null)[][];
   /** tiles removed in this step (for 'clear'); a dropped relic has type -1 */
@@ -102,6 +103,8 @@ type Board = (Cell | null)[][];
 const SCORE_PER_TILE = 10;
 const SCORE_PER_SPECIAL = 20;
 const SCORE_PER_RELIC = 100;
+/** Points for each move left over when the goals are met (not in relaxed mode). */
+export const MOVE_BONUS = 50;
 const RELIC_SPAWN_INTERVAL = 3;
 const MAX_WEB_LAYERS = 2;
 
@@ -662,8 +665,14 @@ function applySwap(state: Match3State, a: Pos, b: Pos, steps: Snapshot[] | null)
   }
   resolveBoard(ctx, plan);
 
-  if (goalsDone(state)) state.status = 'won';
-  else if (!state.relaxed && state.movesLeft <= 0) state.status = 'lost';
+  if (goalsDone(state)) {
+    state.status = 'won';
+    if (!state.relaxed && state.movesLeft > 0) {
+      const bonus = state.movesLeft * MOVE_BONUS;
+      state.score += bonus;
+      record(ctx, 'bonus', [], bonus, 0);
+    }
+  } else if (!state.relaxed && state.movesLeft <= 0) state.status = 'lost';
   else if (!boardHasMoves(cells)) reshuffleBoard(ctx);
 
   state.rngState = ctx.rng.state;

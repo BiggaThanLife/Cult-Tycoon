@@ -54,3 +54,9 @@ Format: `D-### — date — decision — why — reversible?`
 - **D-127** Accessibility in the slice: reduced motion and relaxed rituals are implemented; shape-coded tiles are in. Colourblind palettes and large text are not built yet (TASKS).
 - **D-128** `main` holds docs; Phase 2 work is on `claude/vertical-slice`.
 - **D-129** Sensitivity review of the slice: 5 strings changed (Amnesia Brew is named when offered and visibly magical; Nightshade is 'not the real kind'; the Gullible trait displays as 'Trusting'). Open question for the owner: rename real poisonous plants (Nightshade, Mandrake, Wolfsbane) to invented ones.
+
+## Phase 3 — ritual feel and handover docs (2026-11-14)
+- **D-130** Ritual feedback pass per `docs/specs/ritual-feel.md`: pops, particles, beams, squash, rising-pitch chimes, combo callouts, goal fly-ins, leftover-moves bonus count, star reveal, haptics. All synthesized in code (no audio files, no licences). No lives, timers, boosters or near-miss pressure: the feel is the reward, nothing is sold or gated.
+- **D-131** Engine: a win pays `MOVE_BONUS` = 50 per unused move as a `bonus` snapshot (not in relaxed mode). Star thresholds re-measured with the validator: r1 1100/1450/1750, r2 1950/2700/3200, r3 2800/3450/4550.
+- **D-132** Save version 2 adds `settings.sound` (default on) with a v1 to v2 migration. First real use of the migration path.
+- **D-133** `docs/PLAYBOOK.md` is the required route for changes, with `npm run check` as the single gate, so smaller models can update the game safely. It also lists the places that are not data-driven yet (second entity, repeating orders, event triggers, new building behaviours).

@@ -36,7 +36,7 @@ export interface BuildingState {
 export interface OrderState { id: string; filled: boolean }
 export interface PendingEvent { id: string }
 
-export interface Settings { reducedMotion: boolean; relaxedPuzzles: boolean; speedIndex: number }
+export interface Settings { reducedMotion: boolean; relaxedPuzzles: boolean; speedIndex: number; sound: boolean }
 
 export interface MetaState {
   relics: number;

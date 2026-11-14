@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 — Ritual feel
+- Rituals now have match feedback: tile pops and particles, line/bomb/sigil effects with shake, squash on landing, chimes that climb with each cascade, combo callouts, goal tiles that fly to their counter, a leftover-moves bonus count and a star-by-star result card.
+- Sound and haptics toggle in Settings (save format v2, old saves migrate). Reduced motion keeps the information and drops the movement.
+- `docs/PLAYBOOK.md` with step-by-step recipes, `npm run check` as one gate, and a sprite-integrity test.
+
 ## 0.1.0 — Vertical slice
 - Playable slice: build, collect, 3 ritual levels, recruit draft, garden, merge, brew, reporter event, Mothman orders, offline summary, locked Ascension preview, debug panel.
 - Portrait-first responsive layout with a landscape mode that shows more (side rail + dock); rotation keeps all state.

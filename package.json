@@ -10,9 +10,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "node tests/e2e/smoke.mjs",
+    "e2e": "node tests/e2e/smoke.cjs",
     "sim": "tsx tools/sim/run.ts",
-    "validate-levels": "tsx tools/levels/validate.ts"
+    "validate-levels": "tsx tools/levels/validate.ts",
+    "check": "tsc --noEmit && vitest run && tsx tools/levels/validate.ts && tsx tools/sim/run.ts && vite build && node tests/e2e/smoke.cjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

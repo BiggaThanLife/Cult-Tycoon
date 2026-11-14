@@ -1,6 +1,6 @@
 // Programmer art: every sprite is drawn in code from the palette and packed into one atlas texture.
 // Original art only. Sizes follow docs/ART_BIBLE.md.
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { PAL, ROBES } from './palette';
 
 type Ctx = CanvasRenderingContext2D;
@@ -357,10 +357,17 @@ function sprites(): SpriteDef[] {
   out.push({ key: 'ic_menu', w: 12, h: 12, draw: (p) => p.r(2, 2, 8, 2, PAL.ink).r(2, 5, 8, 2, PAL.ink).r(2, 8, 8, 2, PAL.ink) });
   out.push({ key: 'ic_build', w: 12, h: 12, draw: (p) => { p.box(1, 1, 7, 5, PAL.robeD).r(4, 5, 2, 7, PAL.ink).r(5, 6, 1, 5, PAL.wood).r(8, 2, 3, 2, PAL.ink); } });
   out.push({ key: 'white', w: 4, h: 4, draw: (p) => p.r(0, 0, 4, 4, PAL.white) });
+  // ---- ritual feedback particles: one per tile colour, plus a white spark ----
+  [PAL.yellow, PAL.bone, PAL.teal, PAL.purple, PAL.grass, PAL.pink].forEach((c, i) => out.push({ key: `p_${i}`, w: 4, h: 4, draw: (p) => p.r(0, 0, 4, 4, PAL.ink).r(0, 0, 3, 3, c).px(0, 0, PAL.white) }));
+  out.push({ key: 'spark', w: 5, h: 5, draw: (p) => p.r(2, 0, 1, 5, PAL.white).r(0, 2, 5, 1, PAL.white) });
+  out.push({ key: 'spark_gold', w: 5, h: 5, draw: (p) => p.r(2, 0, 1, 5, PAL.yellow).r(0, 2, 5, 1, PAL.yellow).px(2, 2, PAL.white) });
   return out;
 }
 
 export const ATLAS = 'atlas';
+
+/** Every sprite key in the atlas (used by tests to catch data that points at missing art). */
+export const spriteKeys = (): string[] => sprites().map((d) => d.key);
 
 /** Draw every sprite into one canvas texture and register frames (simple shelf packer). */
 export function buildAtlas(scene: Phaser.Scene): string[] {

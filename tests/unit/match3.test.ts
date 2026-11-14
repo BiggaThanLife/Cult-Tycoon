@@ -1070,3 +1070,23 @@ describe('shipped levels', () => {
     expect(validateLevel(levels[0], 20)).toEqual(validateLevel(levels[0], 20));
   });
 });
+
+describe('leftover-moves bonus', () => {
+  it('pays MOVE_BONUS per unused move on a win, as its own snapshot, and never in relaxed mode', async () => {
+    const m = await import('../../src/puzzle/match3');
+    const level = { id: 't', seed: 5, width: 8, height: 8, moves: 10, tileTypes: 5, goals: [{ kind: 'score' as const, target: 1 }], starScores: [1, 2, 3] as [number, number, number], par: 1, purpose: 'sermon' as const, nameKey: 'x' };
+    for (const relaxed of [false, true]) {
+      const g = m.createGame(level, { relaxed });
+      const h = m.findHint(g)!;
+      const res = m.trySwap(g, h.a, h.b);
+      expect(g.status).toBe('won');
+      const bonus = res.steps.filter((s) => s.kind === 'bonus');
+      if (relaxed) expect(bonus).toHaveLength(0);
+      else {
+        expect(bonus).toHaveLength(1);
+        expect(bonus[0].scoreDelta).toBe(9 * m.MOVE_BONUS);
+        expect(res.steps[res.steps.length - 1].kind).toBe('bonus');
+      }
+    }
+  });
+});

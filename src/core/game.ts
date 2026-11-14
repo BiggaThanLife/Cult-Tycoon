@@ -7,7 +7,7 @@ import { countItems, createMerge, moveItem, removeItems, tapGenerator, tickMerge
 import { createGame, starsFor, type Match3State } from '../puzzle/match3';
 
 const B = DATA.balance;
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 const noEmit: Emit = () => {};
 
 // ---------- helpers ----------
@@ -119,7 +119,7 @@ export function newGame(seed: number, nowWall: number): GameState {
       mergeCodex: {},
       bestiary: [],
       endings: [],
-      settings: { reducedMotion: false, relaxedPuzzles: false, speedIndex: 0 },
+      settings: { reducedMotion: false, relaxedPuzzles: false, speedIndex: 0, sound: true },
       stats: { playSec: 0, modeSec: {}, lastUnlockAt: 0, longestGapSec: 0 },
     },
     run,

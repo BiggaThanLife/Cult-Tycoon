@@ -2,6 +2,14 @@
 
 Project rules for every Claude Code session. Read this first, then `docs/TASKS.md`.
 
+## Start here (every session, every model)
+1. Run `npm install` if `node_modules/` is missing, then `npm run check`. It must pass before you change anything.
+2. Find your task in `docs/PLAYBOOK.md` and follow that recipe step by step. It lists the exact files, the naming
+   conventions the code relies on, and what to look at afterwards.
+3. No matching recipe, or a check you cannot get green in two attempts: stop and ask the owner. Never skip, delete or
+   weaken a test, and never work around a content boundary below.
+4. Finish with `npm run check`, a `CHANGELOG.md` entry, and a three-line summary to the owner.
+
 ## What this is
 A cozy-looking, pitch-black-funny pixel-art management sim: you run a cult compound (tycoon spine), and three
 action modes feed it: **Rituals** (match-3), **The Reliquary** (merge) and **Alchemy** (grow → brew).
@@ -14,9 +22,10 @@ Personal project. **No monetization of any kind.**
 - Headless economy sim lives in `tools/sim/` and imports the same `src/core/` code.
 
 ## Commands
-`npm run dev` · `npm test` (Vitest) · `npm run build` · `npm run e2e` (Playwright playthrough + screenshots; build first) · `npm run sim` · `npm run validate-levels` · `npm run build:single` (one self-contained HTML file)
+`npm run check` (everything below, in order; the one gate before any commit) · `npm run dev` · `npm test` (Vitest) · `npm run build` · `npm run e2e` (Playwright playthrough + screenshots; build first) · `npm run sim` · `npm run validate-levels` · `npm run build:single` (one self-contained HTML file)
 
 Architecture, layout algorithm, save format and RNG streams: `docs/ARCHITECTURE.md`. Slice script: `docs/specs/vertical-slice.md`.
+How-to recipes: `docs/PLAYBOOK.md`. Match-3 feedback rules: `docs/specs/ritual-feel.md`.
 
 ## Folder ownership
 | Path | Owner agent |

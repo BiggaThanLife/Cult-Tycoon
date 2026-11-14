@@ -8,7 +8,7 @@
       "moves": 15,
       "tileTypes": 5,
       "goals": [{ "kind": "collect", "tile": 0, "count": 12 }],
-      "starScores": [800, 1100, 1450],
+      "starScores": [1100, 1450, 1750],
       "par": 9,
       "purpose": "sermon",
       "nameKey": "ritual.r1.name"
@@ -31,7 +31,7 @@
         { "x": 2, "y": 6, "layers": 1 },
         { "x": 5, "y": 6, "layers": 1 }
       ],
-      "starScores": [1500, 2200, 2900],
+      "starScores": [1950, 2700, 3200],
       "par": 13,
       "purpose": "recruit",
       "nameKey": "ritual.r2.name"
@@ -45,7 +45,7 @@
       "tileTypes": 5,
       "goals": [{ "kind": "dropRelics", "count": 2 }],
       "relics": 2,
-      "starScores": [2000, 2750, 4100],
+      "starScores": [2800, 3450, 4550],
       "par": 11,
       "purpose": "summon",
       "nameKey": "ritual.r3.name"

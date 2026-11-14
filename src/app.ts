@@ -11,6 +11,7 @@ import type { GameEvent, TutorialStep } from './core/types';
 import { bar, button, hit, img, panel, rect, txt, type C } from './ui/kit';
 import { computeLayout, type Layout } from './ui/layout';
 import { Modals } from './ui/modal';
+import { sfx } from './ui/sfx';
 import { autoModals, openMenu } from './screens/modals';
 import type { Screen } from './screens/screen';
 import { CompoundScreen } from './screens/compound';
@@ -80,6 +81,8 @@ export class App extends Phaser.Scene {
       if (fn === 'pointerDown' && over && over.length) return;
       this.screens[this.tab][fn](p);
     };
+    sfx.setEnabled(this.store.state.meta.settings.sound !== false);
+    this.input.on('pointerdown', () => sfx.unlock());
     this.input.on('pointerdown', route('pointerDown'));
     this.input.on('pointermove', route('pointerMove'));
     this.input.on('pointerup', route('pointerUp'));

@@ -8,6 +8,7 @@ import { t } from '../core/text';
 import type { Follower } from '../core/types';
 import { bar, button, img, panel, rect, txt, textHeight, type C } from '../ui/kit';
 import { dialog, frame, modalWidth } from '../ui/modal';
+import { sfx } from '../ui/sfx';
 
 /** Open whichever modal the game state calls for. Because these are derived from state,
  *  they survive rotation and reloads. */
@@ -207,17 +208,21 @@ function openSettings(app: App): void {
     id: 'settings',
     build(c, _a, close) {
       const s = app.store.state.meta.settings;
-      const r = frame(app, c, modalWidth(app), 16 + 2 * 34 + 24, t('settings.title'));
-      const toggle = (y: number, key: 'reducedMotion' | 'relaxedPuzzles') => {
+      const r = frame(app, c, modalWidth(app), 16 + 3 * 34 + 24, t('settings.title'));
+      const toggle = (y: number, key: 'reducedMotion' | 'relaxedPuzzles' | 'sound') => {
         txt(app, c, r.x, y, t(`settings.${key}`));
         txt(app, c, r.x, y + 10, t(`settings.${key}.desc`), { color: 'dim', width: r.w - 44, maxLines: 2 });
         button(app, c, r.x + r.w - 38, y + 2, 38, 18, s[key] ? t('common.on') : t('common.off'), () => {
           app.store.act((g) => { g.meta.settings[key] = !g.meta.settings[key]; });
+          sfx.setEnabled(app.store.state.meta.settings.sound);
+          sfx.unlock();
+          sfx.tap();
           app.modals.rebuild();
         }, { fill: s[key] ? PAL.acid : PAL.robe, name: `toggle_${key}` });
       };
       toggle(r.y, 'reducedMotion');
       toggle(r.y + 34, 'relaxedPuzzles');
+      toggle(r.y + 68, 'sound');
       button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
     },
   });

@@ -12,6 +12,7 @@ import type { GameState } from '../../src/core/types';
 import { countItems, createMerge, moveItem, tapGenerator, tickMerge } from '../../src/puzzle/merge';
 import type { Match3State } from '../../src/puzzle/match3';
 import { layoutFor } from '../../src/ui/layout';
+import { spriteKeys } from '../../src/art/sprites';
 
 const T0 = 1_700_000_000_000;
 const win = (g: GameState, id: string, stars = 3) => {
@@ -149,6 +150,17 @@ describe('save', () => {
     expect(out.saveVersion).toBe(3);
     expect(() => parse(JSON.stringify({ ...old, saveVersion: 9 }))).toThrow();
     expect(() => parse(JSON.stringify(old), {}, 3)).toThrow();
+  });
+  it('migrates a real v1 save to the current version (sound setting added in v2)', () => {
+    const g = G.newGame(1, T0);
+    const env = JSON.parse(serialize(g, T0));
+    env.saveVersion = 1;
+    env.data.saveVersion = 1;
+    delete env.data.meta.settings.sound;
+    const out = parse(JSON.stringify(env));
+    expect(out.saveVersion).toBe(G.SAVE_VERSION);
+    expect(out.meta.settings.sound).toBe(true);
+    expect(out.meta.settings.reducedMotion).toBe(false);
   });
   it('export/import code validates its checksum', () => {
     const g = playSlice();
@@ -300,6 +312,21 @@ describe('content integrity', () => {
     expect(missing).toEqual([]);
     const nonAscii = Object.entries(DATA.text).filter(([, v]) => /[^\x20-\x7e\n]/.test(v)).map(([k]) => k);
     expect(nonAscii).toEqual([]);
+  });
+  it('every sprite that data refers to exists in the atlas', () => {
+    const have = new Set(spriteKeys());
+    const need: string[] = [];
+    for (const b of DATA.buildings) need.push(`b_${b.id}`);
+    for (const i of DATA.items) need.push(`i_${i.id}`);
+    for (const c of DATA.merge.chains) for (const k of c.tiers) need.push(`m_${k}`);
+    for (const g of DATA.merge.generators) need.push(`g_${g.id}`);
+    for (const e of DATA.events) need.push(e.sprite);
+    for (const e of DATA.entities) need.push(e.id);
+    for (let i = 0; i < 6; i++) need.push(`tile_${i}`, `p_${i}`);
+    for (let s = 0; s < DATA.followers.skins; s++) for (let r = 0; r < DATA.followers.robes; r++) need.push(`fol_${s}_${r}_0`, `fol_${s}_${r}_1`);
+    for (const tab of ['compound', 'rituals', 'reliquary', 'alchemy', 'orders']) need.push(`tab_${tab}`);
+    expect(need.filter((k) => !have.has(k))).toEqual([]);
+    expect(new Set(spriteKeys()).size).toBe(spriteKeys().length); // no duplicate keys
   });
   it('no player-facing string literals hide in UI code', () => {
     const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(join(dir, d.name)) : [join(dir, d.name)]));

@@ -13,7 +13,13 @@ export const KEYS = { current: 'ct.save', backup: 'ct.save.backup', tmp: 'ct.sav
 
 /** migrations[n] upgrades save data from version n to n+1. */
 export type Migrations = Record<number, (data: any) => any>;
-export const MIGRATIONS: Migrations = {};
+export const MIGRATIONS: Migrations = {
+  // v1 -> v2: sound setting added (defaults to on)
+  1: (d) => {
+    d.meta.settings = { ...d.meta.settings, sound: d.meta.settings?.sound ?? true };
+    return d;
+  },
+};
 
 interface Envelope { saveVersion: number; savedAt: number; data: unknown }
 
