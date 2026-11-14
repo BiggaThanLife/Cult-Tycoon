@@ -1,0 +1,11 @@
+# Parking Lot (not in v1 unless promoted)
+- Faith-off: match-3 versus mode vs rival AI leaders (quarterly)
+- Offering Caravan (monthly) alongside the Pilgrimage Bus
+- More patrons: Kitsune (folklore only), Sphinx, Jersey Devil, Kappa, a Krampus-like winter figure, Lilith (needs review)
+- Mami Wata and Tlaloc: pending lore review; likely replaced (D-104)
+- Seasonal events: Equinox, Samhain, Tax Season
+- Audio (chiptune + eerie variants), `docs/AUDIO.md`
+- Merge chains 4–5; three-item merges
+- Follower yearbook photo booth
+- Capacitor/desktop wrappers
+- Second language
