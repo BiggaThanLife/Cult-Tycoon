@@ -101,7 +101,7 @@
         {
           "cost": {
             "devotion": 100,
-            "donations": 40
+            "donations": 30
           },
           "merge": {
             "chain": "paper",

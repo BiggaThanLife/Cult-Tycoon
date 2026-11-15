@@ -34,7 +34,7 @@
       ],
       "reward": {
         "devotion": 80,
-        "donations": 20,
+        "donations": 40,
         "favor": 10
       },
       "tutorial": true

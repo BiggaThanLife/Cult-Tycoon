@@ -62,7 +62,7 @@
       "id": "jersey_devil",
       "archetype": "nuisance",
       "summonRitual": "r6",
-      "hintsRecipe": null,
+      "hintsRecipe": "pesto",
       "boons": [
         {
           "favor": 40,

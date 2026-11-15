@@ -15,19 +15,19 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:08 | step: build_hall | 50 | 30 | 0 | 1 |
 | 0:18 | step: collect | 50 | 30 | 0 | 1 |
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
-| 1:29 | step: draft1 | 172 | 36 | 0 | 1 |
-| 1:41 | step: ritual2 | 172 | 36 | 6 | 1 |
-| 2:48 | step: draft2 | 251 | 42 | 6 | 1 |
-| 3:12 | step: build_greenhouse | 251 | 42 | 23 | 1 |
-| 3:22 | step: plant | 226 | 32 | 23 | 1 |
-| 3:32 | step: merge | 226 | 28 | 23 | 1 |
-| 3:49 | step: harvest | 226 | 28 | 23 | 1 |
-| 6:28 | step: build_lab | 433 | 40 | 22 | 1 |
-| 6:38 | step: brew | 373 | 15 | 22 | 1 |
-| 6:53 | step: reporter | 373 | 15 | 22 | 1 |
-| 7:04 | step: ritual3 | 373 | 16 | 7 | 1 |
-| 8:03 | step: orders | 477 | 23 | 6 | 1 |
-| 8:23 | step: away | 500 | 58 | 6 | 2 |
+| 1:29 | step: draft1 | 172 | 38 | 0 | 1 |
+| 1:41 | step: ritual2 | 172 | 38 | 6 | 1 |
+| 2:48 | step: draft2 | 251 | 46 | 6 | 1 |
+| 3:12 | step: build_greenhouse | 251 | 46 | 23 | 1 |
+| 3:22 | step: plant | 226 | 36 | 23 | 1 |
+| 3:32 | step: merge | 226 | 32 | 23 | 1 |
+| 3:49 | step: harvest | 226 | 32 | 23 | 1 |
+| 6:28 | step: build_lab | 433 | 47 | 22 | 1 |
+| 6:38 | step: brew | 373 | 22 | 22 | 1 |
+| 6:53 | step: reporter | 373 | 22 | 22 | 1 |
+| 7:04 | step: ritual3 | 373 | 23 | 7 | 1 |
+| 8:03 | step: orders | 477 | 32 | 6 | 1 |
+| 8:23 | step: away | 500 | 87 | 6 | 2 |
 
 ## casual (1-star, fails hard rituals once, dawdles)
 
@@ -40,19 +40,19 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:08 | step: build_hall | 50 | 30 | 0 | 1 |
 | 0:18 | step: collect | 50 | 30 | 0 | 1 |
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
-| 1:59 | step: draft1 | 132 | 36 | 0 | 1 |
-| 2:11 | step: ritual2 | 132 | 36 | 6 | 1 |
-| 5:23 | step: draft2 | 184 | 42 | 5 | 1 |
-| 5:47 | step: build_greenhouse | 184 | 42 | 17 | 1 |
-| 6:27 | step: plant | 159 | 32 | 16 | 1 |
-| 6:37 | step: merge | 159 | 28 | 16 | 1 |
-| 6:54 | step: harvest | 159 | 28 | 16 | 1 |
-| 9:33 | step: build_lab | 297 | 37 | 15 | 1 |
-| 10:13 | step: brew | 237 | 12 | 15 | 1 |
-| 10:28 | step: reporter | 237 | 12 | 15 | 1 |
-| 10:39 | step: ritual3 | 237 | 12 | 0 | 1 |
-| 13:51 | step: orders | 306 | 18 | 0 | 1 |
-| 14:11 | step: away | 446 | 53 | 0 | 2 |
+| 1:59 | step: draft1 | 132 | 38 | 0 | 1 |
+| 2:11 | step: ritual2 | 132 | 38 | 6 | 1 |
+| 5:23 | step: draft2 | 184 | 46 | 5 | 1 |
+| 5:47 | step: build_greenhouse | 184 | 46 | 17 | 1 |
+| 6:27 | step: plant | 159 | 36 | 16 | 1 |
+| 6:37 | step: merge | 159 | 32 | 16 | 1 |
+| 6:54 | step: harvest | 159 | 32 | 16 | 1 |
+| 9:33 | step: build_lab | 297 | 44 | 15 | 1 |
+| 10:13 | step: brew | 237 | 19 | 15 | 1 |
+| 10:28 | step: reporter | 237 | 19 | 15 | 1 |
+| 10:39 | step: ritual3 | 237 | 19 | 0 | 1 |
+| 13:51 | step: orders | 306 | 27 | 0 | 1 |
+| 14:11 | step: away | 446 | 82 | 0 | 2 |
 
 ## slow reader (1-star, long pauses)
 
@@ -65,19 +65,19 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 0:08 | step: build_hall | 50 | 30 | 0 | 1 |
 | 0:18 | step: collect | 50 | 30 | 0 | 1 |
 | 0:38 | step: ritual1 | 52 | 30 | 0 | 1 |
-| 2:59 | step: draft1 | 132 | 36 | 0 | 1 |
-| 3:11 | step: ritual2 | 132 | 36 | 6 | 1 |
-| 7:23 | step: draft2 | 185 | 42 | 4 | 1 |
-| 7:47 | step: build_greenhouse | 185 | 42 | 16 | 1 |
-| 9:27 | step: plant | 160 | 33 | 15 | 1 |
-| 9:37 | step: merge | 160 | 30 | 15 | 1 |
-| 9:54 | step: harvest | 160 | 30 | 15 | 1 |
-| 12:33 | step: build_lab | 301 | 41 | 13 | 1 |
-| 14:13 | step: brew | 241 | 18 | 12 | 1 |
-| 14:28 | step: reporter | 241 | 18 | 12 | 1 |
-| 14:39 | step: ritual3 | 241 | 19 | 0 | 1 |
-| 18:51 | step: orders | 311 | 29 | 0 | 1 |
-| 19:11 | step: away | 451 | 64 | 0 | 2 |
+| 2:59 | step: draft1 | 132 | 38 | 0 | 1 |
+| 3:11 | step: ritual2 | 132 | 38 | 6 | 1 |
+| 7:23 | step: draft2 | 185 | 46 | 4 | 1 |
+| 7:47 | step: build_greenhouse | 185 | 46 | 16 | 1 |
+| 9:27 | step: plant | 160 | 37 | 15 | 1 |
+| 9:37 | step: merge | 160 | 34 | 15 | 1 |
+| 9:54 | step: harvest | 160 | 34 | 15 | 1 |
+| 12:33 | step: build_lab | 301 | 48 | 13 | 1 |
+| 14:13 | step: brew | 241 | 25 | 12 | 1 |
+| 14:28 | step: reporter | 241 | 25 | 12 | 1 |
+| 14:39 | step: ritual3 | 241 | 26 | 0 | 1 |
+| 18:51 | step: orders | 311 | 38 | 0 | 1 |
+| 19:11 | step: away | 451 | 93 | 0 | 2 |
 
 # After the tutorial: 150 minutes of active play
 
@@ -85,19 +85,19 @@ A simple bot fills orders, upgrades, summons and recruits. Times are minutes aft
 
 ## steady player (2-star)
 
-- Ends at: Lv9, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 4
-- 47 new things in 150 min. Longest wait for one in the first 60 min: **9:07** (ending at 63:15) ok. Longest overall: 38:20 (ending at 147:00).
-- Pace: Lv3 at 9:00, Lv5 at 35:23 ok
-- Compound levels reached at: Lv2 1:26, Lv3 9:00, Lv4 24:09, Lv5 35:23, Lv6 54:05, Lv7 77:31, Lv8 108:40, Lv9 147:00
-- Entities met at: mothman 0:00, baba_yaga 10:12, jersey_devil 24:12, anansi 36:45, vorl 54:08
-- Time by action: merge 57:47, orders 45:28, garden 16:00, ritual 14:16, brew 13:57, upgrade 0:56, draft 0:50, wait 0:50
+- Ends at: Lv9, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
+- 48 new things in 150 min. Longest wait for one in the first 60 min: **6:07** (ending at 51:19) ok. Longest overall: 36:54 (ending at 143:11).
+- Pace: Lv3 at 11:04, Lv5 at 34:45 ok
+- Compound levels reached at: Lv2 1:26, Lv3 11:04, Lv4 23:00, Lv5 34:45, Lv6 51:19, Lv7 76:25, Lv8 106:17, Lv9 143:11
+- Entities met at: mothman 0:00, baba_yaga 11:08, jersey_devil 23:08, anansi 34:48, vorl 52:42
+- Time by action: merge 57:32, orders 46:08, garden 15:25, brew 15:15, ritual 13:04, upgrade 0:56, draft 0:50, wait 0:50
 
 ## careful player (1-star)
 
-- Ends at: Lv9, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 4
-- 46 new things in 150 min. Longest wait for one in the first 60 min: **6:04** (ending at 51:45) ok. Longest overall: 39:46 (ending at 147:01).
-- Pace: Lv3 at 7:52, Lv5 at 35:00 ok
-- Compound levels reached at: Lv2 1:26, Lv3 7:52, Lv4 21:14, Lv5 35:00, Lv6 51:45, Lv7 77:14, Lv8 107:15, Lv9 147:01
-- Entities met at: mothman 0:00, baba_yaga 9:04, jersey_devil 22:41, anansi 35:12, vorl 53:08
-- Time by action: merge 55:52, orders 45:12, garden 19:37, brew 14:24, ritual 10:40, wait 2:30, upgrade 0:56, draft 0:50
+- Ends at: Lv9, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
+- 47 new things in 150 min. Longest wait for one in the first 60 min: **7:44** (ending at 49:29) ok. Longest overall: 36:29 (ending at 142:33).
+- Pace: Lv3 at 8:37, Lv5 at 31:14 ok
+- Compound levels reached at: Lv2 1:26, Lv3 8:37, Lv4 19:57, Lv5 31:14, Lv6 49:29, Lv7 74:31, Lv8 106:04, Lv9 142:33
+- Entities met at: mothman 0:00, baba_yaga 8:39, jersey_devil 20:00, anansi 32:34, vorl 49:33
+- Time by action: merge 52:35, orders 46:40, garden 19:51, brew 18:51, ritual 9:28, upgrade 0:56, draft 0:50, wait 0:50
 

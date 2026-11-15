@@ -80,3 +80,4 @@ Format: `D-### — date — decision — why — reversible?`
 
 ## Design review (2026-11-15)
 - **D-149** Raids are civil inspections (paperwork, permits, tax, zoning, health code) by the fictional Office of Mild Concern, never shortened to initials. The guardrails review's five "never" rules apply. Player-facing renames: the "Raid Defense" ritual is "Look Busy"; the "Raided" ending is "Closed Pending Review" (internal ids unchanged). The tone guide's line about followers being bused away after a raid was replaced, because it echoed real removals of children from religious communities.
+- **D-150** Loop audit quick fixes: rituals pay 8 Donations (was 6), the second Mothman order pays 40 Donations (was 20), the first Greenhouse upgrade costs 30 Donations (was 40), so one upgrade is reachable soon after the tutorial. The Jersey Devil now hints Pesto, which his first order needs. Larger audit fixes wait for the owner's decisions on the hall view and the merge replacement.

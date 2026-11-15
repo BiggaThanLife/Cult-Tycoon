@@ -38,7 +38,7 @@
   "ritual": {
     "devotionBase": 40,
     "devotionPerIndex": 10,
-    "donationsFlat": 6,
+    "donationsFlat": 8,
     "coinValue": 1,
     "starMult": [
       1,
