@@ -54,6 +54,8 @@ Workflow: **designer spec → engineer build → QA test → sensitivity review 
   sedate, poison, or erase anyone's doubts or memories against their will (D-110).
 - Low Sanity is played as comedy (talking to houseplants, seeing the cat as a prophet), never as distress or breakdown.
 - The Mothman legend is linked to a real 1967 bridge collapse. Never reference bridges, collapses or that town (D-111).
+- Raids are civil inspections by a fictional agency (the Office of Mild Concern): never sieges, standoffs, weapons, fire,
+  arrests, children, real agencies or a "defend the compound" framing. Rules: `docs/reviews/2026-11-15-raids-guardrails.md` (D-149).
 - Mythology: no slurs, no sacred content from closed traditions, no caricatures of living cultures. Mock the
   leader's ignorance, never the source culture. New entities need lore-reviewer sign-off.
 - Target rating **Teen / PEGI 12**. Flag anything that pushes higher.

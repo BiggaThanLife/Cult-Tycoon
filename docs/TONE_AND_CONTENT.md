@@ -29,8 +29,9 @@ Short lines. Pixel UI means every word costs space: aim for ≤ 60 characters fo
 - No jokes whose target is real victims, deaths or survivors. No victim names. No real group names anywhere (D-010).
 - No real living people. No sound-alike names of active groups or leaders.
 - No mechanics or text involving self-harm, suicide, sexual abuse, child abuse, mass violence, poisoning, gas attacks.
-- No on-screen harm. Followers leave, defect, doubt, or go to the Reading Room. Raids end with everyone shuffled onto a bus, grumbling.
+- No on-screen harm. Followers leave, defect, doubt, or go to the Reading Room. Inspections end with the premises closed pending review. Followers head home on their own, grumbling. Nobody is taken anywhere.
 - No children as followers. All followers are adults.
+- Investigations are civil inspections only (paperwork, permits, tax, zoning, health code). The rules and the agency name, the Office of Mild Concern, are in `docs/reviews/2026-11-15-raids-guardrails.md`; read it before writing any inspection or raid content.
 - Potions are openly offered and magical; nobody is dosed covertly (D-110). The Mothman never references the real 1967 bridge collapse (D-111).
 - Romance/sexual content: none. "Leader's personal attention" tactics are not in the game.
 - Teen / PEGI 12 target. Mild fantasy menace, mild crude humor. Flag anything above.
