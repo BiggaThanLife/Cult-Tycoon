@@ -74,3 +74,4 @@ Format: `D-### — date — decision — why — reversible?`
 - **D-143** New content: Graveyard Moss and Moonpetal; Calm Draught, Moonlight Tincture, Zeal Tonic; the candle merge chain from the Ritual Brazier. Entities hint one recipe each when first met; the Grimoire moved to its own screen.
 - **D-144** Potions other than Amnesia Brew are only consumed by orders for now. Using potions on followers needs its own spec (consent rules, D-110) and is in LATER.
 - **D-145** Level-ups and boons are announced by a queued dialog that waits for a quiet moment; it never interrupts a ritual.
+- **D-146** Sensitivity review of the entity batch: all four approved. Anansi never uses luck imagery in player text (he 'sets the share'); the mechanic is still called a gamble order internally. Standing guardrails for each entity live in `data/entities.json` `reviewNotes`.

@@ -51,11 +51,11 @@
           "value": 1
         }
       ],
-      "reviewStatus": "pending",
-      "reviewNotes": "Slavic folklore witch who lives in a hut on chicken legs; ambiguous figure who tests visitors and rewards the polite and capable. Portrayed as formidable and unimpressed; the joke is the leader failing her standards. No accents, no mockery of Slavic cultures.",
+      "reviewStatus": "approved",
+      "reviewNotes": "Slavic folklore witch in a hut on chicken legs; ambiguous figure who tests visitors and rewards the polite and capable. Formidable and unimpressed; she judges, the leader is judged. Plain standard English: no accent, no dropped articles. Say 'Slavic', never a country; no food, drink, faith or politics jokes. 'Grandmother' is the tales' polite address; keep it sincere. Menace is fairy-tale, one clause, off screen, aimed at the leader or unnamed fairy-tale royalty. Never children, never followers, never detail.",
       "sources": [
-        "Johns, Andreas. Baba Yaga: The Ambiguous Mother and Witch of the Russian Folktale. Peter Lang, 2004.",
-        "Afanas'ev, Aleksandr. Russian Fairy Tales. Trans. Norbert Guterman. Pantheon, 1945."
+        "Johns, Andreas. Baba Yaga: The Ambiguous Mother and Witch of the Russian Folktale. International Folkloristics 3. New York: Peter Lang, 2004.",
+        "Afanas'ev, Aleksandr. Russian Fairy Tales. Trans. Norbert Guterman, commentary by Roman Jakobson. New York: Pantheon, 1945."
       ]
     },
     {
@@ -80,11 +80,11 @@
           "value": 15
         }
       ],
-      "reviewStatus": "pending",
-      "reviewNotes": "American folklore creature of the New Jersey Pine Barrens (winged, hooved, horse-headed). Played as a loud, petty neighbour. No reference to real people or the 'Mother Leeds' family as individuals.",
+      "reviewStatus": "approved",
+      "reviewNotes": "American folklore creature of the New Jersey Pine Barrens (winged, hooved, horse-headed). A loud, petty neighbour. No real people, living or historical. Never the Leeds name, the 'thirteenth child' birth story, real towns or dated sightings; 'the pines' only. Never mock Pine Barrens residents or use the word 'Piney'. Casual voice, no phonetic accent, no ethnic or mob stereotype. Mischief is property-level (fences, mailboxes, power); he never hurts people or animals.",
       "sources": [
-        "Regal, Brian & Esposito, Frank J. The Secret History of the Jersey Devil. Johns Hopkins University Press, 2018.",
-        "McCloy, James F. & Miller, Ray. The Jersey Devil. Middle Atlantic Press, 1976."
+        "Regal, Brian & Esposito, Frank J. The Secret History of the Jersey Devil: How Quakers, Hucksters, and Benjamin Franklin Created a Monster. Baltimore: Johns Hopkins University Press, 2018.",
+        "McCloy, James F. & Miller, Ray Jr. The Jersey Devil. Wallingford, PA: Middle Atlantic Press, 1976."
       ]
     },
     {
@@ -109,11 +109,11 @@
           "value": 3
         }
       ],
-      "reviewStatus": "pending",
-      "reviewNotes": "Trickster spider of Akan (Ghana) folktales, carried to the Caribbean and the Americas; owner of all stories. Use the folktale figure only: clever, charming, always a step ahead of the leader. No dialect writing, no religious practice, no caricature. The leader is the one being outwitted.",
+      "reviewStatus": "approved",
+      "reviewNotes": "Trickster spider of Akan (Ghana) folktales, carried to the Caribbean and the Americas; owner of all stories. Folktale figure only: clever, charming, a step ahead of the leader. Never call him a god. Never name or joke about the sky god or any Akan religious figure, rite or proverb. Standard English: no dialect or patois spelling, no 'Brer' forms. He wins by wit and bargains, never luck: no dice, cards or casino imagery. Foils are tale animals (Tiger, Snake) or the leader, never followers. No slavery or plantation jokes.",
       "sources": [
-        "Rattray, R. S. Akan-Ashanti Folk-Tales. Clarendon Press, 1930.",
-        "Marshall, Emily Zobel. Anansi's Journey: A Story of Jamaican Cultural Resistance. University of the West Indies Press, 2012."
+        "Rattray, R. S. Akan-Ashanti Folk-Tales. Oxford: Clarendon Press, 1930.",
+        "Marshall, Emily Zobel. Anansi's Journey: A Story of Jamaican Cultural Resistance. Kingston: University of the West Indies Press, 2012."
       ]
     },
     {
@@ -138,8 +138,8 @@
           "value": 20
         }
       ],
-      "reviewStatus": "pending",
-      "reviewNotes": "Original creation for this game (D-104): a vast, patient thing in deep water. Cosmic-horror in tone only; no names, places or text from any published mythos.",
+      "reviewStatus": "approved",
+      "reviewNotes": "Original creation for this game (D-104): a vast, patient thing in deep water. Cosmic-horror in tone only. No names, places, quotations or stock phrases from any published mythos: never 'Deep One(s)', 'Old One(s)', 'Elder', invented-language chants or New England place names. Its hunger is for candles, flowers and attention; it never takes, eats or harms anyone. Sanity effects are comic only (D-112).",
       "sources": [
         "Original to Cult Tycoon; see docs/DECISIONS.md D-104."
       ]

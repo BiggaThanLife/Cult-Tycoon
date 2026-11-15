@@ -119,7 +119,7 @@ export class OrdersScreen extends Screen {
     const res = app.store.act((g, emit) => fillOrder(g, orderId, emit));
     if (!res.ok) return;
     const lines = [t(`order.${orderId}.thanks`)];
-    if (def.kind === 'gamble') lines.push(t('orders.gamble', { n: res.mult }));
+    if (def.kind === 'gamble') lines.push(t('orders.gamble', { name: t(`entity.${def.from}.name`), n: res.mult }));
     lines.push(t('orders.paid', { devotion: res.devotion, donations: res.donations, favor: res.favor }));
     dialog(app, { id: `order_${orderId}`, title: t(`entity.${def.from}.name`), body: lines.join('\n'), sprite: def.from, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
   }
