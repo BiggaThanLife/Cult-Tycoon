@@ -522,10 +522,10 @@ function sprites(): SpriteDef[] {
     p.r(8, 4, 3, 1, PAL.ink).r(8, 6, 3, 1, PAL.ink).px(8, 5, PAL.ink).px(10, 5, PAL.ink);
     p.box(10, 9, 5, 6, PAL.grassD).r(11, 10, 3, 1, PAL.sand).r(11, 12, 3, 1, PAL.sand);
   } });
-  out.push({ key: 'inspector', w: 16, h: 16, draw: (p) => { // hard hat, hi-vis vest, clipboard
-    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.woodD, r: PAL.acid, L: PAL.blue, s: PAL.skin[2], e: PAL.ink, S: PAL.skin[2] });
-    p.r(4, 0, 8, 4, PAL.ink).r(5, 1, 6, 2, PAL.yellow).r(4, 3, 8, 1, PAL.yellow).px(6, 1, PAL.white);
-    p.r(4, 12, 8, 1, PAL.white);
+  out.push({ key: 'inspector', w: 16, h: 16, draw: (p) => { // building inspector: bare head, soft cardigan, clipboard, lanyard (no hat, vest or badge)
+    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.woodD, r: PAL.robe, L: PAL.bone, s: PAL.skin[2], e: PAL.ink, S: PAL.skin[2] });
+    p.r(4, 2, 8, 2, PAL.woodDD).px(4, 4, PAL.woodDD).px(11, 4, PAL.woodDD); // hair, no headgear
+    p.px(6, 9, PAL.blue).px(6, 10, PAL.blue).px(7, 11, PAL.blue); // lanyard cord
     p.box(10, 9, 5, 6, PAL.woodD).r(11, 10, 3, 4, PAL.white).r(11, 9, 3, 1, PAL.ink2);
   } });
   out.push({ key: 'reviewer', w: 16, h: 16, draw: (p) => { // clerk behind a tall stack of files
@@ -534,10 +534,10 @@ function sprites(): SpriteDef[] {
     cols.forEach((c, k) => p.box(11, k * 2, 5, 3, c));
   } });
 
-  // ---- pending-review tape (32x16): diagonal yellow and ink stripes, no words ----
+  // ---- pending-review tape (32x16): plain beige office tape, no hazard colours, no words (D-149) ----
   out.push({ key: 'seal_tape', w: 32, h: 16, draw: (p) => {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.px(x, y, (x + y) % 8 < 4 ? PAL.yellow : PAL.ink);
-    p.r(0, 0, 32, 1, PAL.ink).r(0, 15, 32, 1, PAL.ink);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.px(x, y, (x + y) % 8 < 4 ? PAL.sand : PAL.bone);
+    p.r(0, 0, 32, 1, PAL.woodD).r(0, 15, 32, 1, PAL.woodD);
   } });
   return out;
 }
