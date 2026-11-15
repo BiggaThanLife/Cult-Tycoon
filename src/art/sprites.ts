@@ -416,6 +416,129 @@ function sprites(): SpriteDef[] {
   [PAL.yellow, PAL.bone, PAL.teal, PAL.purple, PAL.grass, PAL.pink].forEach((c, i) => out.push({ key: `p_${i}`, w: 4, h: 4, draw: (p) => p.r(0, 0, 4, 4, PAL.ink).r(0, 0, 3, 3, c).px(0, 0, PAL.white) }));
   out.push({ key: 'spark', w: 5, h: 5, draw: (p) => p.r(2, 0, 1, 5, PAL.white).r(0, 2, 5, 1, PAL.white) });
   out.push({ key: 'spark_gold', w: 5, h: 5, draw: (p) => p.r(2, 0, 1, 5, PAL.yellow).r(0, 2, 5, 1, PAL.yellow).px(2, 2, PAL.white) });
+
+  // ---- Look Busy tile skin (20x20): office shapes, same colour families as tile_0..5 ----
+  const officeTile = (i: number, draw: (p: Pen) => void) => out.push({ key: `tile_office_${i}`, w: 20, h: 20, draw });
+  officeTile(0, (p) => { // filled-in form: tall rectangle, title bar, lines, signature (yellow)
+    p.box(4, 1, 12, 18, PAL.yellow);
+    p.r(6, 3, 8, 2, PAL.woodDD);
+    for (const y of [7, 10, 13]) p.r(6, y, 8, 1, PAL.woodD);
+    p.r(6, 16, 5, 1, PAL.ink).px(12, 15, PAL.ink).px(13, 14, PAL.ink);
+    p.px(5, 2, PAL.white).px(5, 3, PAL.white);
+  });
+  officeTile(1, (p) => { // rubber stamp: round knob, neck, wide base, inked pad (bone)
+    p.ring(6, 0, 8, PAL.bone).box(8, 6, 4, 5, PAL.bone).box(3, 10, 14, 5, PAL.bone);
+    p.r(3, 15, 14, 3, PAL.ink).r(4, 15, 12, 2, PAL.red).r(4, 17, 12, 1, PAL.redD);
+    p.px(8, 2, PAL.white).px(9, 1, PAL.white).r(5, 11, 1, 3, PAL.white);
+    p.r(2, 19, 16, 1, PAL.ink2);
+  });
+  officeTile(2, (p) => { // receipt: narrow strip with zigzag bottom (teal)
+    p.r(5, 1, 10, 16, PAL.ink).r(6, 2, 8, 15, PAL.teal);
+    for (let i = 0; i < 10; i++) {
+      p.r(5 + i, 17, 1, i % 2 ? 2 : 3, PAL.ink);
+      p.r(5 + i, 17, 1, i % 2 ? 1 : 2, PAL.teal);
+    }
+    p.r(7, 4, 6, 1, PAL.ink2).r(7, 6, 4, 1, PAL.ink2).r(7, 8, 6, 1, PAL.ink2).r(7, 10, 5, 1, PAL.ink2).r(7, 13, 6, 2, PAL.white);
+  });
+  officeTile(3, (p) => { // hairnet: round mesh (purple)
+    p.ring(2, 2, 16, PAL.purple);
+    for (let j = 0; j < 20; j++) for (let i = 0; i < 20; i++) {
+      const dx = i + 0.5 - 10;
+      const dy = j + 0.5 - 10;
+      if (dx * dx + dy * dy <= 6.6 * 6.6 && ((i + j) % 4 === 0 || (i - j + 20) % 4 === 0)) p.px(i, j, PAL.robeDD);
+    }
+    p.r(6, 1, 8, 1, PAL.ink).px(9, 3, PAL.white).px(8, 4, PAL.white);
+  });
+  officeTile(4, (p) => { // green exit sign: wide rectangle, arrow
+    p.r(5, 2, 1, 3, PAL.ink).r(14, 2, 1, 3, PAL.ink);
+    p.box(1, 5, 18, 10, PAL.grassD).r(2, 6, 16, 8, PAL.grass);
+    p.r(4, 9, 8, 2, PAL.white).r(11, 7, 1, 6, PAL.white).r(12, 8, 1, 4, PAL.white).r(13, 9, 1, 2, PAL.white);
+    p.r(15, 8, 2, 4, PAL.grassDD);
+  });
+  officeTile(5, (p) => { // paperclip (pink): ink outline pass then pink pass
+    const segs: number[][] = [[7, 2, 6, 2], [5, 4, 2, 12], [7, 16, 8, 2], [14, 6, 2, 10], [12, 4, 2, 10], [8, 12, 4, 2], [8, 7, 2, 6]];
+    for (const [x, y, w, h] of segs) p.r(x - 1, y - 1, w + 2, h + 2, PAL.ink);
+    for (const [x, y, w, h] of segs) p.r(x, y, w, h, PAL.pink);
+    p.px(5, 5, PAL.white).px(5, 6, PAL.white).px(7, 2, PAL.white);
+  });
+
+  // red tape overlay (same role as 'web'): X of bundled tape, centre stays open
+  out.push({ key: 'web_office', w: 20, h: 20, draw: (p) => {
+    const dot = (x: number, y: number, c: string) => { if (x >= 0 && y >= 0 && x < 20 && y < 20) p.px(x, y, c); };
+    for (let i = 0; i < 20; i++) for (const d of [-2, 2]) { dot(i + d, i, PAL.ink); dot(19 - i + d, i, PAL.ink); }
+    for (let i = 0; i < 20; i++) for (const d of [-1, 0, 1]) {
+      const c = i % 4 === 0 ? PAL.redD : PAL.red;
+      dot(i + d, i, c); dot(19 - i + d, i, c);
+    }
+    p.r(7, 7, 6, 6, PAL.ink).r(8, 8, 4, 4, PAL.red).px(9, 9, PAL.pink);
+    p.r(9, 9, 2, 2, PAL.redD);
+  } });
+
+  // ---- Omen icon and rite icons ----
+  out.push(icon8('ic_omen', ['...oo...', '..otto..', '.otttto.', 'otwwwwto', 'otwoowto', 'otwwwwto', '.otttto.', '..oooo..'], { o: PAL.ink, t: PAL.teal, w: PAL.white }));
+  out.push(icon8('ic_away', ['..oooo..', '..o..o..', 'oooooooo', 'obbbbbbo', 'obbyybbo', 'obbbbbbo', 'oooooooo', '.o....o.'], { o: PAL.ink, b: PAL.blue, y: PAL.yellow }));
+  const rite = (key: string, draw: (p: Pen) => void) => out.push({ key, w: 12, h: 12, draw });
+  rite('rite_sermon', (p) => p.map(0, 0, [ // eye with lashes
+    '............', '..o..oo..o..', '...oooooo...', '..owwwwwwo..', '.owttttttwo.', 'owttoooottwo',
+    'owttoooottwo', '.owttttttwo.', '..owwwwwwo..', '...oooooo...', '............', '............',
+  ], { o: PAL.ink, w: PAL.white, t: PAL.teal }));
+  rite('rite_recruit', (p) => p.map(0, 0, [ // person plus
+    '............', '..oooo......', '.osssso..gg.', '.osssso..gg.', '..oooo..gggg', '.oppppo.gggg',
+    '.oppppo..gg.', '.oppppo..gg.', '.oppppo.....', '.oppppo.....', '.oooooo.....', '............',
+  ], { o: PAL.ink, s: PAL.skin[0], p: PAL.robeD, g: PAL.grassD }));
+  rite('rite_communion', (p) => p.map(0, 0, [ // gentle skull, small heart
+    '...oooooo...', '..obbbbbbo..', '.obbbbbbbbo.', '.obooboobbo.', '.obooboobbo.', '.obbbbbbbbo.',
+    '..obbbbbbo..', '...obobobo..', '...oooooo...', '.........r.r', '.........rrr', '..........r.',
+  ], { o: PAL.ink, b: PAL.bone, r: PAL.red }));
+  rite('rite_harvest', (p) => { // herb sprig tied with red twine
+    p.r(5, 5, 2, 7, PAL.ink).r(5, 5, 1, 7, PAL.grassD);
+    p.ring(4, 0, 5, PAL.grass).ring(0, 3, 5, PAL.grass).ring(7, 3, 5, PAL.grass);
+    p.r(4, 9, 4, 1, PAL.red);
+  });
+  rite('rite_vigil', (p) => { // candle
+    p.diamond(6, 2, 2, PAL.ink).diamond(6, 2, 1, PAL.red).px(6, 3, PAL.yellow);
+    p.box(4, 5, 5, 6, PAL.yellow).r(5, 6, 1, 4, PAL.white).r(2, 11, 9, 1, PAL.woodDD);
+  });
+  rite('rite_look_busy', (p) => { // clipboard with a check
+    p.box(1, 2, 10, 10, PAL.wood).r(2, 4, 8, 7, PAL.white).box(4, 0, 4, 3, PAL.ink2);
+    for (const [x, y] of [[3, 7], [4, 8], [5, 7], [6, 6], [7, 5]]) p.px(x, y, PAL.grassD).px(x, y + 1, PAL.grassD);
+    p.r(3, 10, 6, 1, PAL.robe);
+  });
+  rite('rite_daily', (p) => { // calendar page with a sun
+    p.box(1, 1, 10, 10, PAL.white).r(2, 2, 8, 3, PAL.red);
+    p.disc(4, 5, 4, PAL.yellow).px(8, 6, PAL.yellow).px(3, 8, PAL.yellow).r(3, 9, 6, 1, PAL.robe);
+    p.r(3, 0, 1, 2, PAL.ink).r(8, 0, 1, 2, PAL.ink);
+  });
+
+  // ---- Visitors (16x16): civilian clothes only, no badges, no police look ----
+  out.push({ key: 'neighbour', w: 16, h: 16, draw: (p) => { // silver hair, green cardigan, casserole dish
+    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.robe, r: PAL.grassD, L: PAL.white, s: PAL.skin[1], e: PAL.ink, S: PAL.skin[1] });
+    p.box(10, 10, 6, 4, PAL.blue).r(11, 11, 4, 1, PAL.white);
+    p.px(12, 8, PAL.white).px(13, 7, PAL.white);
+  } });
+  out.push({ key: 'auditor', w: 16, h: 16, draw: (p) => { // glasses, sweater vest, ledger
+    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.woodDD, r: PAL.yellow, L: PAL.white, s: PAL.skin[0], e: PAL.ink, S: PAL.skin[0] });
+    p.r(5, 4, 3, 1, PAL.ink).r(5, 6, 3, 1, PAL.ink).px(5, 5, PAL.ink).px(7, 5, PAL.ink);
+    p.r(8, 4, 3, 1, PAL.ink).r(8, 6, 3, 1, PAL.ink).px(8, 5, PAL.ink).px(10, 5, PAL.ink);
+    p.box(10, 9, 5, 6, PAL.grassD).r(11, 10, 3, 1, PAL.sand).r(11, 12, 3, 1, PAL.sand);
+  } });
+  out.push({ key: 'inspector', w: 16, h: 16, draw: (p) => { // hard hat, hi-vis vest, clipboard
+    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.woodD, r: PAL.acid, L: PAL.blue, s: PAL.skin[2], e: PAL.ink, S: PAL.skin[2] });
+    p.r(4, 0, 8, 4, PAL.ink).r(5, 1, 6, 2, PAL.yellow).r(4, 3, 8, 1, PAL.yellow).px(6, 1, PAL.white);
+    p.r(4, 12, 8, 1, PAL.white);
+    p.box(10, 9, 5, 6, PAL.woodD).r(11, 10, 3, 4, PAL.white).r(11, 9, 3, 1, PAL.ink2);
+  } });
+  out.push({ key: 'reviewer', w: 16, h: 16, draw: (p) => { // clerk behind a tall stack of files
+    p.map(0, 0, FOLLOWER, { o: PAL.ink, R: PAL.ink2, r: PAL.robe, L: PAL.red, s: PAL.skin[3], e: PAL.ink, S: PAL.skin[3] });
+    const cols = [PAL.sand, PAL.white, PAL.wood, PAL.bone, PAL.white, PAL.sand, PAL.wood];
+    cols.forEach((c, k) => p.box(11, k * 2, 5, 3, c));
+  } });
+
+  // ---- pending-review tape (32x16): diagonal yellow and ink stripes, no words ----
+  out.push({ key: 'seal_tape', w: 32, h: 16, draw: (p) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.px(x, y, (x + y) % 8 < 4 ? PAL.yellow : PAL.ink);
+    p.r(0, 0, 32, 1, PAL.ink).r(0, 15, 32, 1, PAL.ink);
+  } });
   return out;
 }
 

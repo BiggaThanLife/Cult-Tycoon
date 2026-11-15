@@ -3,7 +3,7 @@
 import type { App } from '../app';
 import { PAL } from '../art/palette';
 import { DATA, entityDef, mergeItemKey, orderDef, ritualDef, type EntityDef } from '../core/data';
-import { activeOrders, boonsUnlocked, canFill, fillOrder, needHave, ritualUnlocked } from '../core/game';
+import { activeOrders, boonsUnlocked, canAudience, canFill, fillOrder, grantAudience, needHave, rerollOrder, ritualUnlocked } from '../core/game';
 import { t } from '../core/text';
 import { bar, button, hit, img, panel, rect, txt } from '../ui/kit';
 import { dialog } from '../ui/modal';
@@ -49,7 +49,14 @@ export class OrdersScreen extends Screen {
     const got = met ? boonsUnlocked(run, ent.id) : 0;
     const next = ent.boons[got];
     const boonText = (b: EntityDef['boons'][number]) => t(`boon.${b.field}`, { n: b.value });
-    const nextLine = !met ? '' : next ? t('orders.next_boon', { n: next.favor, boon: boonText(next) }) : t('orders.all_boons');
+    const audienceDone = run.audiences.includes(ent.id);
+    const nextLine = !met ? '' : next ? t('orders.next_boon', { n: next.favor, boon: boonText(next) }) : audienceDone ? `${t('orders.audience.done')}: ${t(`boon.${ent.audience.field}`, { n: ent.audience.value })}` : t('orders.audience.needs', { n: DATA.rites.omens.audienceFavor });
+    const audienceButton = (x: number, y: number, w: number) => {
+      if (!met || next || audienceDone) return;
+      button(app, this.c, x, y, w, 18, t('orders.audience'), () => {
+        if (app.store.act((g) => grantAudience(g, ent.id))) dialog(app, { id: 'audience', title: t('audience.title'), sprite: ent.id, body: `${t(`entity.${ent.id}.audience`)}\n${t('audience.body', { name: t(`entity.${ent.id}.name`), boon: t(`boon.${ent.audience.field}`, { n: ent.audience.value }) })}`, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+      }, { disabled: !canAudience(run, ent.id), fill: PAL.purple, icon: 'ic_omen', name: 'btn_audience' });
+    };
     const prevAt = got > 0 ? ent.boons[got - 1].favor : 0;
     const frac = next ? (fav - prevAt) / (next.favor - prevAt) : 1;
     if (L.dock) {
@@ -64,6 +71,7 @@ export class OrdersScreen extends Screen {
         dy += 19;
         txt(app, this.c, D.x + 5, dy, nextLine, { width: D.w - 9, maxLines: 4, color: 'ink' });
         dy += 38;
+        if (!next && !audienceDone) { audienceButton(D.x + 4, dy - 4, D.w - 8); dy += 18; }
         ent.boons.slice(0, got).forEach((b) => { if (dy < D.y + D.h - 9) { txt(app, this.c, D.x + 5, dy, boonText(b), { color: 'gain', width: D.w - 9, maxLines: 2 }); dy += 19; } });
       }
     } else if (met) {
@@ -71,7 +79,8 @@ export class OrdersScreen extends Screen {
       txt(app, this.c, B.x + 8, y + 3, t(`entity.${ent.id}.name`), { color: 'irony', width: B.w - 70, maxLines: 1 });
       txt(app, this.c, B.x + B.w - 8, y + 3, t('orders.favor', { n: fav }), { align: 'right' });
       bar(app, this.c, B.x + 8, y + 13, B.w - 16, 6, frac, PAL.purple);
-      txt(app, this.c, B.x + 8, y + 21, nextLine, { width: B.w - 16, maxLines: 2, color: next ? 'ink' : 'gain' });
+      if (!next && !audienceDone) { txt(app, this.c, B.x + 8, y + 23, t('orders.all_boons'), { color: 'gain', width: B.w - 110, maxLines: 1 }); audienceButton(B.x + B.w - 100, y + 20, 92); }
+      else txt(app, this.c, B.x + 8, y + 21, nextLine, { width: B.w - 16, maxLines: 2, color: next ? 'ink' : 'gain' });
       y += 43;
     }
 
@@ -107,7 +116,13 @@ export class OrdersScreen extends Screen {
         nx += s.width + 24;
       }
       const rw = def.reward;
-      txt(app, this.c, B.x + 8, y + cardH - 10, t('orders.reward', { devotion: rw.devotion ?? 0, donations: rw.donations ?? 0, favor: rw.favor ?? 0 }), { color: 'dim', width: B.w - 60, maxLines: 1 });
+      txt(app, this.c, B.x + 8, y + cardH - 10, t('orders.reward', { devotion: rw.devotion ?? 0, donations: rw.donations ?? 0, favor: rw.favor ?? 0 }), { color: 'dim', width: B.w - 84, maxLines: 1 });
+      if (run.omens >= DATA.rites.omens.rerollCost) {
+        button(app, this.c, B.x + B.w - 76, y + cardH - 23, 22, 19, '', () => dialog(app, {
+          id: 'reroll', title: t('orders.reroll.title'), body: t('orders.reroll.body', { name: t(`entity.${def.from}.name`) }),
+          buttons: [{ label: t('orders.reroll'), fill: PAL.purple, name: 'btn_reroll_yes', onClick: () => app.store.act((g, e) => rerollOrder(g, o.id, e)) }, { label: t('common.cancel') }],
+        }), { fill: PAL.purple, icon: 'ic_omen', name: `btn_reroll_${o.id}` });
+      }
       button(app, this.c, B.x + B.w - 52, y + cardH - 23, 44, 19, t('orders.deliver'), () => this.deliver(o.id), { disabled: !canFill(run, o.id), fill: PAL.acid, name: `btn_deliver_${o.id}` });
       y += cardH + 3;
     }

@@ -2,7 +2,7 @@
 import type { App } from '../app';
 import { PAL } from '../art/palette';
 import { DATA, buildingDef, entityDef, eventDef, mergeItemKey, ritualDef } from '../core/data';
-import { addResource, addSuspicion, addXp, canUpgrade, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded } from '../core/game';
+import { addResource, addSuspicion, addXp, canUpgrade, isAway, isSealed, sealLeft, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded } from '../core/game';
 import { countItems } from '../puzzle/merge';
 import type { BuildingState } from '../core/types';
 import { exportCode, importCode } from '../core/save';
@@ -146,7 +146,7 @@ export function openFollower(app: App, f: Follower, candidate = false): void {
       const r = frame(app, c, w, 16 + bodyH + 24, f.name);
       // header
       img(app, c, r.x, r.y, `fol_${f.skin}_${f.robe}_0`).setScale(2);
-      const where = candidate ? t('follower.candidate') : job ? t('follower.job', { building: t(`building.${job.type}.name`) }) : t('follower.idle');
+      const where = !candidate && isAway(app.store.state.run, f) ? t('follower.away', { m: Math.max(1, Math.ceil(((f.awayUntil ?? 0) - app.store.state.run.time) / 60)) }) : candidate ? t('follower.candidate') : job ? t('follower.job', { building: t(`building.${job.type}.name`) }) : t('follower.idle');
       txt(app, c, r.x + 38, r.y + 2, where, { width: colW - 38, maxLines: 2 });
       txt(app, c, r.x + 38, r.y + 22, t('float.follower_fine', { name: f.name }), { color: 'irony', width: colW - 38, maxLines: 1 });
       // stats
@@ -224,7 +224,8 @@ function openEvent(app: App): void {
       disabled: !choiceAvailable(app.store.state.run, ev.id, i),
       onClick: () => {
         app.store.act((g, emit) => resolveEvent(g, i, emit));
-        dialog(app, { id: 'event_result', title: t(`event.${ev.id}.title`), body: t(`event.${ev.id}.result.${ch.id}`), sprite: def.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+        const waiting = !!app.store.state.run.inspection;
+        dialog(app, { id: 'event_result', title: t(`event.${ev.id}.title`), body: t(`event.${ev.id}.result.${ch.id}`), sprite: def.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok', onClick: () => { if (waiting) app.goto('rituals'); } }] });
       },
     })),
   });
@@ -275,6 +276,7 @@ export function upgradeMissing(app: App, b: BuildingState): string[] {
   const out: string[] = [];
   if (run.devotion < up.cost.devotion) out.push(t('building.missing.devotion', { n: Math.ceil(up.cost.devotion - run.devotion) }));
   if (run.donations < up.cost.donations) out.push(t('building.missing.donations', { n: Math.ceil(up.cost.donations - run.donations) }));
+  if (up.omens && run.omens < up.omens) out.push(t('building.missing.omens', { n: up.omens - run.omens }));
   if (up.merge && countItems(run.reliquary, up.merge.chain, up.merge.tier) < 1) {
     const name = t(`merge.${mergeItemKey(up.merge.chain, up.merge.tier)}.name`);
     const gen = DATA.merge.generators.find((g) => g.chain === up.merge!.chain)!;
@@ -295,7 +297,7 @@ export function openBuilding(app: App, buildingId: number): void {
       const up = nextUpgrade(b);
       const w = app.L.landscape ? Math.min(app.L.w - 8, 310) : modalWidth(app); // wider in landscape so the list stays short
       const tw = w - 10;
-      const now = t('building.now', { text: buildingEffect(b.type, b.level) });
+      const now = (isSealed(run, b) ? `${t('building.sealed')}. ${t('building.sealed.reopens', { m: Math.max(1, Math.ceil(sealLeft(run, b) / 60)) })}\n` : '') + t('building.now', { text: buildingEffect(b.type, b.level) });
       const next = up ? t('building.next', { text: buildingEffect(b.type, b.level + 1) }) : t('building.maxed');
       const missing = upgradeMissing(app, b);
       const status = !up ? '' : missing.length ? [t('building.missing'), ...missing.map((m) => `- ${m}`)].join('\n') : t('building.ready');
@@ -319,6 +321,11 @@ export function openBuilding(app: App, buildingId: number): void {
         x += 40;
         img(app, c, x, y, 'ic_donations');
         txt(app, c, x + 10, y, String(up.cost.donations), { color: run.donations >= up.cost.donations ? 'gain' : 'loss' });
+        if (up.omens) {
+          x += 34;
+          img(app, c, x, y, 'ic_omen');
+          txt(app, c, x + 10, y, String(up.omens), { color: run.omens >= up.omens ? 'gain' : 'loss' });
+        }
         y += 12;
         if (up.merge) {
           // the relic it needs, by picture and by name

@@ -113,12 +113,20 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   let gapAt = 0;
   let unlocks = 0;
   let earlyGap = 0;
+  let visits = 0;
   let earlyGapAt = 0;
   const progress = () => [run.level, run.met.length, g.meta.grimoire.length, run.buildings.reduce((n, b) => n + b.level, 0), Object.keys(run.rituals).length, Object.values(g.meta.mergeCodex).reduce((a, b) => a + b, 0), run.met.reduce((n, e) => n + G.boonsUnlocked(run, e), 0), run.followers.length].join('|');
   let seen = progress();
   const spend = (sec: number, kind: string) => {
     G.debugSkip(g, sec);
-    if (run.event) G.resolveEvent(g, G.choiceAvailable(run, run.event.id, 0) ? 0 : 1);
+    if (run.event) {
+      const ev = DATA.events.find((e) => e.id === run.event!.id)!;
+      // visitors: answer with Look Busy (played right after); other events: first available choice
+      const lb = ev.choices.findIndex((c) => c.id === 'look_busy');
+      const pick = ev.visitor && lb >= 0 ? lb : G.choiceAvailable(run, ev.id, 0) ? 0 : 1;
+      G.resolveEvent(g, pick);
+      if (ev.visitor) visits++;
+    }
     clock += sec;
     actions[kind] = (actions[kind] ?? 0) + sec;
     const now = progress();
@@ -132,13 +140,25 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
       for (const e of run.met) if (metAt[e] === undefined) metAt[e] = clock;
     }
   };
+  /** Pick the rite a sensible player would: recruit if beds are free, harvest what an open order lacks, else commune. */
+  const pickRite = (): { id: string; entity?: string; crop?: string } => {
+    if (!G.riteBlocked(g, 'recruit')) return { id: 'recruit' };
+    for (const o of run.orders) for (const n of DATA.orders.find((x) => x.id === o.id)!.needs) {
+      if ('item' in n && G.needHave(run, n) < n.count && DATA.crops.some((c) => c.id === n.item) && G.cropUnlocked(run, n.item) && !G.riteBlocked(g, 'harvest')) return { id: 'harvest', crop: n.item };
+    }
+    const next = run.met.filter((e) => G.boonsUnlocked(run, e) < 3).sort((a, b) => (run.favor[b] ?? 0) - (run.favor[a] ?? 0))[0];
+    if (next) return { id: 'communion', entity: next };
+    return { id: 'sermon' };
+  };
   const ritual = (id: string) => {
-    const st = G.startRitual(g, id) as Match3State | null;
+    const daily = G.dailyLevel(run, 'sim-day');
+    const st = G.startRitual(g, id, run.inspection ? undefined : pickRite()) as Match3State | null;
     if (!st) return false;
+    void daily;
     spend(st.level.par * SEC_PER_MOVE + 20, 'ritual');
     st.status = 'won';
     st.score = st.level.starScores[stars - 1];
-    st.collected = [8, 8, 8, 8, 8, 0];
+    st.collected = [12, 12, 12, 12, 12, 0]; // a typical winning board clears about 12 of each tile
     G.finishRitual(g);
     G.ensureDraft(g);
     while (run.draft) { spend(10, 'draft'); G.draftPick(g, 0); }
@@ -187,6 +207,7 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   if (!levelAt[run.level]) levelAt[run.level] = 0;
   for (const e of run.met) metAt[e] = 0;
   while (clock < minutes * 60) {
+    if (run.inspection) { ritual(run.inspection.level); continue; }
     for (const b of run.buildings) if (b.stored >= 5 && run.devotion < G.devotionCap(run)) G.collect(g, b.id);
     const house = gh();
     let acted = false;
@@ -194,11 +215,13 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     if (acted) continue;
     const fill = run.orders.find((o) => G.canFill(run, o.id));
     if (fill) { spend(8, 'orders'); G.fillOrder(g, fill.id); continue; }
+    const aud = run.met.find((e) => G.canAudience(run, e));
+    if (aud) { spend(5, 'orders'); G.grantAudience(g, aud); continue; }
     const up = run.buildings.find((b) => G.canUpgrade(run, b));
     if (up) { spend(8, 'upgrade'); G.upgradeBuilding(g, up.id); continue; }
     const summon = DATA.entities.find((e) => !run.met.includes(e.id) && G.ritualUnlocked(run, e.summonRitual));
     if (summon) { ritual(summon.summonRitual); continue; }
-    if (run.followers.length < G.housing(run)) { ritual(G.ritualUnlocked(run, 'r7') ? 'r7' : 'r2'); continue; }
+    if (!G.riteBlocked(g, 'recruit')) { ritual(G.ritualUnlocked(run, 'r7') ? 'r7' : 'r2'); continue; }
     // work towards open orders, then towards the cheapest upgrade's merge item
     for (const o of run.orders) {
       for (const need of DATA.orders.find((x) => x.id === o.id)!.needs) {
@@ -215,11 +238,12 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     if (acted) continue;
     // nothing to make right now: preach if there is room for Devotion, otherwise wait for crops and charges
     const sermon = [...DATA.rituals].reverse().find((r) => r.purpose === 'sermon' && G.ritualUnlocked(run, r.id));
-    if (sermon && run.devotion < G.devotionCap(run) * 0.8) ritual(sermon.id);
+    if (sermon) ritual(sermon.id);
     else spend(10, 'wait');
   }
   if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
   if (lastUnlock < CHECK_MIN * 60 && clock - lastUnlock > earlyGap) { earlyGap = clock - lastUnlock; earlyGapAt = clock; }
+  actions.visits = visits;
   return { earlyGap, earlyGapAt, lastNewAt: lastUnlock, name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
 }
 
@@ -284,13 +308,17 @@ for (const r of longs) {
   const okGap = r.earlyGap <= MAX_GAP_SEC;
   const l3 = r.levelAt[3] ?? Infinity;
   const l5 = r.levelAt[5] ?? Infinity;
+  const active = Object.entries(r.actions).filter(([k]) => !['wait', 'visits'].includes(k)).reduce((n, [, v]) => n + v, 0);
+  const share = (r.actions.ritual ?? 0) / Math.max(1, active);
+  const okShare = share >= 0.2 && share <= 0.6;
   const okPace = l3 >= 5 * 60 && l3 <= 30 * 60 && l5 >= 30 * 60 && l5 <= 110 * 60; // not a sprint, not a slog
-  if (!okGap || !okPace) failed = true;
+  if (!okGap || !okPace || !okShare) failed = true;
   md += `## ${r.name}\n\n- Ends at: ${r.final}\n- ${r.unlocks} new things in ${LONG_MIN} min. Longest wait for one in the first ${CHECK_MIN} min: **${fmt(r.earlyGap)}** (ending at ${fmt(r.earlyGapAt)}) ${okGap ? 'ok' : 'FAIL > 10:00'}. Longest overall: ${fmt(r.longestGap)} (ending at ${fmt(r.gapAt)}).\n`;
+  md += `- Rituals are ${(share * 100).toFixed(0)}% of active time ${okShare ? 'ok' : 'FAIL (want 20-60%)'}; inspections: ${r.actions.visits ?? 0}\n`;
   md += `- Pace: Lv3 at ${fmt(l3)}, Lv5 at ${fmt(l5)} ${okPace ? 'ok' : 'FAIL (want Lv3 in 5-30 min and Lv5 in 30-110 min)'}\n`;
   md += `- Compound levels reached at: ${Object.entries(r.levelAt).map(([l, tm]) => `Lv${l} ${fmt(tm)}`).join(', ')}\n- Entities met at: ${Object.entries(r.metAt).map(([e, tm]) => `${e} ${fmt(tm)}`).join(', ')}\n`;
   md += `- Time by action: ${Object.entries(r.actions).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${fmt(v)}`).join(', ')}\n\n`;
-  console.log(`${okGap && okPace ? 'PASS' : 'FAIL'}  long run, ${r.name}: ${r.final}; longest early wait ${fmt(r.earlyGap)} (at ${fmt(r.earlyGapAt)}), overall ${fmt(r.longestGap)}; Lv3@${fmt(l3)} Lv4@${fmt(r.levelAt[4] ?? 0)} Lv5@${fmt(l5)} Lv6@${fmt(r.levelAt[6] ?? 0)}; last new thing @${fmt(r.lastNewAt)}; met ${Object.entries(r.metAt).map(([e, tm]) => `${e}@${fmt(tm)}`).join(' ')}`);
+  console.log(`${okGap && okPace && okShare ? 'PASS' : 'FAIL'}  long run, ${r.name}: rituals ${(share * 100).toFixed(0)}%, visits ${r.actions.visits ?? 0}; ${r.final}; longest early wait ${fmt(r.earlyGap)} (at ${fmt(r.earlyGapAt)}), overall ${fmt(r.longestGap)}; Lv3@${fmt(l3)} Lv4@${fmt(r.levelAt[4] ?? 0)} Lv5@${fmt(l5)} Lv6@${fmt(r.levelAt[6] ?? 0)}; last new thing @${fmt(r.lastNewAt)}; met ${Object.entries(r.metAt).map(([e, tm]) => `${e}@${fmt(tm)}`).join(' ')}`);
 }
 mkdirSync('docs/sim', { recursive: true });
 writeFileSync('docs/sim/latest.md', md);

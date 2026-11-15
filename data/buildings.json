@@ -42,7 +42,8 @@
           "merge": {
             "chain": "paper",
             "tier": 4
-          }
+          },
+          "omens": 6
         }
       ]
     },
@@ -79,7 +80,8 @@
           "merge": {
             "chain": "candle",
             "tier": 3
-          }
+          },
+          "omens": 4
         }
       ]
     },
@@ -116,7 +118,8 @@
           "merge": {
             "chain": "candle",
             "tier": 2
-          }
+          },
+          "omens": 4
         }
       ]
     },
@@ -143,7 +146,8 @@
           "merge": {
             "chain": "candle",
             "tier": 3
-          }
+          },
+          "omens": 4
         }
       ]
     }

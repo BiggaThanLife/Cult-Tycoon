@@ -9,7 +9,15 @@ import { fileURLToPath } from 'node:url';
 import { runPlayouts, type LevelDef } from '../../src/puzzle/match3';
 
 const DEFAULT_MIN_WIN_RATE = 0.7;
-const MIN_WIN_RATE_BY_ID: Record<string, number> = { r1: 0.9 };
+const MIN_WIN_RATE_BY_ID: Record<string, number> = {
+  r1: 0.9,
+  r4: 0.8,
+  r5: 0.8,
+  // Look Busy inspection boards (purpose 'defense', skin 'office'): easy enough to be a relief, not a wall
+  lb1: 0.9,
+  lb2: 0.8,
+  lb3: 0.75,
+};
 
 const args = process.argv.slice(2);
 const playoutsArg = args.find((a) => a.startsWith('--playouts='));

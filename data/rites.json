@@ -1,0 +1,77 @@
+{
+  "rites": [
+    {
+      "id": "sermon",
+      "focus": 2,
+      "pays": {
+        "doubtPerTiles": 8
+      },
+      "show": {}
+    },
+    {
+      "id": "recruit",
+      "focus": 3,
+      "pays": {
+        "draft": 1,
+        "bigDraftAt": 15,
+        "bigDraftSize": 4
+      },
+      "show": {}
+    },
+    {
+      "id": "communion",
+      "focus": 1,
+      "pays": {
+        "favorPerTile": 0.4
+      },
+      "show": {
+        "metAny": true
+      },
+      "choose": "entity"
+    },
+    {
+      "id": "harvest",
+      "focus": 4,
+      "pays": {
+        "cropPerTiles": 3
+      },
+      "show": {
+        "building": "greenhouse"
+      },
+      "choose": "crop"
+    },
+    {
+      "id": "vigil",
+      "focus": 0,
+      "pays": {
+        "stubPerTiles": 4
+      },
+      "show": {
+        "generator": "ritual_brazier"
+      }
+    },
+    {
+      "id": "look_busy",
+      "focus": -1,
+      "pays": {
+        "cutPerStar": 0.25,
+        "winSuspicion": -5
+      },
+      "show": {
+        "inspection": true
+      }
+    }
+  ],
+  "omens": {
+    "perStar": 1,
+    "relaxedFlat": 1,
+    "firstThreeStar": 2,
+    "rerollCost": 1,
+    "audienceCost": 10,
+    "audienceFavor": 200
+  },
+  "daily": {
+    "bonus": 3,
+    "bankMax": 3
+  }
+}

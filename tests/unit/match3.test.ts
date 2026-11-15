@@ -1012,9 +1012,9 @@ describe('findHint', () => {
 describe('shipped levels', () => {
   const file = new URL('../../data/levels/rituals.json', import.meta.url);
   const { levels } = JSON.parse(readFileSync(file, 'utf8')) as { levels: LevelDef[] };
-  // every level must clear the 0.70 floor; the first two keep their stricter targets
+  // every level must clear the 0.70 floor; these keep stricter targets (same as tools/levels/validate.ts, r2 aside)
   const WIN_RATE_FLOOR = 0.7;
-  const targets: Record<string, number> = { r1: 0.9, r2: 0.75 };
+  const targets: Record<string, number> = { r1: 0.9, r2: 0.75, r4: 0.8, r5: 0.8, lb1: 0.9, lb2: 0.8, lb3: 0.75 };
   const PLAYOUTS = 150;
 
   it('starts with the three slice rituals in their agreed shape', () => {
@@ -1070,6 +1070,30 @@ describe('shipped levels', () => {
     for (const w of webs) {
       expect(w.layers).toBe(1);
       expect(keys.has(`${7 - w.x},${w.y}`)).toBe(true);
+    }
+  });
+
+  it('Look Busy boards: every defense level uses the office skin and has no relics', () => {
+    const defense = levels.filter((l) => l.purpose === 'defense');
+    expect(defense.map((l) => l.id)).toEqual(['lb1', 'lb2', 'lb3']);
+    for (const l of defense) {
+      expect(l.skin, `${l.id} skin`).toBe('office');
+      expect(l.relics ?? 0, `${l.id} relics`).toBe(0);
+      expect(l.goals.some((g) => g.kind === 'dropRelics'), `${l.id} relic goal`).toBe(false);
+      expect(l.unlock).toEqual({ step: 'away' });
+    }
+    expect(defense[0].goals).toEqual([{ kind: 'collect', tile: 0, count: 12 }]);
+    expect(defense[1].goals).toEqual([{ kind: 'collect', tile: 1, count: 10 }, { kind: 'clearWebs' }]);
+    expect(defense[1].webs!.length).toBe(6);
+    expect(defense[1].webs!.every((w) => w.layers === 1)).toBe(true);
+    expect(defense[2].goals).toEqual([{ kind: 'collect', tile: 4, count: 12 }, { kind: 'clearWebs' }]);
+    expect(defense[2].webs!.length).toBe(8);
+    expect(defense[2].webs!.filter((w) => w.layers === 2).length).toBe(2);
+  });
+
+  it('only defense levels carry a skin', () => {
+    for (const l of levels) {
+      if (l.skin !== undefined) expect(l.purpose, `${l.id} has a skin`).toBe('defense');
     }
   });
 

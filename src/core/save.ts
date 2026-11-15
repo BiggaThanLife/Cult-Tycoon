@@ -32,6 +32,11 @@ export const MIGRATIONS: Migrations = {
     run.met = [...(d.meta.bestiary ?? [])];
     return d;
   },
+  // v3 -> v4: rites, Omens, the Daily Rite and inspections
+  3: (d) => {
+    Object.assign(d.run, { omens: 0, audiences: [], activeRite: null, inspection: null, daily: { day: '', bank: 0 }, visitClock: 0, lastVisitAt: 0, draftBonus: 0 });
+    return d;
+  },
 };
 
 interface Envelope { saveVersion: number; savedAt: number; data: unknown }

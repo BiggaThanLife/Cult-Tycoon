@@ -1,17 +1,208 @@
 {
   "events": [
     {
-      "id": "reporter", "sprite": "reporter",
+      "id": "reporter",
+      "sprite": "reporter",
       "choices": [
-        { "id": "sample", "requires": { "item": "amnesia_brew", "count": 1 }, "effects": { "suspicion": -15, "consume": { "item": "amnesia_brew", "count": 1 } } },
-        { "id": "no_comment", "effects": { "suspicion": 5 } }
+        {
+          "id": "sample",
+          "requires": {
+            "item": "amnesia_brew",
+            "count": 1
+          },
+          "effects": {
+            "suspicion": -15,
+            "consume": {
+              "item": "amnesia_brew",
+              "count": 1
+            }
+          }
+        },
+        {
+          "id": "no_comment",
+          "effects": {
+            "suspicion": 5
+          }
+        }
       ]
     },
     {
-      "id": "cat", "sprite": "cat",
+      "id": "cat",
+      "sprite": "cat",
       "choices": [
-        { "id": "yes", "effects": { "flag": "cat_adopted", "devotion": 5 } },
-        { "id": "also_yes", "effects": { "flag": "cat_adopted", "devotion": 5 } }
+        {
+          "id": "yes",
+          "effects": {
+            "flag": "cat_adopted",
+            "devotion": 5
+          }
+        },
+        {
+          "id": "also_yes",
+          "effects": {
+            "flag": "cat_adopted",
+            "devotion": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "neighbour",
+      "sprite": "neighbour",
+      "band": 1,
+      "visitor": true,
+      "choices": [
+        {
+          "id": "gift",
+          "requires": {
+            "item": "pesto",
+            "count": 1
+          },
+          "effects": {
+            "suspicion": -12,
+            "consume": {
+              "item": "pesto",
+              "count": 1
+            }
+          }
+        },
+        {
+          "id": "settle",
+          "effects": {
+            "suspicion": -6,
+            "finePct": 10
+          }
+        },
+        {
+          "id": "look_busy",
+          "effects": {
+            "lookBusy": "lb1",
+            "suspicion": -6,
+            "finePct": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "auditor",
+      "sprite": "auditor",
+      "band": 2,
+      "visitor": true,
+      "choices": [
+        {
+          "id": "settle",
+          "effects": {
+            "suspicion": -10,
+            "finePct": 15
+          }
+        },
+        {
+          "id": "look_busy",
+          "effects": {
+            "lookBusy": "lb1",
+            "suspicion": -10,
+            "finePct": 15
+          }
+        }
+      ]
+    },
+    {
+      "id": "expose",
+      "sprite": "reporter",
+      "band": 2,
+      "visitor": true,
+      "choices": [
+        {
+          "id": "sample",
+          "requires": {
+            "item": "amnesia_brew",
+            "count": 1
+          },
+          "effects": {
+            "suspicion": -15,
+            "consume": {
+              "item": "amnesia_brew",
+              "count": 1
+            }
+          }
+        },
+        {
+          "id": "interview",
+          "effects": {
+            "suspicion": -8,
+            "awaySec": 240
+          }
+        },
+        {
+          "id": "look_busy",
+          "effects": {
+            "lookBusy": "lb1",
+            "suspicion": -8,
+            "awaySec": 240
+          }
+        }
+      ]
+    },
+    {
+      "id": "inspector",
+      "sprite": "inspector",
+      "band": 3,
+      "visitor": true,
+      "choices": [
+        {
+          "id": "thermos",
+          "requires": {
+            "item": "calm_draught",
+            "count": 1
+          },
+          "effects": {
+            "suspicion": -15,
+            "consume": {
+              "item": "calm_draught",
+              "count": 1
+            }
+          }
+        },
+        {
+          "id": "settle",
+          "effects": {
+            "suspicion": -12,
+            "sealSec": 300
+          }
+        },
+        {
+          "id": "look_busy",
+          "effects": {
+            "lookBusy": "lb2",
+            "suspicion": -12,
+            "sealSec": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": "full_review",
+      "sprite": "reviewer",
+      "band": 4,
+      "visitor": true,
+      "choices": [
+        {
+          "id": "settle",
+          "effects": {
+            "suspicionTo": 50,
+            "finePct": 25,
+            "sealSec": 600
+          }
+        },
+        {
+          "id": "look_busy",
+          "effects": {
+            "lookBusy": "lb3",
+            "suspicionTo": 50,
+            "finePct": 25,
+            "sealSec": 600
+          }
+        }
       ]
     }
   ]

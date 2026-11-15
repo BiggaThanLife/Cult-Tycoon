@@ -9,10 +9,12 @@ import { ATLAS } from '../art/sprites';
 import { fontKey } from '../art/font';
 import { PAL } from '../art/palette';
 import { DATA } from '../core/data';
-import { finishRitual, ritualUnlocked, startRitual, type RitualReward } from '../core/game';
+import { cropUnlocked, dailyLevel, finishRitual, riteBlocked, ritesOpen, ritesVisible, ritualUnlocked, settleInspection, startRitual, updateDaily, type RitualReward, type VisitSummary } from '../core/game';
+import { eventDef, ritualDef, riteDef } from '../core/data';
+import type { ActiveRite } from '../core/types';
 import { t } from '../core/text';
 import { findHint, goalProgress, MOVE_BONUS, trySwap, type Cell, type Goal, type Match3State, type Snapshot } from '../puzzle/match3';
-import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
+import { button, hit, img, inRect, panel, rect, textHeight, txt, type C } from '../ui/kit';
 import { dialog, frame, modalWidth } from '../ui/modal';
 import { sfx } from '../ui/sfx';
 import type { OrdersScreen } from './orders';
@@ -50,7 +52,7 @@ export class RitualScreen extends Screen {
   private pendingIntro = false;
   /** What the HUD currently shows; it trails the engine state while animations play. */
   private disp = { score: 0, shown: 0, moves: 0, collected: [0, 0, 0, 0, 0, 0], relics: 0, webs: 0 };
-  private info: { moves?: Phaser.GameObjects.BitmapText; score?: Phaser.GameObjects.BitmapText; goals: Phaser.GameObjects.BitmapText[]; goalAt: { x: number; y: number }[] } = { goals: [], goalAt: [] };
+  private info: { focus?: Phaser.GameObjects.BitmapText; moves?: Phaser.GameObjects.BitmapText; score?: Phaser.GameObjects.BitmapText; goals: Phaser.GameObjects.BitmapText[]; goalAt: { x: number; y: number }[] } = { goals: [], goalAt: [] };
 
   private get game(): Match3State | null { return this.app.store.state.run.activeRitual as Match3State | null; }
   private get reduced(): boolean { return this.app.store.state.meta.settings.reducedMotion; }
@@ -94,22 +96,132 @@ export class RitualScreen extends Screen {
   // ---------- level list ----------
 
   private page = 0;
+  /** The rite the player has picked (view state; it is copied into the save when a ritual starts). */
+  rite: ActiveRite = { id: 'sermon' };
+
+  private today(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  private begin(levelId: string, rite?: ActiveRite): void {
+    this.pendingIntro = true;
+    this.celebrated = false;
+    this.app.store.act((g) => startRitual(g, levelId, rite));
+    this.rebuild();
+  }
+
+  /** Pick a rite; Communion and Harvest ask which entity or crop first. */
+  private chooseRite(id: string): void {
+    const app = this.app;
+    const def = riteDef(id);
+    if (!def.choose) { this.rite = { id }; this.rebuild(); return; }
+    const run = app.store.state.run;
+    const options = def.choose === 'entity' ? run.met.map((e) => ({ key: e, label: t(`entity.${e}.name`), sprite: e })) : DATA.crops.filter((c) => cropUnlocked(run, c.id)).map((c) => ({ key: c.id, label: t(`item.${c.id}.name`), sprite: `i_${c.id}` }));
+    app.modals.open({
+      id: 'rite_choose',
+      build: (c, _a, close) => {
+        const w = Math.min(app.L.w - 8, app.L.landscape ? 300 : 190);
+        const cols = app.L.landscape ? 3 : 2;
+        const bw = Math.floor((w - 10 - (cols - 1) * 4) / cols);
+        const rows = Math.ceil(options.length / cols);
+        const r = frame(app, c, w, 16 + rows * 40 + 24, t(def.choose === 'entity' ? 'rite.choose_entity' : 'rite.choose_crop'));
+        options.forEach((o, i) => {
+          const x = r.x + (i % cols) * (bw + 4);
+          const y = r.y + Math.floor(i / cols) * 40;
+          panel(app, c, x, y, bw, 37, PAL.white);
+          const sp = img(app, c, x + 2, y + 2, o.sprite);
+          if (sp.width <= 16) sp.setPosition(x + 10, y + 10);
+          txt(app, c, x + 36, y + 6, o.label, { width: bw - 38, maxLines: 3 });
+          hit(app, c, x, y, bw, 37, () => { close(); this.rite = def.choose === 'entity' ? { id, entity: o.key } : { id, crop: o.key }; this.rebuild(); }).setName(`choose_${o.key}`);
+        });
+        button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.cancel'), close, { name: 'btn_close' });
+      },
+    });
+  }
+
+  /** The rite strip, its description and the Daily Rite card. Returns the height used. */
+  private buildRitePanel(x: number, y: number, w: number): number {
+    const app = this.app;
+    const g = app.store.state;
+    const run = g.run;
+    const y0 = y;
+    if (riteBlocked(g, this.rite.id)) this.rite = { id: 'sermon' };
+    // a visitor is waiting: that comes first
+    if (run.inspection) {
+      const ev = eventDef(run.inspection.event);
+      const body = t('inspection.waiting');
+      const bh = Math.max(36, textHeight(body, w - 30) + 26);
+      panel(app, this.c, x, y, w, bh, PAL.yellow);
+      img(app, this.c, x + 3, y + 3, ev.sprite);
+      txt(app, this.c, x + 24, y + 3, body, { width: w - 28 });
+      const bw = Math.floor((w - 10) / 2);
+      button(app, this.c, x + 3, y + bh - 21, bw, 18, t('rite.look_busy.name'), () => this.begin(run.inspection!.level), { fill: PAL.acid, icon: 'rite_look_busy', name: 'btn_look_busy' });
+      button(app, this.c, x + 7 + bw, y + bh - 21, bw, 18, t('inspection.settle'), () => {
+        const sum = app.store.act((gg, e) => settleInspection(gg, e));
+        if (sum) dialog(app, { id: 'inspection_result', title: t(`event.${ev.id}.title`), body: t('inspection.result.loss', { summary: summaryText(sum) }), sprite: ev.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+        this.rebuild();
+      }, { fill: PAL.robe, name: 'btn_settle' });
+      y += bh + 3;
+    }
+    // rite strip
+    txt(app, this.c, x + 1, y + 1, t('rite.pick'), { color: app.L.dock ? 'irony' : 'white' });
+    y += 10;
+    const rites = ritesVisible(g).filter((r) => r.id !== 'look_busy');
+    const cell = 22;
+    const perRow = Math.max(1, Math.floor((w + 2) / (cell + 2)));
+    rites.forEach((r, i) => {
+      const cx = x + (i % perRow) * (cell + 2);
+      const cy = y + Math.floor(i / perRow) * (cell + 2);
+      const blocked = riteBlocked(g, r.id);
+      panel(app, this.c, cx, cy, cell, cell, this.rite.id === r.id ? PAL.yellow : blocked ? PAL.robeD : PAL.white);
+      img(app, this.c, cx + 5, cy + 5, `rite_${r.id}`).setAlpha(blocked ? 0.45 : 1);
+      hit(app, this.c, cx, cy, cell, cell, () => (blocked ? app.float(t(blocked), undefined, 'irony') : this.chooseRite(r.id))).setName(`rite_${r.id}`);
+    });
+    y += Math.ceil(rites.length / perRow) * (cell + 2) + 1;
+    const def = riteDef(this.rite.id);
+    const target = this.rite.entity ? t(`entity.${this.rite.entity}.name`) : this.rite.crop ? t(`item.${this.rite.crop}.name`) : '';
+    const line = `${t(`rite.${def.id}.name`)}${target ? ` - ${target}` : ''}: ${t(`rite.${def.id}.desc`)}`;
+    txt(app, this.c, x + 1, y, line, { width: w - 2, maxLines: 3, color: app.L.dock ? 'ink' : 'pale' });
+    y += Math.min(3, textHeight(line, w - 2) / 9) * 9 + 3;
+    // daily rite
+    updateDaily(run, this.today());
+    const lv = dailyLevel(run, this.today());
+    if (lv) {
+      const banked = run.daily.bank;
+      panel(app, this.c, x, y, w, 22, banked ? PAL.white : PAL.robe);
+      img(app, this.c, x + 4, y + 5, 'rite_daily');
+      const info = banked ? `${t('daily.title')}: ${t(ritualDef(lv).nameKey)} (${t('daily.banked', { n: banked })})` : t('daily.done');
+      txt(app, this.c, x + 19, y + 3, info, { width: w - 19 - (banked ? 40 : 4), maxLines: 2 });
+      if (banked) button(app, this.c, x + w - 38, y + 2, 36, 18, t('ritual.play'), () => this.begin(lv, { ...this.rite, daily: true }), { fill: PAL.acid, name: 'btn_daily' });
+      y += 25;
+    }
+    return y - y0;
+  }
 
   private buildList(): void {
     const app = this.app;
     const L = app.L;
     const B = L.body;
-    const run = app.store.state.run;
+    const g = app.store.state;
+    const run = g.run;
     const cardH = L.landscape ? 40 : 46;
-    const all = DATA.rituals;
+    const all = DATA.rituals.filter((l) => l.purpose !== 'defense');
+    let top = B.y + 2;
+    if (!L.dock) txt(app, this.c, B.x + 5, top + 2, t('ritual.list.title'), { color: 'white' });
+    top += 13;
+    if (ritesOpen(run)) {
+      if (L.dock) this.buildRitePanel(L.dock.x + 4, L.dock.y + 4, L.dock.w - 8);
+      else top += this.buildRitePanel(B.x + 4, top, B.w - 8);
+    }
     const pagerH = 20;
-    let perPage = Math.max(1, Math.floor((B.h - 15) / (cardH + 3)));
-    if (perPage < all.length) perPage = Math.max(1, Math.floor((B.h - 15 - pagerH) / (cardH + 3)));
+    const room = B.y + B.h - top;
+    let perPage = Math.max(1, Math.floor(room / (cardH + 3)));
+    if (perPage < all.length) perPage = Math.max(1, Math.floor((room - pagerH) / (cardH + 3)));
     const pages = Math.ceil(all.length / perPage);
     this.page = Math.max(0, Math.min(pages - 1, this.page));
-    txt(app, this.c, B.x + 5, B.y + 4, t('ritual.list.title'), { color: 'white' });
     all.slice(this.page * perPage, (this.page + 1) * perPage).forEach((lv, i) => {
-      const y = B.y + 15 + i * (cardH + 3);
+      const y = top + i * (cardH + 3);
       const unlocked = ritualUnlocked(run, lv.id);
       const stars = run.rituals[lv.id] ?? 0;
       panel(app, this.c, B.x + 4, y, B.w - 8, cardH, unlocked ? PAL.robeL : PAL.robeD);
@@ -120,14 +232,10 @@ export class RitualScreen extends Screen {
         if (lv.unlock?.level) txt(app, this.c, B.x + 19, y + 15, t('ritual.unlock_level', { n: lv.unlock.level }), { color: 'pale' });
         return;
       }
-      txt(app, this.c, B.x + 8, y + 13, t(`ritual.purpose.${lv.purpose}`), { color: 'irony', width: B.w - 62, maxLines: 1 });
+      const purpose = lv.purpose === 'summon' && !run.met.includes(DATA.entities.find((e) => e.summonRitual === lv.id)?.id ?? '') ? t('ritual.purpose.summon') : ritesOpen(run) ? t(`rite.${this.rite.id}.name`) : t(`ritual.purpose.${lv.purpose}`);
+      txt(app, this.c, B.x + 8, y + 13, purpose, { color: 'irony', width: B.w - 62, maxLines: 1 });
       txt(app, this.c, B.x + 8, y + cardH - 11, t('ritual.moves_par', { moves: lv.moves, par: lv.par }), { color: 'dim' });
-      button(app, this.c, B.x + B.w - 48, y + cardH - 22, 40, 19, stars ? t('ritual.replay') : t('ritual.play'), () => {
-        this.pendingIntro = true;
-        this.celebrated = false;
-        app.store.act((g) => startRitual(g, lv.id));
-        this.rebuild();
-      }, { name: `btn_play_${lv.id}` });
+      button(app, this.c, B.x + B.w - 48, y + cardH - 22, 40, 19, stars ? t('ritual.replay') : t('ritual.play'), () => this.begin(lv.id, this.rite), { name: `btn_play_${lv.id}` });
     });
     if (pages > 1) {
       const py = B.y + B.h - pagerH + 1;
@@ -135,7 +243,7 @@ export class RitualScreen extends Screen {
       txt(app, this.c, B.x + Math.floor(B.w / 2), py + 4, t('ritual.page', { n: this.page + 1, max: pages }), { align: 'center', color: 'white' });
       button(app, this.c, B.x + B.w - 34, py, 30, 17, '>', () => { this.page++; this.rebuild(); }, { disabled: this.page >= pages - 1, fill: PAL.blue, name: 'btn_page_next' });
     }
-    if (L.dock) {
+    if (L.dock && !ritesOpen(run)) {
       const D = L.dock;
       txt(app, this.c, D.x + 5, D.y + 4, t('ritual.dock.title'), { color: 'irony' });
       txt(app, this.c, D.x + 5, D.y + 16, t('ritual.dock.help'), { width: D.w - 9 });
@@ -181,11 +289,13 @@ export class RitualScreen extends Screen {
       goals.forEach((gp) => { this.goalRow(gp.goal, P.x + 4, y); y += 22; });
       this.info.moves = txt(app, this.c, P.x + 4, y + 2, '');
       this.info.score = txt(app, this.c, P.x + 4, y + 12, '');
+      this.info.focus = txt(app, this.c, P.x + 4, y + 24, '', { color: 'gain' });
       button(app, this.c, P.x + 3, P.y + P.h - 21, P.w - 6, 18, t('ritual.quit'), () => this.quit(), { fill: PAL.pink, name: 'btn_quit' });
     } else {
       goals.forEach((gp, i) => this.goalRow(gp.goal, P.x + 4 + i * 50, P.y + 3));
       this.info.moves = txt(app, this.c, P.x + 4, P.y + 26, '');
       this.info.score = txt(app, this.c, P.x + 62, P.y + 26, '');
+      this.info.focus = txt(app, this.c, P.x + P.w - 40, P.y + 26, '', { align: 'right', color: 'gain' });
       button(app, this.c, P.x + P.w - 36, P.y + 3, 33, 18, t('ritual.quit'), () => this.quit(), { fill: PAL.pink, name: 'btn_quit' });
     }
     // effects sit above the board and the info panel, in board-local coordinates
@@ -203,8 +313,15 @@ export class RitualScreen extends Screen {
     }
   }
 
+  /** The tile type the current rite converts (-1 = none). */
+  private focusTile(): number {
+    const r = this.app.store.state.run.activeRite;
+    return r ? riteDef(r.id).focus : -1;
+  }
+
   private goalRow(goal: Goal, x: number, y: number): void {
-    const key = goal.kind === 'collect' ? `tile_${goal.tile}` : goal.kind === 'clearWebs' ? 'web' : goal.kind === 'dropRelics' ? 'relic' : 'ic_star';
+    const office = this.game?.level.skin === 'office';
+    const key = goal.kind === 'collect' ? (office ? `tile_office_${goal.tile}` : `tile_${goal.tile}`) : goal.kind === 'clearWebs' ? (office ? 'web_office' : 'web') : goal.kind === 'dropRelics' ? 'relic' : 'ic_star';
     if (goal.kind === 'clearWebs') rect(this.app, this.c, x, y, 20, 20, PAL.night2);
     img(this.app, this.c, x, y, key);
     this.info.goalAt.push({ x: x + 10, y: y + 10 });
@@ -233,6 +350,8 @@ export class RitualScreen extends Screen {
     const low = !g.relaxed && d.moves <= 3;
     this.info.moves?.setFont(fontKey(low ? 'loss' : 'ink')).setText(g.relaxed ? t('ritual.moves_free') : t('ritual.moves', { n: d.moves }));
     this.info.score?.setText(t('ritual.score', { n: Math.round(d.shown) }));
+    const ft = this.focusTile();
+    this.info.focus?.setText(ft >= 0 ? t('ritual.focus.short', { tile: t(`tile.${ft}`), n: d.collected[ft] ?? 0 }) : '');
     g.level.goals.forEach((goal, i) => {
       let cur = 0;
       let target = 0;
@@ -254,14 +373,16 @@ export class RitualScreen extends Screen {
 
   private makeTile(cell: Cell, x: number, y: number): C {
     const c = this.app.add.container(x * T + T / 2, y * T + T / 2);
-    c.add(this.app.add.image(0, 0, ATLAS, cell.relic ? 'relic' : `tile_${cell.type}`));
+    const office = this.game?.level.skin === 'office';
+    if (!cell.relic && cell.type === this.focusTile()) c.add(this.app.add.rectangle(0, 0, T - 2, T - 2, parseInt(PAL.acid.slice(1), 16), 0.22));
+    c.add(this.app.add.image(0, 0, ATLAS, cell.relic ? 'relic' : office ? `tile_office_${cell.type}` : `tile_${cell.type}`));
     if (cell.special !== 'none') {
       const s = this.app.add.image(0, 0, ATLAS, `sp_${cell.special}`);
       c.add(s);
       // specials breathe so they read as "loaded"
       if (!this.reduced) this.app.tweens.add({ targets: s, alpha: 0.55, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
-    if (cell.web > 0) c.add(this.app.add.image(0, 0, ATLAS, 'web').setAlpha(cell.web > 1 ? 1 : 0.85));
+    if (cell.web > 0) c.add(this.app.add.image(0, 0, ATLAS, office ? 'web_office' : 'web').setAlpha(cell.web > 1 ? 1 : 0.85));
     this.board!.add(c);
     return c;
   }
@@ -597,7 +718,10 @@ export class RitualScreen extends Screen {
     const rw = app.store.act((g, emit) => finishRitual(g, emit));
     this.ending = false;
     this.rebuild();
-    if (won) this.showReward(rw, level.nameKey, score);
+    if (rw.rite?.id === 'look_busy' && rw.rite.visit) {
+      const v = rw.rite.visit;
+      dialog(app, { id: 'inspection_result', title: t(level.nameKey), body: won ? t('inspection.result.win', { stars: rw.stars, summary: summaryText(v) }) + '\n' + t('rite.result.look_busy', { stars: rw.stars, pct: rw.rite.cutPct ?? 0 }) + (rw.omens ? '\n' + t('ritual.won.omens', { n: rw.omens + rw.firstThree }) : '') : t('inspection.result.loss', { summary: summaryText(v) }), sprite: 'advisor', buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+    } else if (won) this.showReward(rw, level.nameKey, score);
     else dialog(app, { id: 'ritual_lost', title: t('ritual.lost.title'), body: t('ritual.lost.body'), sprite: 'advisor', buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
   }
 
@@ -613,6 +737,10 @@ export class RitualScreen extends Screen {
     if (rw.drafts) lines.push(t('ritual.won.drafts', { n: rw.drafts }));
     if (rw.favor) lines.push(t('ritual.won.favor', { n: rw.favor }));
     if (!rw.firstTime) lines.push(t('ritual.won.replay'));
+    if (rw.rite && rw.rite.id !== 'look_busy') lines.push(riteLine(rw));
+    if (rw.omens) lines.push(t('ritual.won.omens', { n: rw.omens }));
+    if (rw.firstThree) lines.push(t('ritual.won.omens_first3', { n: rw.firstThree }));
+    if (rw.daily) lines.push(t('ritual.won.daily', { n: rw.daily }));
     const reduced = this.reduced;
     let elapsed = 0;
     let shown = reduced ? rw.stars : 0;
@@ -773,4 +901,27 @@ export class RitualScreen extends Screen {
       }
     }
   }
+}
+
+/** One line describing what a rite converted. */
+export function riteLine(rw: RitualReward): string {
+  const r = rw.rite!;
+  const n = r.tiles;
+  switch (r.id) {
+    case 'sermon': return t('rite.result.sermon', { n, doubt: r.amount });
+    case 'recruit': return t('rite.result.recruit', { n, k: r.amount });
+    case 'communion': return t('rite.result.communion', { n, favor: r.amount, name: r.entity ? t(`entity.${r.entity}.name`) : '' });
+    case 'harvest': return t('rite.result.harvest', { n, k: r.amount, crop: r.crop ? t(`item.${r.crop}.name`) : '' });
+    case 'vigil': return t('rite.result.vigil', { n, k: r.amount }) + (r.lost ? ` ${t('rite.result.vigil_lost', { k: r.lost })}` : '');
+    default: return '';
+  }
+}
+
+/** "120 Donations in fines, the Greenhouse sealed Pending Review for 3 min" etc. */
+export function summaryText(s: VisitSummary): string {
+  const parts: string[] = [];
+  if (s.fine) parts.push(t('inspection.summary.fine', { n: s.fine }));
+  if (s.sealed) parts.push(t('inspection.summary.seal', { building: t(`building.${s.sealed}.name`), m: s.sealMin }));
+  if (s.away) parts.push(t('inspection.summary.away', { name: s.away, m: s.awayMin }));
+  return parts.length ? parts.join(', ') : t('inspection.summary.none');
 }

@@ -4,7 +4,7 @@ import type { App } from '../app';
 import { ATLAS } from '../art/sprites';
 import { PAL } from '../art/palette';
 import { DATA, buildingDef } from '../core/data';
-import { buildable, canAfford, canPlace, canUpgrade, collect, nextUpgrade, placeBuilding, reached, storageCap } from '../core/game';
+import { buildable, canAfford, canPlace, canUpgrade, collect, isAway, isSealed, nextUpgrade, placeBuilding, reached, storageCap } from '../core/game';
 import { t } from '../core/text';
 import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
 import { frame, modalWidth } from '../ui/modal';
@@ -77,6 +77,7 @@ export class CompoundScreen extends Screen {
     const alive = new Set(run.followers.map((f) => f.id));
     for (const id of [...this.walkers.keys()]) if (!alive.has(id)) this.walkers.delete(id);
     for (const f of run.followers) {
+      if (isAway(run, f)) continue; // helping with an inquiry
       let w = this.walkers.get(f.id);
       if (!w) {
         const p = this.spotFor(f.job);
@@ -93,6 +94,15 @@ export class CompoundScreen extends Screen {
       }
       this.cat.sprite = app.add.image(Math.round(this.cat.x), Math.round(this.cat.y), ATLAS, 'cat').setOrigin(0.5, 1);
       this.world.add(this.cat.sprite);
+    }
+
+    // sealed buildings wear "pending review" tape
+    for (const b of run.buildings) {
+      if (!isSealed(run, b)) continue;
+      const def = buildingDef(b.type);
+      const tape = app.add.image(b.x * TILE + (def.w * TILE) / 2, (b.y + def.h) * TILE - 14, ATLAS, 'seal_tape').setOrigin(0.5, 0.5);
+      tape.setDisplaySize(def.w * TILE + 4, 16);
+      this.world.add(tape);
     }
 
     // upgrade badges: a small arrow on any building that can still be upgraded; it glows when you can afford it

@@ -422,6 +422,167 @@
       "unlock": {
         "level": 6
       }
+    },
+    {
+      "id": "lb1",
+      "seed": 1237,
+      "width": 8,
+      "height": 8,
+      "moves": 14,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 0,
+          "count": 12
+        }
+      ],
+      "starScores": [
+        1450,
+        1900,
+        2250
+      ],
+      "par": 7,
+      "purpose": "defense",
+      "skin": "office",
+      "nameKey": "ritual.lb1.name",
+      "unlock": {
+        "step": "away"
+      }
+    },
+    {
+      "id": "lb2",
+      "seed": 2287,
+      "width": 8,
+      "height": 8,
+      "moves": 18,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 1,
+          "count": 10
+        },
+        {
+          "kind": "clearWebs"
+        }
+      ],
+      "webs": [
+        {
+          "x": 1,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 2,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 4,
+          "y": 6,
+          "layers": 1
+        }
+      ],
+      "starScores": [
+        2650,
+        3200,
+        3550
+      ],
+      "par": 8,
+      "purpose": "defense",
+      "skin": "office",
+      "nameKey": "ritual.lb2.name",
+      "unlock": {
+        "step": "away"
+      }
+    },
+    {
+      "id": "lb3",
+      "seed": 3407,
+      "width": 8,
+      "height": 8,
+      "moves": 23,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 4,
+          "count": 12
+        },
+        {
+          "kind": "clearWebs"
+        }
+      ],
+      "webs": [
+        {
+          "x": 1,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "layers": 2
+        },
+        {
+          "x": 4,
+          "y": 3,
+          "layers": 2
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "layers": 1
+        },
+        {
+          "x": 1,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 5,
+          "layers": 1
+        }
+      ],
+      "starScores": [
+        2050,
+        2900,
+        3850
+      ],
+      "par": 14,
+      "purpose": "defense",
+      "skin": "office",
+      "nameKey": "ritual.lb3.name",
+      "unlock": {
+        "step": "away"
+      }
     }
   ]
 }

@@ -68,6 +68,11 @@ export interface LevelDef {
    * be satisfied if both are given. The engine itself ignores this field.
    */
   unlock?: { step?: string; level?: number };
+  /**
+   * visual skin only; the engine ignores it. 'office' = Look Busy inspection boards: forms, stamps,
+   * receipts, hairnets, exit signs, paperclips; webs drawn as red tape
+   */
+  skin?: 'office';
 }
 
 export interface Snapshot {

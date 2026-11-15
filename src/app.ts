@@ -48,7 +48,7 @@ export class App extends Phaser.Scene {
   private hud!: C;
   private hudDirty = true;
   private screenDirty = true;
-  private hudText: { devotion?: Phaser.GameObjects.BitmapText; donations?: Phaser.GameObjects.BitmapText; susp?: Phaser.GameObjects.BitmapText; suspBar?: Phaser.GameObjects.Rectangle; suspW?: number } = {};
+  private hudText: { omens?: Phaser.GameObjects.BitmapText; devotion?: Phaser.GameObjects.BitmapText; donations?: Phaser.GameObjects.BitmapText; susp?: Phaser.GameObjects.BitmapText; suspBar?: Phaser.GameObjects.Rectangle; suspW?: number } = {};
   private lastHud = '';
   private floatStack = 0;
   /** Announcements waiting for a quiet moment (level-ups, boons). */
@@ -191,7 +191,12 @@ export class App extends Phaser.Scene {
       bar(this, h, T.x + 92 + 24, T.y + 4, Math.max(10, T.w - rightW - 92 - 28), 6, run.xp / xpNeeded(run.level), PAL.teal);
       if (run.suspicionSeen) {
         img(this, h, T.x + 3, T.y + 14, 'ic_suspicion');
-        const bw = T.w - rightW - 16 - 26;
+        const omenW = run.flags.riteUsed || run.omens ? 30 : 0;
+        const bw = T.w - rightW - 16 - 26 - omenW;
+        if (omenW) {
+          img(this, h, T.x + T.w - rightW - omenW - 1, T.y + 14, 'ic_omen');
+          this.hudText.omens = txt(this, h, T.x + T.w - rightW - omenW + 9, T.y + 14, '', { color: 'glow' });
+        }
         this.hudText.suspW = bw - 2;
         this.hudText.suspBar = bar(this, h, T.x + 13, T.y + 15, bw, 6, run.suspicion / 100, suspColor);
         this.hudText.susp = txt(this, h, T.x + 13 + bw + 3, T.y + 14, '', { color: 'white' });
@@ -216,6 +221,10 @@ export class App extends Phaser.Scene {
       let y = R.y + 3;
       img(this, h, R.x + 3, y, 'ic_devotion');
       this.hudText.devotion = txt(this, h, R.x + 13, y, '', { color: 'white' });
+      if (run.flags.riteUsed || run.omens) {
+        img(this, h, R.x + 40, y + 10, 'ic_omen');
+        this.hudText.omens = txt(this, h, R.x + 50, y + 10, '', { color: 'glow' });
+      }
       y += 10;
       img(this, h, R.x + 3, y, 'ic_donations');
       this.hudText.donations = txt(this, h, R.x + 13, y, '', { color: 'white' });
@@ -256,7 +265,9 @@ export class App extends Phaser.Scene {
   /** Advisor strip: the tutorial step, then the next concrete goal once the tutorial is over. */
   private tipText(): string {
     const run = this.store.state.run;
+    if (run.inspection) return t('inspection.waiting');
     if (run.tutorial !== 'done') return t(`tip.${run.tutorial}`);
+    if (!run.flags.riteUsed) return t('tip.rites');
     if (run.devotion >= devotionCap(run)) return t('float.cap');
     for (let lv = run.level + 1; lv <= run.level + 3; lv++) {
       const u = unlocksAt(lv)[0];
@@ -290,12 +301,13 @@ export class App extends Phaser.Scene {
 
   private refreshHud(): void {
     const run = this.store.state.run;
-    const key = `${Math.floor(run.devotion)}|${Math.floor(run.donations)}|${Math.round(run.suspicion)}`;
+    const key = `${Math.floor(run.devotion)}|${Math.floor(run.donations)}|${Math.round(run.suspicion)}|${run.omens}`;
     if (key === this.lastHud) return;
     this.lastHud = key;
     this.hudText.devotion?.setText(String(Math.floor(run.devotion)));
     this.hudText.donations?.setText(String(Math.floor(run.donations)));
     this.hudText.susp?.setText(String(Math.round(run.suspicion)));
+    this.hudText.omens?.setText(String(run.omens));
     if (this.hudText.suspBar && this.hudText.suspW) this.hudText.suspBar.width = Math.round(this.hudText.suspW * Math.min(1, run.suspicion / 100));
   }
 

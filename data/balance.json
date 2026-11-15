@@ -90,5 +90,15 @@
       1.5,
       2.5
     ]
+  },
+  "inspections": {
+    "chancePerMin": [
+      0,
+      0.03,
+      0.06,
+      0.12
+    ],
+    "minGapSec": 180,
+    "fullReviewAt": 100
   }
 }

@@ -27,7 +27,11 @@
       "sources": [
         "Keel, John A. The Mothman Prophecies. Saturday Review Press, 1975.",
         "Sergent, Donnie Jr. & Wamsley, Jeff. Mothman: The Facts Behind the Legend. Mothman Lives Publishing, 2001 (some listings give 2002)."
-      ]
+      ],
+      "audience": {
+        "field": "favorPerOrder",
+        "value": 5
+      }
     },
     {
       "id": "baba_yaga",
@@ -56,7 +60,11 @@
       "sources": [
         "Johns, Andreas. Baba Yaga: The Ambiguous Mother and Witch of the Russian Folktale. International Folkloristics 3. New York: Peter Lang, 2004.",
         "Afanas'ev, Aleksandr. Russian Fairy Tales. Trans. Norbert Guterman, commentary by Roman Jakobson. New York: Pantheon, 1945."
-      ]
+      ],
+      "audience": {
+        "field": "cropYieldBonus",
+        "value": 1
+      }
     },
     {
       "id": "jersey_devil",
@@ -85,7 +93,11 @@
       "sources": [
         "Regal, Brian & Esposito, Frank J. The Secret History of the Jersey Devil: How Quakers, Hucksters, and Benjamin Franklin Created a Monster. Baltimore: Johns Hopkins University Press, 2018.",
         "McCloy, James F. & Miller, Ray Jr. The Jersey Devil. Wallingford, PA: Middle Atlantic Press, 1976."
-      ]
+      ],
+      "audience": {
+        "field": "donationsPerMin",
+        "value": 3
+      }
     },
     {
       "id": "anansi",
@@ -114,7 +126,11 @@
       "sources": [
         "Rattray, R. S. Akan-Ashanti Folk-Tales. Oxford: Clarendon Press, 1930.",
         "Marshall, Emily Zobel. Anansi's Journey: A Story of Jamaican Cultural Resistance. Kingston: University of the West Indies Press, 2012."
-      ]
+      ],
+      "audience": {
+        "field": "favorPerOrder",
+        "value": 5
+      }
     },
     {
       "id": "vorl",
@@ -142,7 +158,11 @@
       "reviewNotes": "Original creation for this game (D-104): a vast, patient thing in deep water. Cosmic-horror in tone only. No names, places, quotations or stock phrases from any published mythos: never 'Deep One(s)', 'Old One(s)', 'Elder', invented-language chants or New England place names. Its hunger is for candles, flowers and attention; it never takes, eats or harms anyone. Sanity effects are comic only (D-112).",
       "sources": [
         "Original to Cult Tycoon; see docs/DECISIONS.md D-104."
-      ]
+      ],
+      "audience": {
+        "field": "outputPct",
+        "value": 25
+      }
     }
   ]
 }

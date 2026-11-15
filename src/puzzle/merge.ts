@@ -157,3 +157,12 @@ export function addGenerator(s: MergeState, defs: MergeDefs, genId: string): boo
   s.cells[at] = { id: s.nextId++, kind: 'gen', gen: genId, charges: def.maxCharges, cooldown: 0 };
   return true;
 }
+
+/** Put a new item of chain/tier on the grid near the centre. Returns false if the grid is full. */
+export function placeItem(s: MergeState, defs: MergeDefs, chain: string, tier: number): boolean {
+  const centre = Math.floor(defs.grid.h / 2) * defs.grid.w + Math.floor(defs.grid.w / 2);
+  const at = nearestEmpty(s, defs, centre);
+  if (at < 0) return false;
+  s.cells[at] = { id: s.nextId++, kind: 'item', chain, tier };
+  return true;
+}

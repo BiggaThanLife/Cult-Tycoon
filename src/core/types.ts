@@ -20,6 +20,8 @@ export interface Follower {
   skin: number;
   robe: number;
   job: number | null; // building id
+  /** game time until which this follower is away helping with an inquiry */
+  awayUntil?: number;
 }
 
 export interface PlotState { crop: string | null; plantedAt: number }
@@ -31,11 +33,18 @@ export interface BuildingState {
   level: number;
   stored: number;
   plots?: PlotState[];
+  /** game time until which the building is sealed Pending Review (no production, no use) */
+  sealedUntil?: number;
 }
 
 /** An order currently on the board. Filled orders are counted in RunState.ordersFilled. */
 export interface OrderState { id: string }
 export interface PendingEvent { id: string }
+/** The rite chosen for the ritual in progress (lives in the save so rotation and reloads keep it). */
+export interface ActiveRite { id: string; entity?: string; crop?: string; daily?: boolean }
+/** A visit the player chose to answer with Look Busy; its outcome waits for the ritual (or for settling). */
+export interface PendingInspection { event: string; choice: string; level: string }
+export interface DailyState { day: string; bank: number }
 
 export interface Settings { reducedMotion: boolean; relaxedPuzzles: boolean; speedIndex: number; sound: boolean }
 
@@ -73,6 +82,14 @@ export interface RunState {
   lastOrder: Record<string, string>;       // entity id → last order id handed out (avoid repeats)
   met: string[];                           // entities summoned this run
   hints: string[];                         // recipe ids an entity has hinted at
+  omens: number;                           // ritual-only currency
+  audiences: string[];                     // entities that granted an audience (4th boon)
+  activeRite: ActiveRite | null;
+  inspection: PendingInspection | null;
+  daily: DailyState;
+  visitClock: number;                      // seconds since the last visit roll
+  lastVisitAt: number;                     // game time of the last visit
+  draftBonus: number;                      // extra cards on the next draft
   favor: Record<string, number>;
   rituals: Record<string, number>;         // level id → best stars
   activeRitual: unknown | null;            // serialized Match3State while a ritual is in progress

@@ -284,6 +284,171 @@ describe('expansion: orders, boons, upgrades, unlocks', () => {
   });
 });
 
+describe('rites, omens, daily rite, inspections (docs/specs/rites.md)', () => {
+  /** Win a board with a chosen rite and a scripted tile count. */
+  const riteWin = (g: GameState, level: string, rite: { id: string; entity?: string; crop?: string; daily?: boolean }, collected: number[], stars = 2) => {
+    const st = G.startRitual(g, level, rite) as Match3State;
+    st.status = 'won';
+    st.score = st.level.starScores[stars - 1];
+    st.collected = collected;
+    return G.finishRitual(g);
+  };
+  const after = () => { const g = playSlice(); g.run.flags.away_done = true; g.run.flags.ascension_viewed = true; G.advanceTutorial(g); return g; };
+
+  it('rites only open after the tutorial; before that a board keeps its fixed purpose', () => {
+    const g = G.newGame(1, T0);
+    g.run.tutorial = 'ritual1';
+    G.startRitual(g, 'r1', { id: 'communion', entity: 'mothman' });
+    expect(g.run.activeRite).toBeNull();
+    const g2 = after();
+    expect(g2.run.tutorial).toBe('done');
+    G.startRitual(g2, 'r1', { id: 'harvest', crop: 'basil' });
+    expect(g2.run.activeRite).toEqual({ id: 'harvest', crop: 'basil' });
+  });
+  it('each rite converts its focus tiles exactly as rites.json says', () => {
+    const g = after();
+    g.run.followers.forEach((f) => (f.stats.doubt = 30));
+    let r = riteWin(g, 'r1', { id: 'sermon' }, [0, 0, 17, 0, 0, 0]);
+    expect(r.rite).toMatchObject({ id: 'sermon', tiles: 17, amount: 2 });
+    expect(g.run.followers.every((f) => f.stats.doubt === 28)).toBe(true);
+    const fav = g.run.favor.mothman;
+    r = riteWin(g, 'r1', { id: 'communion', entity: 'mothman' }, [0, 30, 0, 0, 0, 0]);
+    expect(r.rite!.amount).toBe(12);
+    expect(g.run.favor.mothman).toBe(fav + 12);
+    const moss = G.inv(g.run, 'graveyard_moss');
+    r = riteWin(g, 'r1', { id: 'harvest', crop: 'graveyard_moss' }, [0, 0, 0, 0, 20, 0]);
+    expect(r.rite!.amount).toBe(6);
+    expect(G.inv(g.run, 'graveyard_moss')).toBe(moss + 6);
+    g.run.followers.pop();
+    r = riteWin(g, 'r1', { id: 'recruit' }, [0, 0, 0, 16, 0, 0]);
+    expect(r.rite!.amount).toBe(4);
+    expect(g.run.draft).toHaveLength(4); // 15+ Runes: a 4-card draft
+  });
+  it('recruitment is blocked with a reason when beds are full, and vigil needs the brazier', () => {
+    const g = after();
+    expect(g.run.followers).toHaveLength(3);
+    expect(G.riteBlocked(g, 'recruit')).toBeNull(); // 3 of 4 beds
+    g.run.followers.push({ ...g.run.followers[0], id: 777 });
+    expect(G.riteBlocked(g, 'recruit')).toBe('rite.recruit.full');
+    expect(G.riteBlocked(g, 'vigil')).toBe('rite.locked'); // brazier arrives at Lv3
+    expect(G.riteBlocked(g, 'look_busy')).toBe('rite.look_busy.none');
+    // a blocked rite falls back to a sermon rather than starting
+    G.startRitual(g, 'r1', { id: 'recruit' });
+    expect(g.run.activeRite).toEqual({ id: 'sermon' });
+  });
+  it('omens come only from rituals: 1 per star, +2 for a first 3-star, relaxed earns 1', () => {
+    const g = after();
+    const before = g.run.omens;
+    const r = riteWin(g, 'r5', { id: 'sermon' }, [0, 0, 0, 0, 0, 0], 3);
+    expect(r.omens).toBe(3);
+    expect(r.firstThree).toBe(2);
+    expect(g.run.omens).toBe(before + 5);
+    const again = riteWin(g, 'r5', { id: 'sermon' }, [0, 0, 0, 0, 0, 0], 3);
+    expect(again.firstThree).toBe(0);
+    g.meta.settings.relaxedPuzzles = true;
+    expect(riteWin(g, 'r5', { id: 'sermon' }, [0, 0, 0, 0, 0, 0], 1).omens).toBe(1);
+    const src = readFileSync('src/core/game.ts', 'utf8');
+    expect(src.match(/run\.omens \+=/g)?.length).toBe(1); // the only source is finishRitual
+  });
+  it('omens buy the last upgrade step, audiences and order rerolls', () => {
+    const g = after();
+    const dorm = g.run.buildings.find((b) => b.type === 'dormitory')!;
+    dorm.level = 2;
+    g.run.devotion = 2000; g.run.donations = 500;
+    g.run.reliquary.cells[0] = { id: 990, kind: 'item', chain: 'candle', tier: 3 };
+    g.run.omens = 3;
+    expect(G.canUpgrade(g.run, dorm)).toBe(false);
+    g.run.omens = 4;
+    expect(G.upgradeBuilding(g, dorm.id)).toBe(true);
+    expect(g.run.omens).toBe(0);
+    g.run.favor.mothman = 200; g.run.omens = 10;
+    expect(G.grantAudience(g, 'mothman')).toBe(true);
+    expect(G.boon(g.run, 'favorPerOrder')).toBe(5);
+    g.run.omens = 1;
+    G.tick(g, 25);
+    const open = G.activeOrders(g.run, 'mothman')[0];
+    expect(G.rerollOrder(g, open.id)).toBe(true);
+    expect(g.run.omens).toBe(0);
+    expect(g.run.orders.some((o) => o.id === open.id)).toBe(false);
+  });
+  it('the daily rite banks up to 3 days and pays them on its first win', () => {
+    const g = after();
+    G.updateDaily(g.run, '2026-11-10');
+    expect(g.run.daily.bank).toBe(1);
+    G.updateDaily(g.run, '2026-11-20');
+    expect(g.run.daily.bank).toBe(3);
+    G.updateDaily(g.run, '2026-11-01'); // clock moved back: nothing added
+    expect(g.run.daily.bank).toBe(3);
+    const lv = G.dailyLevel(g.run, '2026-11-20')!;
+    expect(DATA.rituals.find((l) => l.id === lv)!.purpose).not.toBe('summon');
+    expect(riteWin(g, lv, { id: 'sermon', daily: true }, [0, 0, 0, 0, 0, 0]).daily).toBe(9);
+    expect(g.run.daily.bank).toBe(0);
+    expect(riteWin(g, lv, { id: 'sermon', daily: true }, [0, 0, 0, 0, 0, 0]).daily).toBe(0);
+  });
+  it('visits happen only after the tutorial, while idle, by Suspicion band, and always lower Suspicion', () => {
+    const g = after();
+    g.run.flags.cat_adopted = true; // keep the cat out of this test
+    g.run.suspicion = 60;
+    G.startRitual(g, 'r1', { id: 'sermon' });
+    G.tick(g, 600);
+    expect(g.run.event).toBeNull(); // never during a ritual
+    G.finishRitual(g);
+    for (let i = 0; i < 120 && !g.run.event; i++) G.tick(g, 60);
+    const ev = DATA.events.find((e) => e.id === g.run.event!.id)!;
+    expect(ev.visitor).toBe(true);
+    expect(ev.band).toBe(G.suspicionBand(g.run.suspicion));
+    const settle = ev.choices.findIndex((c) => c.id === 'settle' || c.id === 'interview');
+    const s0 = g.run.suspicion;
+    expect(G.resolveEvent(g, settle)).toBe(true);
+    expect(g.run.suspicion).toBeLessThan(s0);
+  });
+  it('Look Busy: the visitor waits, 3 stars cut the outcome by 75%, a loss applies the normal outcome', () => {
+    const run = (stars: number, won: boolean) => {
+      const g = after();
+      g.run.donations = 400;
+      g.run.suspicion = 60;
+      g.run.event = { id: 'auditor' };
+      G.resolveEvent(g, DATA.events.find((e) => e.id === 'auditor')!.choices.findIndex((c) => c.id === 'look_busy'));
+      expect(g.run.inspection).toMatchObject({ event: 'auditor', level: 'lb1' });
+      expect(g.run.donations).toBe(400); // nothing applied yet
+      expect(G.ritualUnlocked(g.run, 'lb1')).toBe(true);
+      const st = G.startRitual(g, 'lb1') as Match3State;
+      st.status = won ? 'won' : 'lost';
+      st.score = st.level.starScores[Math.max(1, stars) - 1];
+      const r = G.finishRitual(g);
+      expect(g.run.inspection).toBeNull();
+      return { fine: r.rite!.visit!.fine, susp: g.run.suspicion };
+    };
+    expect(run(0, false).fine).toBe(60);
+    expect(run(3, true).fine).toBe(15);
+    expect(run(3, true).susp).toBeLessThan(run(0, false).susp);
+  });
+  it('a sealed building stops producing and cannot be used; an away follower does not work', () => {
+    const g = after();
+    const hall = g.run.buildings.find((b) => b.type === 'sermon_hall')!;
+    const rate = G.productionRate(g.run, hall);
+    hall.sealedUntil = g.run.time + 60;
+    expect(G.productionRate(g.run, hall)).toBe(0);
+    hall.stored = 20;
+    expect(G.collect(g, hall.id)).toBe(0);
+    G.tick(g, 61);
+    expect(G.productionRate(g.run, hall)).toBeCloseTo(rate, 6);
+    const f = g.run.followers[0];
+    f.job = hall.id;
+    const withF = G.productionRate(g.run, hall);
+    f.awayUntil = g.run.time + 100;
+    expect(G.productionRate(g.run, hall)).toBeLessThan(withF);
+  });
+  it('visit text follows the guardrails: no timers, no banned words', () => {
+    for (const e of DATA.events.filter((x) => x.visitor)) expect(JSON.stringify(e)).not.toMatch(/timer|countdown/i);
+    const banned = /\b(siege|standoff|barricade|breach|enemy|raid|swat|arrest|weapon|gun)\b/i;
+    const keys = Object.keys(DATA.text).filter((k) => /^(event\.(neighbour|auditor|expose|inspector|full_review)|inspection\.|rite\.look_busy|ritual\.lb)/.test(k));
+    expect(keys.length).toBeGreaterThan(20);
+    expect(keys.filter((k) => banned.test(DATA.text[k]))).toEqual([]);
+    expect(Object.values(DATA.text).filter((v) => /\bOMC\b/.test(v))).toEqual([]);
+  });
+});
+
 describe('save', () => {
   it('round-trips, keeps a backup and survives corruption', () => {
     const kv = memoryKV();
@@ -338,6 +503,15 @@ describe('save', () => {
     expect(out.run.ordersFilled).toEqual({ mothman_1: 1 });
     expect(out.run.met).toEqual(['mothman']);
     expect(out.run.hints).toEqual([]);
+  });
+  it('migrates a v3 save: rites, omens, daily and inspection state appear', () => {
+    const g = playSlice();
+    const env = JSON.parse(serialize(g, T0));
+    env.saveVersion = 3; env.data.saveVersion = 3;
+    for (const k of ['omens', 'audiences', 'activeRite', 'inspection', 'daily', 'visitClock', 'lastVisitAt', 'draftBonus']) delete env.data.run[k];
+    const out = parse(JSON.stringify(env));
+    expect(out.saveVersion).toBe(G.SAVE_VERSION);
+    expect(out.run).toMatchObject({ omens: 0, audiences: [], activeRite: null, inspection: null, daily: { day: '', bank: 0 }, draftBonus: 0 });
   });
   it('export/import code validates its checksum', () => {
     const g = playSlice();
