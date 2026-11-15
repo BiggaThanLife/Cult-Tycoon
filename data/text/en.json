@@ -588,7 +588,7 @@
   "room.main_hall.desc": "Where the Prophet speaks. The echo agrees.",
   "room.main_hall.effect": "{n} Devotion a minute",
   "room.bunk_room.name": "Bunk Room",
-  "room.bunk_room.desc": "Cozy beds. Entirely optional. Quilts included.",
+  "room.bunk_room.desc": "Cozy bunks. The Prophet's mattress is bigger.",
   "room.bunk_room.effect": "{n} beds",
   "room.kitchen.name": "Kitchen",
   "room.kitchen.desc": "Soup, in the Prophet's name. The Prophet takes seconds.",

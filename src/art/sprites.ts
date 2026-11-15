@@ -620,7 +620,7 @@ function sprites(): SpriteDef[] {
     p.box(39, 24, 6, 5, PAL.red, PAL.ink).ring(38, 19, 5, PAL.grass).ring(42, 20, 5, PAL.grass).r(41, 22, 1, 3, PAL.grassD);
     // stove + stockpot
     p.box(14, 24, 20, 10, PAL.ink2, PAL.ink).r(16, 27, 3, 2, PAL.red).r(22, 27, 3, 2, PAL.red).r(28, 27, 3, 2, PAL.red).r(15, 25, 18, 1, PAL.robeD);
-    p.ring(16, 13, 16, PAL.ink2).r(16, 18, 16, 6, PAL.ink2).r(15, 14, 18, 2, PAL.ink).r(17, 15, 14, 2, PAL.acid).px(20, 15, PAL.white).px(26, 16, PAL.white);
+    p.ring(16, 13, 16, PAL.ink2).r(16, 18, 16, 6, PAL.ink2).r(15, 14, 18, 2, PAL.ink).r(17, 15, 14, 2, PAL.wood).px(20, 15, PAL.grass).px(26, 16, PAL.grass).r(29, 10, 1, 5, PAL.ink2); // soup with basil flecks, a ladle
     p.px(18, 12, PAL.white).px(20, 10, PAL.bone).px(25, 11, PAL.white).px(28, 9, PAL.bone);
   });
 
@@ -648,7 +648,7 @@ function sprites(): SpriteDef[] {
       p.r(3, y + 7, 20, 2, PAL.woodDD);
       for (let x = 4; x < 22; x += 3) p.r(x, y + 1, 2, 6, PAL.robeL).px(x, y + 2, PAL.red).px(x + 1, y + 5, PAL.robe);
     }
-    p.r(13, 15, 3, 6, PAL.ink).px(13, 17, PAL.acid).px(15, 17, PAL.acid); // a gap, something is looking out
+    p.r(13, 15, 3, 6, PAL.ink).px(13, 17, PAL.acid).px(15, 17, PAL.acid).px(14, 18, PAL.pink).r(16, 21, 1, 3, PAL.ink).px(17, 24, PAL.ink); // the cat, asleep on the pamphlets
     // pendant lamp
     p.r(35, 2, 1, 7, PAL.ink).box(32, 9, 7, 4, PAL.yellow, PAL.ink).r(33, 13, 5, 1, PAL.sand);
     // two reading chairs

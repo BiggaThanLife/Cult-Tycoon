@@ -221,6 +221,7 @@ export function tickSanctum(g: GameState, dt: number, emit: Emit, offline: boole
         break;
       }
       case 'reading_room': {
+        // sealed rooms never reach here (groupMult is 0 while sealed), so nobody reads behind the tape
         const drop = (eff(grp, 'doubtPerMin') * (1 + mergePct(grp) / 100) * rate * dt) / 60;
         for (const f of workersOf(run, grp)) f.stats.doubt = Math.max(0, f.stats.doubt - drop);
         break;

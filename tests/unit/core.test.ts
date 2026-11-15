@@ -547,6 +547,20 @@ describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
     expect(S.groupSealed(g.run, S.groupOf(g.run, k.id)!)).toBe(true);
     expect(S.groupMult(g.run, S.groupOf(g.run, k.id)!)).toBe(0);
   });
+  it('nobody keeps reading in a sealed Reading Room', () => {
+    const g = ready();
+    g.run.level = 5;
+    S.buildStorey(g);
+    const rr = S.buildRoom(g, 1, 0, 'reading_room')!;
+    const f = g.run.followers[0];
+    f.stats.doubt = 50;
+    S.assignFollower(g, f.id, rr.id);
+    rr.sealedUntil = g.run.time + 600;
+    G.tick(g, 120);
+    expect(f.stats.doubt).toBe(50);
+    G.tick(g, 600);
+    expect(f.stats.doubt).toBeLessThan(50);
+  });
   it('migrates a v4 save to an empty Sanctum without moving anything', () => {
     const g = playSlice();
     const env = JSON.parse(serialize(g, T0));
