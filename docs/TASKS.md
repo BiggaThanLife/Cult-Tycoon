@@ -26,7 +26,9 @@
 - [x] Playwright playthrough in portrait + landscape + desktop, rotate mid-ritual and mid-merge
 - [x] Sensitivity review of slice text (docs/reviews/)
 
-### Known gaps in the slice
+### Known gaps
+- [ ] Content runs thin about 65 to 75 minutes after the tutorial (sim): next expansion must extend it
+- [ ] Ritual r4 is very easy (validator win rate 100%); tighten moves once more levels exist
 - [ ] Colourblind palettes, large-text mode (D-127)
 - [ ] Runtime data schema validation (zod)
 - [ ] Object pooling for floaty text; asset manifest / PNG export (D-119)

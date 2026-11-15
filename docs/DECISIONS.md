@@ -65,12 +65,13 @@ Format: `D-### — date — decision — why — reversible?`
 - **D-136** Owner-reported bugs fixed: follower portrait covered the first stat in the Flock list (cards are now 50 tall, stats sit below the portrait); Relics help text ran under the tab bar on short screens (it now shows only when it fits). The playthrough gained a text-overflow audit at four screen sizes including 360x640.
 
 ## Expansion 1 (2026-11-15)
-- **D-137** Four more entities: Baba Yaga (Lv2), the Jersey Devil (Lv3), Anansi (Lv4), Vorl (Lv5), each met through its own summoning ritual. The Jersey Devil was added ahead of Kitsune because it carries no cultural sensitivity; Kitsune, Kappa and Sphinx stay in LATER pending lore review.
+- **D-137** Four more entities: Baba Yaga (Lv3), the Jersey Devil (Lv4), Anansi (Lv5), Vorl (Lv6), each met through its own summoning ritual. The Jersey Devil was added ahead of Kitsune because it carries no cultural sensitivity; Kitsune, Kappa and Sphinx stay in LATER pending lore review.
 - **D-138** Orders are now a live board: two open requests per met entity, refilled 20 s after a delivery from that entity's pool, and only offered if every item is makeable now. Save v3 migrates old order lists.
 - **D-139** Order styles preview the patron archetypes without pledging: Baba Yaga trials (large ask, about triple pay), Anansi gambles (x0.5 to x2.5, mean 1.25). Full pledges, banes and questlines come later.
 - **D-140** Favor now buys something: three boons per entity at 40 / 100 / 200 Favor, all additive, lasting the run.
 - **D-141** Building upgrades (2 to 3 levels) cost Devotion, Donations and one merge item. Devotion storage depends on Sermon Hall level (500 / 1500 / 4000); Donations cap raised to 500.
-- **D-142** XP retuned for the longer game: level curve exponent 1.6 to 1.4, orders pay 15 + 3 per level (x1.5), upgrades 15, a new recipe 10.
+- **D-142** XP retuned with the sim: need per level is `70 x level^2.1` (was `60 x level^1.6`); orders pay 15 + 3 per level (x1.5), upgrades 15, a new recipe 10. First tries (exponent 1.4) had the bot meet every entity within 17 minutes; the final curve spreads them over about 55.
+- **D-147** Pacing rule as enforced by the sim: no wait over 10 minutes for something new during the first 60 minutes after the tutorial. Honest limit: content thins out after roughly 65 to 75 minutes; logged in TASKS as the reason for the next expansion.
 - **D-143** New content: Graveyard Moss and Moonpetal; Calm Draught, Moonlight Tincture, Zeal Tonic; the candle merge chain from the Ritual Brazier. Entities hint one recipe each when first met; the Grimoire moved to its own screen.
 - **D-144** Potions other than Amnesia Brew are only consumed by orders for now. Using potions on followers needs its own spec (consent rules, D-110) and is in LATER.
 - **D-145** Level-ups and boons are announced by a queued dialog that waits for a quiet moment; it never interrupts a ritual.

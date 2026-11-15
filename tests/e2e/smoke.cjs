@@ -59,6 +59,10 @@ const check = (name, ok, detail = '') => {
     await tap('btn_choice_yes'); await tap('btn_ok');
     check('event: the cat was adopted', (await run()).flags.cat_adopted === true);
   };
+  const bad = [];
+  const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
+  /** Dismiss queued level-up / boon announcements (optionally screenshotting and auditing them). */
+  const notices = async (label) => { for (let i = 0; i < 6; i++) { await wait(350); const id = await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id); if (id !== 'notice') return; if (label) { await shot(`p_${label}_${i}`); await audit(`notice ${label}`); } await tap('btn_ok'); } };
   const skip = async (sec) => { await page.evaluate((s) => window.__ct.store.act((g, e) => window.__ct.core.debugSkip(g, s, e)), sec); await cat(); };
   const items = async () => JSON.stringify((await run()).reliquary.cells.map((c) => (c && c.kind === 'item' ? [c.id, c.tier] : c ? 'gen' : null)));
   const rotate = async (vp) => { await page.setViewportSize(vp); await wait(450); };
@@ -222,9 +226,9 @@ const check = (name, ok, detail = '') => {
   await tap('btn_ok'); await wait(400);
   await shot('p_08_orders');
   await rotate(LANDSCAPE); await shot('l_08_orders'); await rotate(PORTRAIT);
-  await tap('btn_ok', { optional: true }); // a boon or level-up notice may be waiting
-  await tap('btn_deliver_mothman_1'); await shot('p_08_order_thanks'); await tap('btn_ok');
-  await tap('btn_deliver_mothman_2'); await tap('btn_ok');
+  await notices();
+  await tap('btn_deliver_mothman_1'); await shot('p_08_order_thanks'); await tap('btn_ok'); await notices('first');
+  await tap('btn_deliver_mothman_2'); await tap('btn_ok'); await notices('boon');
   const afterOrders = await run();
   check('orders: both Mothman orders filled', afterOrders.ordersFilled.mothman_1 === 1 && afterOrders.ordersFilled.mothman_2 === 1);
   check('orders: Favor earned and Compound Lv2', afterOrders.favor.mothman >= 40 && afterOrders.level >= 2, `favor ${afterOrders.favor.mothman} lv ${afterOrders.level}`);
@@ -261,10 +265,6 @@ const check = (name, ok, detail = '') => {
   await tap('btn_menu'); await tap('menu_4'); await wait(300); await shot('p_11_debug');
   await rotate(LANDSCAPE); await shot('l_11_debug'); await rotate(PORTRAIT);
   await tap('debug_close');
-
-  const bad = [];
-  const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
-  const notices = async (label) => { for (let i = 0; i < 6; i++) { await wait(350); const id = await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id); if (id !== 'notice') return; if (label) { await shot(`p_${label}_${i}`); await audit(`notice ${label}`); } await tap('btn_ok'); } };
 
   // ---------- expansion: repeating orders, upgrades, new creatures ----------
   await rotate(PORTRAIT);

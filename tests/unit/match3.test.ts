@@ -1015,7 +1015,7 @@ describe('shipped levels', () => {
   // every level must clear the 0.70 floor; the first two keep their stricter targets
   const WIN_RATE_FLOOR = 0.7;
   const targets: Record<string, number> = { r1: 0.9, r2: 0.75 };
-  const PLAYOUTS = 100;
+  const PLAYOUTS = 150;
 
   it('starts with the three slice rituals in their agreed shape', () => {
     const slice = levels.slice(0, 3);

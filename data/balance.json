@@ -25,8 +25,8 @@
     ]
   },
   "xp": {
-    "base": 60,
-    "exp": 1.4,
+    "base": 70,
+    "exp": 2.1,
     "perOrderBase": 15,
     "perOrderPerLevel": 3,
     "entityOrderMult": 1.5,

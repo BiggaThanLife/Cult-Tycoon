@@ -4,7 +4,7 @@ Owner: game-designer. Status: built (0.3.0). Goal: turn the 15-minute slice into
 
 ## What the player gets
 1. **Five entities.** The Mothman, Baba Yaga, the Jersey Devil, Anansi and Vorl. Each is summoned by its own ritual, which
-   unlocks at a compound level (2, 3, 4, 5). Unmet entities show as silhouettes with the exact step to meet them.
+   unlocks at a compound level (3, 4, 5, 6). The sim meets them about 10, 24, 36 and 54 minutes after the tutorial. Unmet entities show as silhouettes with the exact step to meet them.
 2. **Repeating orders.** Each met entity keeps two requests open and posts a new one 20 seconds after one is filled.
    Requests come from that entity's pool and are only offered if the player can make everything in them right now.
 3. **Order styles** (the first taste of patron archetypes): Baba Yaga sets *trials* (large asks, about triple pay);
@@ -14,7 +14,7 @@ Owner: game-designer. Status: built (0.3.0). Goal: turn the 15-minute slice into
    boon for this run (additive): ritual Devotion, building output, harvest size, Donations per minute or faster Suspicion fade.
 5. **Building upgrades.** Sermon Hall (3 levels: output and Devotion storage), Dormitory (3: beds), Greenhouse (3: plots),
    Alchemy Lab (2: bonus bottles). Each costs Devotion, Donations and one merge item, so the Reliquary has a purpose.
-6. **More to make.** Crops: Graveyard Moss (Lv2), Moonpetal (Lv3). Potions: Calm Draught, Moonlight Tincture, Zeal Tonic.
+6. **More to make.** Crops: Graveyard Moss (Lv2), Moonpetal (Lv4). Potions: Calm Draught, Moonlight Tincture, Zeal Tonic.
    A second merge chain (candles) from the Ritual Brazier (Lv3). Entities hint a recipe when first met.
 7. **Level-ups that say what changed**, and an advisor strip that names the next unlock.
 
@@ -40,4 +40,7 @@ the Pilgrimage Bus, outsider and follower orders, Kitsune / Kappa / Sphinx (need
 
 ## Acceptance
 Unit tests in "expansion: orders, boons, upgrades, unlocks"; the playthrough upgrades a building from its card, levels up,
-summons Baba Yaga and fills a gamble order; the sim's long run shows no wait over 10 minutes for something new.
+summons Baba Yaga and fills a gamble order; the sim's long run shows no wait over 10 minutes for something new during the first hour after the tutorial.
+
+## Known limit
+The sim bot runs out of new things about 65 to 75 minutes after the tutorial (all five entities met, buildings maxed, most boons earned). Waits then stretch past 20 minutes. The next expansion (land, pledges, questlines) has to extend that.

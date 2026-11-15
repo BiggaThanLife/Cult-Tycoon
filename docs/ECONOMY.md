@@ -77,7 +77,7 @@ Raid Defense = event loss × (1 − 0.25 per star); Summoning = +20 Favor.
 
 ## 6. Orders
 Reward value = Σ(item value) × 1.4 (entity) / 1.2 (outsider) / 1.1 (follower). Item value = cost of inputs + time × 2 Devotion/min.
-Entity orders also give Favor (10–30) and 15% chance of a Relic. Compound XP per order = 10 + 2 × compound level (entity orders ×1.5). XP to next level: `60 × level^1.6`.
+Entity orders also give Favor (10–30) and 15% chance of a Relic. Compound XP per order = (15 + 3 × compound level) × 1.5. XP to next level: `70 × level^2.1`. Upgrades 15, new recipe 10, building 10, 2 per ritual star.
 Pilgrimage Bus: 6 crates, departs every 20 min, all crates = chest (≈ 2 orders' worth).
 
 ## 7. Suspicion

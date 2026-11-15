@@ -7,11 +7,24 @@
       "height": 8,
       "moves": 15,
       "tileTypes": 5,
-      "goals": [{ "kind": "collect", "tile": 0, "count": 12 }],
-      "starScores": [1100, 1450, 1750],
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 0,
+          "count": 12
+        }
+      ],
+      "starScores": [
+        1100,
+        1450,
+        1750
+      ],
       "par": 9,
       "purpose": "sermon",
-      "nameKey": "ritual.r1.name"
+      "nameKey": "ritual.r1.name",
+      "unlock": {
+        "step": "ritual1"
+      }
     },
     {
       "id": "r2",
@@ -20,21 +33,69 @@
       "height": 8,
       "moves": 20,
       "tileTypes": 5,
-      "goals": [{ "kind": "collect", "tile": 2, "count": 10 }, { "kind": "clearWebs" }],
-      "webs": [
-        { "x": 2, "y": 2, "layers": 1 },
-        { "x": 5, "y": 2, "layers": 1 },
-        { "x": 1, "y": 4, "layers": 1 },
-        { "x": 6, "y": 4, "layers": 1 },
-        { "x": 3, "y": 5, "layers": 1 },
-        { "x": 4, "y": 5, "layers": 1 },
-        { "x": 2, "y": 6, "layers": 1 },
-        { "x": 5, "y": 6, "layers": 1 }
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 2,
+          "count": 10
+        },
+        {
+          "kind": "clearWebs"
+        }
       ],
-      "starScores": [1950, 2700, 3200],
+      "webs": [
+        {
+          "x": 2,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 4,
+          "layers": 1
+        },
+        {
+          "x": 3,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 4,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 2,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 6,
+          "layers": 1
+        }
+      ],
+      "starScores": [
+        1950,
+        2700,
+        3200
+      ],
       "par": 13,
       "purpose": "recruit",
-      "nameKey": "ritual.r2.name"
+      "nameKey": "ritual.r2.name",
+      "unlock": {
+        "step": "ritual2"
+      }
     },
     {
       "id": "r3",
@@ -43,12 +104,324 @@
       "height": 8,
       "moves": 22,
       "tileTypes": 5,
-      "goals": [{ "kind": "dropRelics", "count": 2 }],
+      "goals": [
+        {
+          "kind": "dropRelics",
+          "count": 2
+        }
+      ],
       "relics": 2,
-      "starScores": [2800, 3450, 4550],
+      "starScores": [
+        2800,
+        3450,
+        4550
+      ],
       "par": 11,
       "purpose": "summon",
-      "nameKey": "ritual.r3.name"
+      "nameKey": "ritual.r3.name",
+      "unlock": {
+        "step": "ritual3"
+      }
+    },
+    {
+      "id": "r4",
+      "seed": 4407,
+      "width": 8,
+      "height": 8,
+      "moves": 22,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 1,
+          "count": 14
+        },
+        {
+          "kind": "collect",
+          "tile": 3,
+          "count": 10
+        }
+      ],
+      "starScores": [
+        1850,
+        2200,
+        2500
+      ],
+      "par": 9,
+      "purpose": "summon",
+      "nameKey": "ritual.r4.name",
+      "unlock": {
+        "level": 3
+      }
+    },
+    {
+      "id": "r5",
+      "seed": 5507,
+      "width": 8,
+      "height": 8,
+      "moves": 20,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "score",
+          "target": 4000
+        },
+        {
+          "kind": "collect",
+          "tile": 0,
+          "count": 15
+        }
+      ],
+      "starScores": [
+        4250,
+        4550,
+        4850
+      ],
+      "par": 13,
+      "purpose": "sermon",
+      "nameKey": "ritual.r5.name",
+      "unlock": {
+        "level": 2
+      }
+    },
+    {
+      "id": "r6",
+      "seed": 6601,
+      "width": 8,
+      "height": 8,
+      "moves": 24,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "clearWebs"
+        }
+      ],
+      "webs": [
+        {
+          "x": 0,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 7,
+          "y": 2,
+          "layers": 1
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "layers": 2
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 4,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "layers": 2
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "layers": 2
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "layers": 2
+        },
+        {
+          "x": 3,
+          "y": 7,
+          "layers": 1
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "layers": 1
+        }
+      ],
+      "starScores": [
+        2750,
+        3300,
+        4250
+      ],
+      "par": 13,
+      "purpose": "summon",
+      "nameKey": "ritual.r6.name",
+      "unlock": {
+        "level": 4
+      }
+    },
+    {
+      "id": "r7",
+      "seed": 7717,
+      "width": 8,
+      "height": 8,
+      "moves": 22,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "collect",
+          "tile": 2,
+          "count": 16
+        },
+        {
+          "kind": "clearWebs"
+        }
+      ],
+      "webs": [
+        {
+          "x": 2,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 1,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 5,
+          "layers": 1
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 4,
+          "y": 6,
+          "layers": 1
+        }
+      ],
+      "starScores": [
+        2350,
+        3100,
+        3900
+      ],
+      "par": 13,
+      "purpose": "recruit",
+      "nameKey": "ritual.r7.name",
+      "unlock": {
+        "level": 3
+      }
+    },
+    {
+      "id": "r8",
+      "seed": 9029,
+      "width": 8,
+      "height": 8,
+      "moves": 26,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "dropRelics",
+          "count": 3
+        },
+        {
+          "kind": "collect",
+          "tile": 4,
+          "count": 12
+        }
+      ],
+      "relics": 3,
+      "starScores": [
+        3800,
+        5050,
+        6250
+      ],
+      "par": 13,
+      "purpose": "summon",
+      "nameKey": "ritual.r8.name",
+      "unlock": {
+        "level": 5
+      }
+    },
+    {
+      "id": "r9",
+      "seed": 9915,
+      "width": 8,
+      "height": 8,
+      "moves": 27,
+      "tileTypes": 5,
+      "goals": [
+        {
+          "kind": "dropRelics",
+          "count": 2
+        },
+        {
+          "kind": "clearWebs"
+        }
+      ],
+      "webs": [
+        {
+          "x": 1,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "layers": 1
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "layers": 2
+        },
+        {
+          "x": 4,
+          "y": 4,
+          "layers": 2
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 2,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 5,
+          "y": 6,
+          "layers": 1
+        },
+        {
+          "x": 7,
+          "y": 6,
+          "layers": 1
+        }
+      ],
+      "relics": 2,
+      "starScores": [
+        3250,
+        4350,
+        5500
+      ],
+      "par": 15,
+      "purpose": "summon",
+      "nameKey": "ritual.r9.name",
+      "unlock": {
+        "level": 6
+      }
     }
   ]
 }

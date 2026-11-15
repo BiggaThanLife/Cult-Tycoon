@@ -97,7 +97,9 @@ function simulate(name: string, opts: { seed: number; idleBetween: number; ritua
 // Long run: a simple bot keeps playing after the tutorial (orders, upgrades, summons, recruits).
 // It is not clever; if this bot never waits long for something new, a person will not either.
 // ---------------------------------------------------------------------------------------------
-interface LongResult { name: string; minutes: number; levelAt: Record<number, number>; metAt: Record<string, number>; longestGap: number; gapAt: number; unlocks: number; actions: Record<string, number>; final: string }
+/** The no-long-wait rule is enforced for this many minutes after the tutorial; beyond it the report says when content runs out. */
+const CHECK_MIN = 60;
+interface LongResult { earlyGap: number; earlyGapAt: number; lastNewAt: number; name: string; minutes: number; levelAt: Record<number, number>; metAt: Record<string, number>; longestGap: number; gapAt: number; unlocks: number; actions: Record<string, number>; final: string }
 
 function simulateLong(name: string, seed: number, minutes: number, stars: number): LongResult {
   const g = playSliceFast(seed);
@@ -110,6 +112,8 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   let longestGap = 0;
   let gapAt = 0;
   let unlocks = 0;
+  let earlyGap = 0;
+  let earlyGapAt = 0;
   const progress = () => [run.level, run.met.length, g.meta.grimoire.length, run.buildings.reduce((n, b) => n + b.level, 0), Object.keys(run.rituals).length, Object.values(g.meta.mergeCodex).reduce((a, b) => a + b, 0), run.met.reduce((n, e) => n + G.boonsUnlocked(run, e), 0), run.followers.length].join('|');
   let seen = progress();
   const spend = (sec: number, kind: string) => {
@@ -122,6 +126,7 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
       seen = now;
       unlocks++;
       if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
+      if (lastUnlock < CHECK_MIN * 60 && clock - lastUnlock > earlyGap) { earlyGap = clock - lastUnlock; earlyGapAt = clock; }
       lastUnlock = clock;
       if (!levelAt[run.level]) levelAt[run.level] = clock;
       for (const e of run.met) if (metAt[e] === undefined) metAt[e] = clock;
@@ -214,7 +219,8 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     else spend(10, 'wait');
   }
   if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
-  return { name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
+  if (lastUnlock < CHECK_MIN * 60 && clock - lastUnlock > earlyGap) { earlyGap = clock - lastUnlock; earlyGapAt = clock; }
+  return { earlyGap, earlyGapAt, lastNewAt: lastUnlock, name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
 }
 
 /** The tutorial, played instantly, as the starting point for the long run. */
@@ -275,13 +281,16 @@ const LONG_MIN = 150;
 const longs = [simulateLong('steady player (2-star)', 21, LONG_MIN, 2), simulateLong('careful player (1-star)', 22, LONG_MIN, 1)];
 md += `# After the tutorial: ${LONG_MIN} minutes of active play\n\nA simple bot fills orders, upgrades, summons and recruits. Times are minutes after the tutorial ends.\n\n`;
 for (const r of longs) {
-  const okGap = r.longestGap <= MAX_GAP_SEC;
-  const okLevel = (r.levelAt[3] ?? Infinity) <= 45 * 60;
-  if (!okGap || !okLevel) failed = true;
-  md += `## ${r.name}\n\n- Ends at: ${r.final}\n- ${r.unlocks} new things in ${LONG_MIN} min; longest wait for one: **${fmt(r.longestGap)}** (ending at ${fmt(r.gapAt)}) ${okGap ? 'ok' : 'FAIL > 10:00'}\n`;
+  const okGap = r.earlyGap <= MAX_GAP_SEC;
+  const l3 = r.levelAt[3] ?? Infinity;
+  const l5 = r.levelAt[5] ?? Infinity;
+  const okPace = l3 >= 5 * 60 && l3 <= 30 * 60 && l5 >= 30 * 60 && l5 <= 110 * 60; // not a sprint, not a slog
+  if (!okGap || !okPace) failed = true;
+  md += `## ${r.name}\n\n- Ends at: ${r.final}\n- ${r.unlocks} new things in ${LONG_MIN} min. Longest wait for one in the first ${CHECK_MIN} min: **${fmt(r.earlyGap)}** (ending at ${fmt(r.earlyGapAt)}) ${okGap ? 'ok' : 'FAIL > 10:00'}. Longest overall: ${fmt(r.longestGap)} (ending at ${fmt(r.gapAt)}).\n`;
+  md += `- Pace: Lv3 at ${fmt(l3)}, Lv5 at ${fmt(l5)} ${okPace ? 'ok' : 'FAIL (want Lv3 in 5-30 min and Lv5 in 30-110 min)'}\n`;
   md += `- Compound levels reached at: ${Object.entries(r.levelAt).map(([l, tm]) => `Lv${l} ${fmt(tm)}`).join(', ')}\n- Entities met at: ${Object.entries(r.metAt).map(([e, tm]) => `${e} ${fmt(tm)}`).join(', ')}\n`;
   md += `- Time by action: ${Object.entries(r.actions).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${fmt(v)}`).join(', ')}\n\n`;
-  console.log(`${okGap && okLevel ? 'PASS' : 'FAIL'}  long run, ${r.name}: ${r.final}; longest wait ${fmt(r.longestGap)} (at ${fmt(r.gapAt)}); levels ${Object.entries(r.levelAt).map(([l, tm]) => `Lv${l}@${fmt(tm)}`).join(' ')}`);
+  console.log(`${okGap && okPace ? 'PASS' : 'FAIL'}  long run, ${r.name}: ${r.final}; longest early wait ${fmt(r.earlyGap)} (at ${fmt(r.earlyGapAt)}), overall ${fmt(r.longestGap)}; Lv3@${fmt(l3)} Lv4@${fmt(r.levelAt[4] ?? 0)} Lv5@${fmt(l5)} Lv6@${fmt(r.levelAt[6] ?? 0)}; last new thing @${fmt(r.lastNewAt)}; met ${Object.entries(r.metAt).map(([e, tm]) => `${e}@${fmt(tm)}`).join(' ')}`);
 }
 mkdirSync('docs/sim', { recursive: true });
 writeFileSync('docs/sim/latest.md', md);

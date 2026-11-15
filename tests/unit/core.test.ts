@@ -264,13 +264,15 @@ describe('expansion: orders, boons, upgrades, unlocks', () => {
     expect(g.run.level).toBe(2);
     expect(G.cropUnlocked(g.run, 'graveyard_moss')).toBe(true);
     expect(G.cropUnlocked(g.run, 'moonpetal')).toBe(false);
-    expect(G.ritualUnlocked(g.run, 'r4')).toBe(true);
-    expect(G.ritualUnlocked(g.run, 'r6')).toBe(false);
+    expect(G.ritualUnlocked(g.run, 'r5')).toBe(true);
+    expect(G.ritualUnlocked(g.run, 'r4')).toBe(false);
     const levels: number[] = [];
     G.addXp(g, G.xpNeeded(2) - g.run.xp, (e) => { if (e.type === 'levelUp') levels.push(e.level); });
     expect(levels).toEqual([3]);
     expect(g.run.reliquary.cells.some((c) => c?.kind === 'gen' && c.gen === 'ritual_brazier')).toBe(true);
-    expect(G.unlocksAt(3).map((u) => u.id)).toEqual(expect.arrayContaining(['moonpetal', 'ritual_brazier']));
+    expect(G.unlocksAt(3).map((u) => u.id)).toEqual(expect.arrayContaining(['r4', 'ritual_brazier']));
+    expect(G.cropUnlocked(g.run, 'moonpetal')).toBe(false);
+    expect(G.ritualUnlocked(g.run, 'r4')).toBe(true);
     expect(G.producible(g, { merge: 'candle', tier: 2, count: 1 })).toBe(true);
     // summoning a second entity hints its recipe and opens its board
     const st = G.startRitual(g, 'r4') as Match3State;
