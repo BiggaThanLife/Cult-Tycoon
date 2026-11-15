@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 — Upgrade card explains itself
+- The building card names the relic an upgrade needs, lists what is still missing and where to get it, and links to the Relics tab.
+
 ## 0.3.0 — Expansion 1: creatures, orders, boons, upgrades
 - Four new entities to summon (Baba Yaga, the Jersey Devil, Anansi, Vorl), each with a ritual, a voice and an order pool.
 - Orders now repeat: every entity keeps two requests open. Favor unlocks three permanent boons per entity.

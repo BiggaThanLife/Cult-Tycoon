@@ -394,7 +394,7 @@
   "building.maxed": "Fully upgraded",
   "building.now": "Now: {text}",
   "building.next": "Next: {text}",
-  "building.needs": "Needs:",
+  "building.needs": "Cost:",
   "building.effect.sermon_hall": "{rate} Devotion a minute, holds {cap}. Bank limit {bank}.",
   "building.effect.dormitory": "{n} beds.",
   "building.effect.greenhouse": "{n} plots.",
@@ -416,5 +416,16 @@
   "grimoire.open": "Grimoire {n}/{max}",
   "grimoire.hinted": "Hinted by {name}",
   "garden.locked": "Lv{n}",
-  "debug.level": "Level up"
+  "debug.level": "Level up",
+  "building.relic": "1 {name} (a relic)",
+  "building.relic.have": "You have one. It will be used up.",
+  "building.relic.none": "You have none yet.",
+  "building.missing": "Still needed:",
+  "building.missing.devotion": "{n} more Devotion. Collect, or hold a ritual.",
+  "building.missing.donations": "{n} more Donations. Orders and rituals pay them.",
+  "building.missing.merge": "1 {name}. Merge one on the Relics tab and leave it there.",
+  "building.missing.merge_locked": "1 {name}. Needs the {gen}, which arrives at Compound Lv{n}.",
+  "building.ready": "Everything is ready.",
+  "building.not_yet": "Not yet",
+  "building.goto_relics": "Go to Relics"
 }

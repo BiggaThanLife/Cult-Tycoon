@@ -267,7 +267,23 @@ export function buildingEffect(type: string, level: number): string {
   return t(`building.effect.${type}`, { n: levelBonus(fake, 'brewBonus') });
 }
 
-/** Building card: what it does now, what the next level adds, what the upgrade costs. */
+/** What an upgrade still lacks, as plain sentences with where to get each thing. Empty = ready. */
+export function upgradeMissing(app: App, b: BuildingState): string[] {
+  const run = app.store.state.run;
+  const up = nextUpgrade(b);
+  if (!up) return [];
+  const out: string[] = [];
+  if (run.devotion < up.cost.devotion) out.push(t('building.missing.devotion', { n: Math.ceil(up.cost.devotion - run.devotion) }));
+  if (run.donations < up.cost.donations) out.push(t('building.missing.donations', { n: Math.ceil(up.cost.donations - run.donations) }));
+  if (up.merge && countItems(run.reliquary, up.merge.chain, up.merge.tier) < 1) {
+    const name = t(`merge.${mergeItemKey(up.merge.chain, up.merge.tier)}.name`);
+    const gen = DATA.merge.generators.find((g) => g.chain === up.merge!.chain)!;
+    out.push(run.level >= (gen.unlockLevel ?? 1) ? t('building.missing.merge', { name }) : t('building.missing.merge_locked', { name, gen: t(`gen.${gen.id}.name`), n: gen.unlockLevel ?? 1 }));
+  }
+  return out;
+}
+
+/** Building card: what it does now, what the next level adds, what the upgrade costs and what is still missing. */
 export function openBuilding(app: App, buildingId: number): void {
   app.modals.open({
     id: 'building',
@@ -277,11 +293,15 @@ export function openBuilding(app: App, buildingId: number): void {
       if (!b) return;
       const def = buildingDef(b.type);
       const up = nextUpgrade(b);
-      const w = modalWidth(app);
+      const w = app.L.landscape ? Math.min(app.L.w - 8, 310) : modalWidth(app); // wider in landscape so the list stays short
       const tw = w - 10;
       const now = t('building.now', { text: buildingEffect(b.type, b.level) });
       const next = up ? t('building.next', { text: buildingEffect(b.type, b.level + 1) }) : t('building.maxed');
-      const h = 16 + 12 + textHeight(now, tw) + 2 + textHeight(next, tw) + 4 + (up ? 26 : 0) + 22 + 22;
+      const missing = upgradeMissing(app, b);
+      const status = !up ? '' : missing.length ? [t('building.missing'), ...missing.map((m) => `- ${m}`)].join('\n') : t('building.ready');
+      const mergeName = up?.merge ? t(`merge.${mergeItemKey(up.merge.chain, up.merge.tier)}.name`) : '';
+      const costH = up ? 12 + (up.merge ? 26 : 0) : 0;
+      const h = 16 + 12 + textHeight(now, tw) + 2 + textHeight(next, tw) + 4 + costH + (status ? textHeight(status, tw) + 4 : 0) + 22 + 22;
       const r = frame(app, c, w, h, t(`building.${b.type}.name`));
       let y = r.y;
       txt(app, c, r.x, y, t('building.level', { n: b.level, max: maxLevel(b.type) }), { color: 'irony' });
@@ -291,26 +311,38 @@ export function openBuilding(app: App, buildingId: number): void {
       txt(app, c, r.x, y, next, { width: r.w, color: up ? 'gain' : 'dim' });
       y += textHeight(next, r.w) + 4;
       if (up) {
-        txt(app, c, r.x, y + 7, t('building.needs'), { color: 'dim' });
+        // cost line: Devotion and Donations, each red until you have enough
+        txt(app, c, r.x, y, t('building.needs'), { color: 'dim' });
         let x = r.x + 36;
-        img(app, c, x, y + 7, 'ic_devotion');
-        txt(app, c, x + 10, y + 7, String(up.cost.devotion), { color: run.devotion >= up.cost.devotion ? 'ink' : 'loss' });
-        x += 36;
-        img(app, c, x, y + 7, 'ic_donations');
-        txt(app, c, x + 10, y + 7, String(up.cost.donations), { color: run.donations >= up.cost.donations ? 'ink' : 'loss' });
-        x += 34;
+        img(app, c, x, y, 'ic_devotion');
+        txt(app, c, x + 10, y, String(up.cost.devotion), { color: run.devotion >= up.cost.devotion ? 'gain' : 'loss' });
+        x += 40;
+        img(app, c, x, y, 'ic_donations');
+        txt(app, c, x + 10, y, String(up.cost.donations), { color: run.donations >= up.cost.donations ? 'gain' : 'loss' });
+        y += 12;
         if (up.merge) {
+          // the relic it needs, by picture and by name
           const have = countItems(run.reliquary, up.merge.chain, up.merge.tier);
-          img(app, c, x, y, `m_${mergeItemKey(up.merge.chain, up.merge.tier)}`);
-          txt(app, c, x + 24, y + 7, `${Math.min(have, 1)}/1`, { color: have ? 'gain' : 'loss' });
+          panel(app, c, r.x, y, 24, 24, PAL.white);
+          img(app, c, r.x + 1, y + 1, `m_${mergeItemKey(up.merge.chain, up.merge.tier)}`);
+          txt(app, c, r.x + 28, y + 3, t('building.relic', { name: mergeName }), { width: r.w - 30, maxLines: 1 });
+          txt(app, c, r.x + 28, y + 13, have ? t('building.relic.have') : t('building.relic.none'), { color: have ? 'gain' : 'loss', width: r.w - 30, maxLines: 1 });
+          y += 26;
         }
-        y += 26;
+        txt(app, c, r.x, y, status, { width: r.w, color: missing.length ? 'loss' : 'gain' });
+        y += textHeight(status, r.w) + 4;
       }
       const bw = Math.floor((r.w - 4) / 2);
-      button(app, c, r.x, y, bw, 19, up ? t('building.upgrade') : t('building.maxed'), () => {
-        if (app.store.act((g, emit) => upgradeBuilding(g, buildingId, emit))) sfxUpgrade();
-        app.modals.rebuild();
-      }, { disabled: !up || !canUpgrade(run, b), fill: PAL.acid, icon: up ? 'ic_up' : undefined, name: 'btn_upgrade' });
+      const needsRelic = !!up?.merge && countItems(run.reliquary, up.merge.chain, up.merge.tier) < 1 && run.level >= (DATA.merge.generators.find((g) => g.chain === up.merge!.chain)!.unlockLevel ?? 1);
+      if (up && missing.length && needsRelic) {
+        // the most useful next step is a trip to the Reliquary, so offer it instead of a dead button
+        button(app, c, r.x, y, bw, 19, t('building.goto_relics'), () => { close(); app.goto('reliquary'); }, { fill: PAL.yellow, name: 'btn_goto_relics' });
+      } else {
+        button(app, c, r.x, y, bw, 19, !up ? t('building.maxed') : missing.length ? t('building.not_yet') : t('building.upgrade'), () => {
+          if (app.store.act((g, emit) => upgradeBuilding(g, buildingId, emit))) sfxUpgrade();
+          app.modals.rebuild();
+        }, { disabled: !up || missing.length > 0, fill: PAL.acid, icon: up && !missing.length ? 'ic_up' : undefined, name: 'btn_upgrade' });
+      }
       const side: [string, () => void] = def.produces
         ? [`${t('building.collect')} ${Math.floor(b.stored)}`, () => { app.store.act((g, emit) => collect(g, buildingId, emit)); app.modals.rebuild(); }]
         : b.type === 'dormitory' ? [t('building.flock'), () => { close(); openRoster(app); }] : [t('building.goto_brew'), () => { close(); app.goto('alchemy'); }];

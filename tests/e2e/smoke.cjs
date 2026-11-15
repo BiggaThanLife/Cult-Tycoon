@@ -271,6 +271,17 @@ const check = (name, ok, detail = '') => {
   await notices('notice');
   await skip(45);
   check('orders: the Mothman posts new requests after the tutorial', (await run()).orders.length >= 1, JSON.stringify((await run()).orders));
+  // a card for an upgrade you cannot afford says what is missing and offers the way to get it
+  await page.evaluate(() => window.__ct.store.act((g) => { g.run.devotion = 60; g.run.donations = 10; g.run.reliquary.cells = g.run.reliquary.cells.map((c) => (c && c.kind === 'item' ? null : c)); }));
+  await tap('tab_compound'); await wait(300);
+  const hall0 = await page.evaluate(() => { const a = window.__ct.app(); const b = window.__ct.store.state.run.buildings.find((x) => x.type === 'dormitory'); return a.screens.compound.floatPos({ building: b.id }); });
+  await clickLogical({ x: hall0.x, y: hall0.y + 40 });
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) { await rotate(vp); await shot(`${prefix}_12_building_missing`); await audit(`${prefix} building missing`); }
+  await rotate(PORTRAIT);
+  const miss = await page.evaluate(() => ({ relics: !!window.__ct.find('btn_goto_relics'), upgrade: !!window.__ct.find('btn_upgrade') }));
+  check('upgrade card: explains what is missing and offers the Relics tab', miss.relics && !miss.upgrade);
+  await tap('btn_goto_relics'); await wait(250);
+  check('upgrade card: the shortcut opens Relics', await page.evaluate(() => window.__ct.app().tab === 'reliquary'));
   // upgrade the dormitory through its card
   await page.evaluate(() => window.__ct.store.act((g) => { g.run.devotion = 480; g.run.donations = 400; g.run.reliquary.cells[0] = { id: 9001, kind: 'item', chain: 'paper', tier: 2 }; g.run.reliquary.cells[1] = { id: 9002, kind: 'item', chain: 'paper', tier: 3 }; }));
   await tap('tab_compound'); await wait(300);

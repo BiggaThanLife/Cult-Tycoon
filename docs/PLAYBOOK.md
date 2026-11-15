@@ -142,6 +142,7 @@ This needs sign-off, so start by asking the owner which creature, then:
 1. Build UI only with `src/ui/kit.ts` helpers (`txt`, `panel`, `button`, `bar`, `img`, `hit`) and `dialog`/`frame` from `src/ui/modal.ts`. Integer coordinates only.
 2. Everything must be drawn inside `rebuild()` from state, and must handle both `L.dock` present (landscape) and absent (portrait). In landscape call `this.dockBg()` before drawing into the dock.
 3. Give tappable things a `name` so the playthrough test can press them; minimum size about 20x18 logical pixels.
+   A disabled button must always come with a visible reason and, where possible, a button that takes the player to the fix (see the building card, D-148).
 4. Smallest screens to fit: 180x320 portrait, 320x180 landscape. The ritual board (160) and merge grid (168) never scale.
 5. The playthrough runs a layout audit at four sizes (`s_` 360x640 is the smallest phone) and fails if any text leaves its area. It cannot see sprites overlapping text, so still open every changed screen's `s_`, `p_`, `l_` and `d_` screenshot.
 6. **Verify.**
