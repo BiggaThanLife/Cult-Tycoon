@@ -101,7 +101,7 @@ const check = (name, ok, detail = '') => {
       await settle();
       const before = JSON.stringify((await run()).activeRitual);
       check('ritual: a real swipe used a move', JSON.parse(before).movesUsed === 1);
-      await shot('p_ritual_play');
+      await shot('p_ritual_play'); await audit('ritual board');
       await rotate(LANDSCAPE);
       const mid = JSON.stringify((await run()).activeRitual);
       check('rotate mid-ritual keeps the board', before === mid);
@@ -372,7 +372,8 @@ const check = (name, ok, detail = '') => {
   const fav0 = (await run()).favor.mothman;
   await tap('btn_play_r1'); await wait(900);
   check('rite: the chosen target travels with the ritual', JSON.stringify((await run()).activeRite) === JSON.stringify({ id: 'communion', entity: 'mothman' }));
-  await shot('p_16_rite_board');
+  await shot('p_16_rite_board'); await audit('rite board');
+  await rotate(SMALL); await audit('s rite board'); await shot('s_16_rite_board'); await rotate(PORTRAIT);
   await rotate(LANDSCAPE); check('rotate mid-rite keeps the target', (await run()).activeRite && (await run()).activeRite.entity === 'mothman'); await shot('l_16_rite_board'); await rotate(PORTRAIT);
   await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = r.level.starScores[1]; r.collected = [5, 25, 5, 5, 5, 0]; }));
   await wait(1800); await shot('p_16_rite_result'); await audit('rite result');
@@ -388,7 +389,7 @@ const check = (name, ok, detail = '') => {
   for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE]]) { await rotate(vp); await shot(`${prefix}_17_waiting`); await audit(`${prefix} waiting`); }
   await rotate(PORTRAIT);
   await tap('btn_look_busy'); await wait(1000);
-  await shot('p_17_look_busy_board');
+  await shot('p_17_look_busy_board'); await audit('look busy board');
   check('inspection: Look Busy uses an office board', await page.evaluate(() => window.__ct.store.state.run.activeRitual.level.skin === 'office'));
   await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = r.level.starScores[2]; }));
   await wait(1800); await shot('p_17_look_busy_result'); await audit('look busy result');

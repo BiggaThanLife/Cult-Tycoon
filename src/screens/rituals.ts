@@ -270,7 +270,7 @@ export class RitualScreen extends Screen {
       // the board needs the full height in landscape, so it covers the advisor strip
       rect(app, this.c, B.x, L.banner.y, B.w, L.banner.h, PAL.night);
     } else {
-      const infoH = 44;
+      const infoH = 54; // goals row, moves + score row, rite counter row
       const free = B.h - infoH - bh;
       this.origin = { x: B.x + Math.floor((B.w - bw) / 2), y: B.y + infoH + Math.max(2, Math.floor(free / 2)) };
       P = { x: B.x + 3, y: B.y + 3, w: B.w - 6, h: infoH - 4 };
@@ -300,11 +300,11 @@ export class RitualScreen extends Screen {
       goals.forEach((gp, i) => this.goalRow(gp.goal, P.x + 4 + i * 50, P.y + 3));
       this.info.moves = txt(app, this.c, P.x + 4, P.y + 26, '');
       this.info.score = txt(app, this.c, P.x + 62, P.y + 26, '');
-      this.info.focus = txt(app, this.c, P.x + P.w - 40, P.y + 26, '', { align: 'right', color: 'gain' });
+      this.info.focus = txt(app, this.c, P.x + 4, P.y + 37, '', { color: 'gain' });
       button(app, this.c, P.x + P.w - 36, P.y + 3, 33, 18, t('ritual.quit'), () => this.quit(), { fill: PAL.pink, name: 'btn_quit' });
     }
     // effects sit above the board and the info panel, in board-local coordinates
-    this.fx = app.add.container(this.origin.x, this.origin.y);
+    this.fx = app.add.container(this.origin.x, this.origin.y).setName('fx'); // effects: skipped by the layout audit
     this.c.add(this.fx);
 
     this.sync(g.cells);

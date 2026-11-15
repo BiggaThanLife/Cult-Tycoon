@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+- Fixed: the rite counter on the ritual board was drawn over the score. The playthrough now also fails on text drawn over other text.
+
 ## 0.4.0 — Rites, Omens and inspections
 - Every ritual now has a target you pick first (Sermon, Recruitment, Communion with a creature, Harvest a crop, Candle Vigil). One tile type turns into what that target needs; the board shows the count live.
 - Omens: a currency only rituals make. They pay for top upgrades, an Audience (a 4th creature boon) and swapping an order.

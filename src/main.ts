@@ -90,7 +90,7 @@ function audit(): string[] {
   const texts = (list: Phaser.GameObjects.GameObject[], acc: Phaser.GameObjects.BitmapText[] = []) => {
     for (const o of list) {
       if (o instanceof Phaser.GameObjects.BitmapText && o.visible && o.alpha > 0.5 && o.text) acc.push(o);
-      else if (o instanceof Phaser.GameObjects.Container && o.visible) texts(o.list, acc);
+      else if (o instanceof Phaser.GameObjects.Container && o.visible && o.name !== 'fx') texts(o.list, acc);
     }
     return acc;
   };
@@ -108,6 +108,18 @@ function audit(): string[] {
   };
   const bodyBox: Box = { l: L.body.x, t: top, r: L.body.x + L.body.w, b: bottom };
   const boxes = L.dock ? [bodyBox, { l: L.dock.x, t: L.dock.y, r: L.dock.x + L.dock.w, b: L.dock.y + L.dock.h }] : [bodyBox];
+  // text drawn on top of other text (the audit above only checks edges)
+  const overlapCheck = (list: Phaser.GameObjects.GameObject[], where: string) => {
+    const bs = texts(list).map((tx) => ({ tx, b: tx.getTextBounds(true).global }));
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+      const a = bs[i].b; const b = bs[j].b;
+      const ox = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+      const oy = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+      if (ox > 2 && oy > 2) out.push(`${where}: "${bs[i].tx.text.slice(0, 16)}" overlaps "${bs[j].tx.text.slice(0, 16)}"`);
+    }
+  };
+  if (app.modals.active) overlapCheck((app as unknown as { modalLayer: Phaser.GameObjects.Container }).modalLayer.list, `modal ${app.modals.active.id}`);
+  else if (app.tab !== 'compound') overlapCheck(screen.c.list, `${app.tab} overlap`);
   if (app.modals.active) check((app as unknown as { modalLayer: Phaser.GameObjects.Container }).modalLayer.list, [{ l: 0, t: 0, r: L.w, b: L.h }], `modal ${app.modals.active.id}`);
   else if (app.tab !== 'compound') check(screen.c.list, boxes, app.tab);
   return out;
