@@ -141,7 +141,9 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     }
   };
   /** Pick the rite a sensible player would: recruit if beds are free, harvest what an open order lacks, else commune. */
+  let vigilNext = false;
   const pickRite = (): { id: string; entity?: string; crop?: string } => {
+    if (vigilNext) { vigilNext = false; return { id: 'vigil' }; }
     if (!G.riteBlocked(g, 'recruit')) return { id: 'recruit' };
     for (const o of run.orders) for (const n of DATA.orders.find((x) => x.id === o.id)!.needs) {
       if ('item' in n && G.needHave(run, n) < n.count && DATA.crops.some((c) => c.id === n.item) && G.cropUnlocked(run, n.item) && !G.riteBlocked(g, 'harvest')) return { id: 'harvest', crop: n.item };
@@ -167,6 +169,13 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   /** Try to get one more of a merge item; returns true if it did something. */
   const workMerge = (chain: string, tier: number): boolean => {
     const cells = run.reliquary.cells;
+    // candles: a Candle Vigil makes several stubs at once, so prefer it when the grid has room
+    const stubs = cells.filter((c) => c && c.kind === 'item' && c.chain === 'candle' && c.tier === 1).length;
+    const free = cells.filter((c) => !c).length;
+    if (chain === 'candle' && stubs < 2 && free >= 4 && !G.riteBlocked(g, 'vigil')) {
+      const lv = DATA.rituals.find((r) => r.purpose !== 'summon' && r.purpose !== 'defense' && G.ritualUnlocked(run, r.id));
+      if (lv) { vigilNext = true; ritual(lv.id); return true; }
+    }
     for (let tr = tier - 1; tr >= 1; tr--) {
       const idx = cells.map((c, i) => (c && c.kind === 'item' && c.chain === chain && c.tier === tr ? i : -1)).filter((i) => i >= 0);
       if (idx.length >= 2) { spend(3, 'merge'); G.mergeMove(g, { area: 'grid', i: idx[0] }, { area: 'grid', i: idx[1] }); return true; }
@@ -239,7 +248,13 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     // nothing to make right now: preach if there is room for Devotion, otherwise wait for crops and charges
     const sermon = [...DATA.rituals].reverse().find((r) => r.purpose === 'sermon' && G.ritualUnlocked(run, r.id));
     if (sermon) ritual(sermon.id);
-    else spend(10, 'wait');
+    else {
+      // waiting on crops or charges: a rite that makes the missing thing is better than standing still
+      const need = run.orders.flatMap((o) => DATA.orders.find((x) => x.id === o.id)!.needs).find((n) => 'item' in n && G.needHave(run, n) < n.count && DATA.crops.some((c) => c.id === n.item) && G.cropUnlocked(run, n.item));
+      const lv = DATA.rituals.find((r) => r.purpose !== 'summon' && r.purpose !== 'defense' && G.ritualUnlocked(run, r.id));
+      if (need && lv && !G.riteBlocked(g, 'harvest')) ritual(lv.id);
+      else spend(10, 'wait');
+    }
   }
   if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
   if (lastUnlock < CHECK_MIN * 60 && clock - lastUnlock > earlyGap) { earlyGap = clock - lastUnlock; earlyGapAt = clock; }

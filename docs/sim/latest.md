@@ -27,7 +27,7 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 6:53 | step: reporter | 373 | 22 | 22 | 1 |
 | 7:04 | step: ritual3 | 373 | 23 | 7 | 1 |
 | 8:03 | step: orders | 477 | 32 | 6 | 1 |
-| 8:23 | step: away | 500 | 87 | 6 | 2 |
+| 8:23 | step: away | 500 | 87 | 12 | 2 |
 
 ## casual (1-star, fails hard rituals once, dawdles)
 
@@ -52,7 +52,7 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 10:28 | step: reporter | 237 | 19 | 15 | 1 |
 | 10:39 | step: ritual3 | 237 | 19 | 0 | 1 |
 | 13:51 | step: orders | 306 | 27 | 0 | 1 |
-| 14:11 | step: away | 446 | 82 | 0 | 2 |
+| 14:11 | step: away | 446 | 82 | 6 | 2 |
 
 ## slow reader (1-star, long pauses)
 
@@ -77,7 +77,7 @@ Ritual validator (200 playouts): r1 win 100% par 9 · r2 win 82% par 13 · r3 wi
 | 14:28 | step: reporter | 241 | 25 | 12 | 1 |
 | 14:39 | step: ritual3 | 241 | 26 | 0 | 1 |
 | 18:51 | step: orders | 311 | 38 | 0 | 1 |
-| 19:11 | step: away | 451 | 93 | 0 | 2 |
+| 19:11 | step: away | 451 | 93 | 6 | 2 |
 
 # After the tutorial: 150 minutes of active play
 
@@ -85,21 +85,21 @@ A simple bot fills orders, upgrades, summons and recruits. Times are minutes aft
 
 ## steady player (2-star)
 
-- Ends at: Lv9, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
-- 48 new things in 150 min. Longest wait for one in the first 60 min: **7:44** (ending at 57:49) ok. Longest overall: 40:02 (ending at 145:21).
-- Rituals are 10% of active time FAIL (want 20-60%); inspections: 0
-- Pace: Lv3 at 10:59, Lv5 at 33:00 ok
-- Compound levels reached at: Lv2 1:26, Lv3 10:59, Lv4 20:26, Lv5 33:00, Lv6 49:57, Lv7 73:50, Lv8 105:19, Lv9 145:21
-- Entities met at: mothman 0:00, baba_yaga 11:01, jersey_devil 20:29, anansi 33:08, vorl 50:05
-- Time by action: merge 56:01, orders 46:05, brew 17:09, garden 14:49, ritual 14:16, upgrade 0:56, draft 0:50, visits 0:00
+- Ends at: Lv8, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
+- 48 new things in 150 min. Longest wait for one in the first 60 min: **7:51** (ending at 61:48) ok. Longest overall: 44:56 (ending at 146:21).
+- Rituals are 37% of active time ok; inspections: 9
+- Pace: Lv3 at 10:59, Lv5 at 46:10 ok
+- Compound levels reached at: Lv2 1:26, Lv3 10:59, Lv4 26:22, Lv5 46:10, Lv6 68:09, Lv7 101:25, Lv8 146:21
+- Entities met at: mothman 0:00, baba_yaga 11:01, jersey_devil 26:30, anansi 46:18, vorl 68:17
+- Time by action: ritual 55:16, orders 33:37, merge 30:18, garden 15:33, brew 14:24, upgrade 0:56, draft 0:50, visits 0:09
 
 ## careful player (1-star)
 
-- Ends at: Lv9, 6 followers, 5 entities, buildings 2/3/3/2, grimoire 5
-- 43 new things in 150 min. Longest wait for one in the first 60 min: **6:59** (ending at 57:19) ok. Longest overall: 40:09 (ending at 145:16).
-- Rituals are 9% of active time FAIL (want 20-60%); inspections: 0
-- Pace: Lv3 at 9:32, Lv5 at 33:20 ok
-- Compound levels reached at: Lv2 1:26, Lv3 9:32, Lv4 20:00, Lv5 33:20, Lv6 50:17, Lv7 75:18, Lv8 105:07, Lv9 145:16
-- Entities met at: mothman 0:00, baba_yaga 9:34, jersey_devil 20:08, anansi 33:23, vorl 50:20
-- Time by action: merge 55:46, orders 46:08, garden 18:06, brew 15:45, ritual 13:04, upgrade 0:48, draft 0:30, visits 0:00
+- Ends at: Lv8, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
+- 48 new things in 150 min. Longest wait for one in the first 60 min: **9:17** (ending at 61:31) ok. Longest overall: 36:00 (ending at 143:53).
+- Rituals are 35% of active time ok; inspections: 9
+- Pace: Lv3 at 9:32, Lv5 at 39:02 ok
+- Compound levels reached at: Lv2 1:26, Lv3 9:32, Lv4 22:43, Lv5 39:02, Lv6 61:31, Lv7 94:22, Lv8 143:53
+- Entities met at: mothman 0:00, baba_yaga 10:28, jersey_devil 22:51, anansi 40:22, vorl 61:34
+- Time by action: ritual 53:00, orders 34:20, merge 29:55, garden 16:27, brew 14:33, upgrade 0:56, draft 0:50, visits 0:09
 

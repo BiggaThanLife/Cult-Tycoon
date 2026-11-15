@@ -150,14 +150,18 @@ export class RitualScreen extends Screen {
     // a visitor is waiting: that comes first
     if (run.inspection) {
       const ev = eventDef(run.inspection.event);
-      const body = t('inspection.waiting');
-      const bh = Math.max(36, textHeight(body, w - 30) + 26);
+      // the advisor strip already explains; this panel names the visitor and offers the two ways out
+      const title = t(`event.${ev.id}.title`);
+      const narrow = w < 120;
+      const titleH = textHeight(title, w - 28);
+      const bh = Math.max(24, titleH + 4) + (narrow ? 42 : 21);
       panel(app, this.c, x, y, w, bh, PAL.yellow);
       img(app, this.c, x + 3, y + 3, ev.sprite);
-      txt(app, this.c, x + 24, y + 3, body, { width: w - 28 });
-      const bw = Math.floor((w - 10) / 2);
-      button(app, this.c, x + 3, y + bh - 21, bw, 18, t('rite.look_busy.name'), () => this.begin(run.inspection!.level), { fill: PAL.acid, icon: 'rite_look_busy', name: 'btn_look_busy' });
-      button(app, this.c, x + 7 + bw, y + bh - 21, bw, 18, t('inspection.settle'), () => {
+      txt(app, this.c, x + 24, y + 4, title, { width: w - 28 });
+      const by = y + bh - (narrow ? 41 : 21);
+      const bw = narrow ? w - 6 : Math.floor((w - 10) / 2);
+      button(app, this.c, x + 3, by, bw, 18, t('rite.look_busy.name'), () => this.begin(run.inspection!.level), { fill: PAL.acid, icon: narrow ? undefined : 'rite_look_busy', name: 'btn_look_busy' });
+      button(app, this.c, narrow ? x + 3 : x + 7 + bw, narrow ? by + 20 : by, bw, 18, t('inspection.settle'), () => {
         const sum = app.store.act((gg, e) => settleInspection(gg, e));
         if (sum) dialog(app, { id: 'inspection_result', title: t(`event.${ev.id}.title`), body: t('inspection.result.loss', { summary: summaryText(sum) }), sprite: ev.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
         this.rebuild();
@@ -187,7 +191,8 @@ export class RitualScreen extends Screen {
     // daily rite
     updateDaily(run, this.today());
     const lv = dailyLevel(run, this.today());
-    if (lv) {
+    const roomLeft = this.app.L.dock ? this.app.L.dock.y + this.app.L.dock.h - y : Infinity;
+    if (lv && roomLeft >= 24) {
       const banked = run.daily.bank;
       panel(app, this.c, x, y, w, 22, banked ? PAL.white : PAL.robe);
       img(app, this.c, x + 4, y + 5, 'rite_daily');
@@ -758,7 +763,7 @@ export class RitualScreen extends Screen {
       onClose: after,
       build: (c, _a, close) => {
         const w = Math.min(modalWidth(app), 170);
-        const r = frame(app, c, w, 16 + 30 + lines.length * 9 + 4 + 18 + 6, t(nameKey));
+        const r = frame(app, c, w, 16 + 30 + textHeight(lines.join('\n'), w - 10) + 4 + 18 + 6, t(nameKey));
         stars = [];
         for (let i = 0; i < 3; i++) {
           const s = app.add.image(r.x + Math.floor(r.w / 2) + (i - 1) * 26, r.y + 13 + (i === 1 ? -2 : 0), ATLAS, i < shown ? 'ic_star' : 'ic_star_off').setScale(3);

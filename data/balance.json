@@ -22,7 +22,10 @@
       25,
       50,
       75
-    ]
+    ],
+    "perOrder": 3,
+    "perUpgrade": 5,
+    "perBigTithe": 0
   },
   "xp": {
     "base": 70,

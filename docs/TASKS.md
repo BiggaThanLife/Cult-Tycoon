@@ -37,6 +37,12 @@
 - [ ] Listen to the sound effects on a real device and tune volumes (they cannot be heard in automated tests)
 - [ ] Sim covers the slice only; the 7-day / 3-ascension horizon needs the full loop
 
+## Owner-approved plan (2026-11-15): Rites -> Sanctum -> Ley Lines
+- [x] Increment 1: Rites, Omens, Daily Rite, inspections and Look Busy (docs/specs/rites.md)
+- [ ] Increment 2: Sanctum side view under the Sermon Hall (docs/specs/sanctum-view.md), rooms, storeys, inspectors walking floors
+- [ ] Increment 3: Ley Lines replaces the merge Reliquary (docs/specs/puzzle-replacement.md), saves convert relics to inventory
+- [ ] Loop audit fixes still open: Devotion sinks (Sanctum storeys), compound levels 7-10 unlocks, worker slots beyond the Hall, Tithe rite with coin boards
+
 ## Phase 3+ — Iterate (one system at a time)
 - [x] Ritual feel pass (docs/specs/ritual-feel.md) + sound toggle
 - [x] PLAYBOOK.md and `npm run check` for handover to other models

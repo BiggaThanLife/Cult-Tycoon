@@ -546,5 +546,7 @@
   "rite.locked": "Not available yet.",
   "orders.reroll.title": "Swap this request?",
   "orders.reroll.body": "Spend 1 Omen and {name} will ask for something else instead.",
-  "hud.omens": "Omens"
+  "hud.omens": "Omens",
+  "debug.visit": "Auditor visit",
+  "debug.omens": "+10 Omens"
 }

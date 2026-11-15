@@ -30,6 +30,8 @@ flowchart LR
   META -->|Ascension| PRO[Prophecies & Relics kept]
   PRO --> B & M3 & RQ
 ```
+**Additions in 0.4.0 (rites):** Rituals -> Omens (only source) -> last upgrade steps, Audiences, order rerolls. Rituals -> (by rite) Favor, crops, candle relics, recruits, lower Doubt. Orders and upgrades -> Suspicion -> inspections -> fines (Donations), sealed buildings, followers away; Look Busy (a ritual) cuts all three.
+
 **Rule:** a feature that has no arrow in and out of this diagram does not ship.
 
 ## 2. Currencies & caps

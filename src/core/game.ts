@@ -268,6 +268,7 @@ export function upgradeBuilding(g: GameState, buildingId: number, emit: Emit = n
   const def = buildingDef(b.type);
   if (b.plots && def.plots) while (b.plots.length < def.plots + levelBonus(b, 'plots')) b.plots.push({ crop: null, plantedAt: 0 });
   addXp(g, B.xp.perUpgrade, emit);
+  addSuspicion(run, B.suspicion.perUpgrade); // new construction draws attention
   noteUnlock(g);
   emit({ type: 'float', textKey: 'float.upgraded', params: { n: b.level }, tone: 'gain', at: { building: b.id } });
   return true;
@@ -831,6 +832,7 @@ export function fillOrder(g: GameState, orderId: string, emit: Emit = noEmit): F
   out.favor = (def.reward.favor ?? 0) + boon(run, 'favorPerOrder');
   out.boons = addFavor(g, def.from, out.favor, emit);
   addXp(g, Math.round((B.xp.perOrderBase + B.xp.perOrderPerLevel * run.level) * B.xp.entityOrderMult), emit);
+  addSuspicion(run, B.suspicion.perOrder); // word gets around: every delivery is a little more noticeable
   run.orderNextAt[def.from] = Math.max(run.orderNextAt[def.from] ?? 0, run.time + B.orders.refillSec);
   return out;
 }

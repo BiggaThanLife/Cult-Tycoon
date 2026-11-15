@@ -44,7 +44,7 @@
       "id": "vigil",
       "focus": 0,
       "pays": {
-        "stubPerTiles": 4
+        "stubPerTiles": 2
       },
       "show": {
         "generator": "ritual_brazier"

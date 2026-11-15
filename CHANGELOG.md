@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 — Rites, Omens and inspections
+- Every ritual now has a target you pick first (Sermon, Recruitment, Communion with a creature, Harvest a crop, Candle Vigil). One tile type turns into what that target needs; the board shows the count live.
+- Omens: a currency only rituals make. They pay for top upgrades, an Audience (a 4th creature boon) and swapping an order.
+- Daily Rite: one board a day with bonus Omens; missed days bank up to three. No streaks.
+- Inspections: neighbours, auditors, reporters and building inspectors from the Office of Mild Concern visit when Suspicion rises. Hand something over, settle (a fine, a room sealed Pending Review, a follower helping with the inquiry), or play a Look Busy board to cut the outcome by stars.
+
 ## 0.3.1 — Upgrade card explains itself
 - The building card names the relic an upgrade needs, lists what is still missing and where to get it, and links to the Relics tab.
 

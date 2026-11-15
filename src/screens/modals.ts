@@ -552,6 +552,8 @@ function openDebug(app: App): void {
         [t('debug.level'), () => { close(); app.store.act((g, e) => addXp(g, xpNeeded(g.run.level) - g.run.xp, e)); }],
         [t('debug.reporter'), () => { close(); app.store.act((g, e) => triggerEvent(g, 'reporter', e)); }],
         [t('debug.cat'), () => { close(); app.store.act((g, e) => triggerEvent(g, 'cat', e)); }],
+        [t('debug.visit'), () => { close(); app.store.act((g, e) => triggerEvent(g, 'auditor', e)); }],
+        [t('debug.omens'), act((g) => { g.run.omens += 10; g.run.flags.riteUsed = true; })],
         [t('debug.win'), () => { close(); app.store.act((g) => { const r = g.run.activeRitual as { status: string; score: number; level: { starScores: number[] } } | null; if (r) { r.status = 'won'; r.score = Math.max(r.score, r.level.starScores[2]); } }); }],
         [t('debug.reset'), () => { app.modals.closeAll(); app.store.reset(); app.goto('compound'); }],
         [t('common.close'), close],

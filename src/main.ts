@@ -9,7 +9,9 @@ import * as core from './core/game';
 import { findHint } from './puzzle/match3';
 
 const store = new Store(browserKV());
-store.boot();
+// ?seed=N starts a new game with a fixed seed (used by automated tests so random events are repeatable)
+const seedParam = Number(new URLSearchParams(location.search).get('seed'));
+store.boot(Number.isFinite(seedParam) && seedParam > 0 ? seedParam : undefined);
 
 const first = computeLayout();
 const game = new Phaser.Game({

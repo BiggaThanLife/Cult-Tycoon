@@ -34,15 +34,29 @@ const check = (name, ok, detail = '') => {
   const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
   const st = () => page.evaluate(() => JSON.parse(JSON.stringify(window.__ct.store.state)));
   const run = async () => (await st()).run;
+  /** Close pop-ups that can appear at any moment in real time (the cat, level-up and boon notices). */
+  const clearStray = async () => {
+    const id = await page.evaluate(() => { const m = window.__ct.app().modals.active; return m ? m.id : null; });
+    if (id === 'event_cat') { await page.evaluate(() => { const g = window.__ct.store; g.act((st, e) => window.__ct.core.resolveEvent(st, 0, e)); window.__ct.app().modals.closeAll(); }); return true; }
+    if (id === 'notice' || id === 'event_result') { await page.evaluate(() => window.__ct.app().modals.close()); return true; }
+    return false;
+  };
   const tap = async (name, opts = {}) => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 24; i++) {
       const pos = await page.evaluate((n) => window.__ct.find(n), name);
-      if (pos) { await page.mouse.click(pos.x, pos.y); await wait(opts.wait ?? 220); return true; }
+      if (pos) {
+        await page.mouse.click(pos.x, pos.y); await wait(opts.wait ?? 220);
+        // tabs: confirm the switch happened (the HUD can redraw between finding and clicking)
+        if (name.startsWith('tab_') && await page.evaluate((n) => window.__ct.app().tab !== n && !window.__ct.app().modals.active, name.slice(4))) { await clearStray(); continue; }
+        return true;
+      }
+      if (i % 4 === 3 && !name.startsWith('btn_ok') && await clearStray()) continue;
       await wait(100);
     }
     if (!opts.optional) check(`tap ${name}`, false, 'not found');
     return false;
   };
+
   /** Logical (canvas) point → CSS point. */
   const css = (p) => page.evaluate((q) => { const c = window.__ct.game.canvas; const r = c.getBoundingClientRect(); const k = r.width / c.width; return { x: r.left + q.x * k, y: r.top + q.y * k }; }, p);
   const clickLogical = async (p) => { const c = await css(p); await page.mouse.click(c.x, c.y); await wait(); };
@@ -63,7 +77,9 @@ const check = (name, ok, detail = '') => {
   const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
   /** Dismiss queued level-up / boon announcements (optionally screenshotting and auditing them). */
   const notices = async (label) => { for (let i = 0; i < 6; i++) { await wait(350); const id = await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id); if (id !== 'notice') return; if (label) { await shot(`p_${label}_${i}`); await audit(`notice ${label}`); } await tap('btn_ok'); } };
-  const skip = async (sec) => { await page.evaluate((s) => window.__ct.store.act((g, e) => window.__ct.core.debugSkip(g, s, e)), sec); await cat(); };
+  // random inspection visits are tested on purpose below; keep them out of the scripted run
+  const quiet = () => page.evaluate(() => { window.__ct.store.state.run.lastVisitAt = 1e12; });
+  const skip = async (sec) => { await quiet(); await page.evaluate((s) => window.__ct.store.act((g, e) => window.__ct.core.debugSkip(g, s, e)), sec); await cat(); };
   const items = async () => JSON.stringify((await run()).reliquary.cells.map((c) => (c && c.kind === 'item' ? [c.id, c.tier] : c ? 'gen' : null)));
   const rotate = async (vp) => { await page.setViewportSize(vp); await wait(450); };
   const build = async (type) => { await cat(); await tap('btn_build'); await tap(`btn_pick_${type}`); await tap('btn_place'); };
@@ -116,8 +132,9 @@ const check = (name, ok, detail = '') => {
 
   await page.goto(URL);
   await page.evaluate(() => { localStorage.clear(); });
-  await page.reload();
+  await page.goto(URL + '?seed=4242'); // fixed seed: the cat and other random events land in the same places every run
   await wait(1000);
+  await page.evaluate(() => { window.__ct.store.state.run.lastVisitAt = 1e12; });
 
   // 1. arrival
   await shot('p_01_welcome');
@@ -338,6 +355,46 @@ const check = (name, ok, detail = '') => {
   await shot('p_15_gamble'); await audit('gamble result');
   check('gamble order pays out', (await run()).ordersFilled.anansi_4 === 1 && (await run()).devotion >= 45);
   await tap('btn_ok'); await notices('boon2');
+  await tap('tab_compound');
+
+  // ---------- rites, omens, inspections ----------
+  await notices();
+  await page.evaluate(() => { window.__ct.store.act((g) => { g.run.orders = []; g.run.inspection = null; g.run.event = null; g.run.flags.cat_adopted = true; }); window.__ct.app().modals.closeAll(); });
+  await tap('tab_rituals'); await wait(300);
+  const ritTab = await page.evaluate(() => ({ tab: window.__ct.app().tab, modal: window.__ct.app().modals.active && window.__ct.app().modals.active.id, event: window.__ct.store.state.run.event, draft: !!window.__ct.store.state.run.draft, ritual: !!window.__ct.store.state.run.activeRitual }));
+  check('rites: the Ritual tab is open', ritTab.tab === 'rituals' && !ritTab.modal, JSON.stringify(ritTab));
+  if (ritTab.modal) await shot('debug_modal');
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) { await rotate(vp); await shot(`${prefix}_16_rites`); await audit(`${prefix} rites`); }
+  await rotate(PORTRAIT);
+  await tap('rite_communion'); await wait(250);
+  await shot('p_16_rite_choose'); await audit('rite choose');
+  await tap('choose_mothman'); await wait(250);
+  const fav0 = (await run()).favor.mothman;
+  await tap('btn_play_r1'); await wait(900);
+  check('rite: the chosen target travels with the ritual', JSON.stringify((await run()).activeRite) === JSON.stringify({ id: 'communion', entity: 'mothman' }));
+  await shot('p_16_rite_board');
+  await rotate(LANDSCAPE); check('rotate mid-rite keeps the target', (await run()).activeRite && (await run()).activeRite.entity === 'mothman'); await shot('l_16_rite_board'); await rotate(PORTRAIT);
+  await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = r.level.starScores[1]; r.collected = [5, 25, 5, 5, 5, 0]; }));
+  await wait(1800); await shot('p_16_rite_result'); await audit('rite result');
+  const afterRite = await run();
+  check('rite: Communion turned Skulls into Favor and paid Omens', afterRite.favor.mothman >= fav0 + 10 && afterRite.omens > 0, `favor ${fav0} -> ${afterRite.favor.mothman}, omens ${afterRite.omens}`);
+  await tap('btn_ok'); await notices();
+  // an auditor calls; the player chooses to look busy
+  await page.evaluate(() => window.__ct.store.act((g, e) => { g.run.donations = 300; window.__ct.core.triggerEvent(g, 'auditor', e); }));
+  await wait(500); await shot('p_17_visit'); await audit('visit');
+  await rotate(SMALL); await shot('s_17_visit'); await audit('s visit'); await rotate(PORTRAIT);
+  await tap('btn_choice_look_busy'); await wait(300); await shot('p_17_visit_wait'); await tap('btn_ok'); await wait(400);
+  check('inspection: the visitor waits and the Ritual tab opens', await page.evaluate(() => !!window.__ct.store.state.run.inspection && window.__ct.app().tab === 'rituals'));
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE]]) { await rotate(vp); await shot(`${prefix}_17_waiting`); await audit(`${prefix} waiting`); }
+  await rotate(PORTRAIT);
+  await tap('btn_look_busy'); await wait(1000);
+  await shot('p_17_look_busy_board');
+  check('inspection: Look Busy uses an office board', await page.evaluate(() => window.__ct.store.state.run.activeRitual.level.skin === 'office'));
+  await page.evaluate(() => window.__ct.store.act((g) => { const r = g.run.activeRitual; r.status = 'won'; r.score = r.level.starScores[2]; }));
+  await wait(1800); await shot('p_17_look_busy_result'); await audit('look busy result');
+  const afterLB = await run();
+  check('inspection: 3 stars cut the fine (paid 15% of 75% at most)', afterLB.inspection === null && afterLB.donations >= 300 - Math.ceil(300 * 0.15 * 0.25) - 1, `donations ${afterLB.donations}`);
+  await tap('btn_ok'); await notices();
   await tap('tab_compound');
 
   // follower sheet and stat guide

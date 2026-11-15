@@ -103,6 +103,18 @@ This needs sign-off, so start by asking the owner which creature, then:
 4. Run the lore-and-sensitivity-reviewer agent on the batch. Only that review may change `reviewStatus` to `approved`; a unit test fails until it is.
 5. **Verify.** The Orders screen fits five portraits across the smallest phone; a sixth needs a layout change (stop and ask).
 
+### R7c. Add or tune a rite
+1. `data/rites.json`: each rite has `focus` (tile type 0-4 it converts, -1 for none), `pays` and `show` (when it appears). Payout code is `payRite` in `src/core/game.ts`; a new kind of payout is a code change (R12).
+2. Text: `rite.<id>.name`, `rite.<id>.desc`, `rite.result.<id>`; icon `rite_<id>` (12x12, R10).
+3. Rebalance with R2: the sim's long run must keep rituals between 20% and 60% of active time.
+4. **Verify**, and look at `p_16_rites.png`, `s_16_rites.png`, `l_17_waiting.png`.
+
+### R7d. Add an inspection visit
+1. Read `docs/reviews/2026-11-15-raids-guardrails.md` first. Civil officials only; the agency is always "the Office of Mild Concern" in full.
+2. `data/events.json`: add an event with `"visitor": true`, a `band` (1-3 by Suspicion, 4 = Full Review) and choices whose `effects` use only `suspicion`, `suspicionTo`, `finePct`, `sealSec`, `awaySec`, `consume`/`requires` and `lookBusy` (the id of a `defense` board). Every choice must lower Suspicion.
+3. Text: `event.<id>.title|body`, `event.<id>.choice.<c>`, `event.<id>.result.<c>`. A 16x16 civilian sprite (no badges, uniforms or weapons).
+4. Have the lore-and-sensitivity-reviewer check it. **Verify** (a unit test bans siege/raid vocabulary in visit text).
+
 ### R8. Add an event
 1. `data/events.json`: add `{ "id", "sprite", "choices": [...] }`. Effects supported: `suspicion`, `devotion`, `donations`, `flag`, `consume`. A choice may have `requires`.
 2. Text: `event.<id>.title`, `.body`, and for each choice `.choice.<choiceId>` and `.result.<choiceId>`.
