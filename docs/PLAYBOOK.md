@@ -64,19 +64,20 @@ Each recipe ends with **Verify**, which is always `npm run check` plus anything 
 2. `data/items.json`: add `{ "id": "<same id>", "kind": "ingredient" }`.
 3. `data/text/en.json`: add `item.<id>.name` and `item.<id>.desc`.
 4. `src/art/sprites.ts`: add a 16x16 sprite with key `i_<id>` (copy the `i_basil` line and change the shapes and colours; use only `PAL` colours).
-5. Note: the lab shows ingredient chips in one row; more than 4 ingredients will overflow in portrait. If you add a 5th, stop and ask.
+5. Give it an `unlockLevel` (the compound level that reveals it). The lab shows ingredient chips in one row and shrinks them to fit; more than 5 ingredients gets cramped on a 180-pixel-wide phone, so stop and ask before adding a 6th.
 6. **Verify.** Real poisonous plant names need the owner's sign-off first (see DECISIONS D-129).
 
 ### R4. Add a potion recipe
 1. `data/recipes.json`: add `{ "id", "ingredients": [2-4 item ids], "output": "<item id>", "hinted": false }`. The ingredient multiset must be unique.
 2. `data/items.json`: add the output with `"kind": "potion"`. Add its two text keys and an `i_<id>` sprite (use the `potion(...)` helper).
-3. The potion does nothing unless something consumes it (an order need, or an event choice `requires`/`consume`). Add that too, or log why not.
+3. The potion does nothing unless something consumes it (an order need, or an event choice `requires`/`consume`). Add that too, or log why not. To have an entity hint the recipe when first met, set that entity's `hintsRecipe`.
 4. Potions must be openly offered and harmless (CLAUDE.md, D-110). **Verify.**
 
 ### R5. Add a building
 1. `data/buildings.json`: add a row. `availableFrom` must be one of the tutorial step names in `src/core/types.ts` (`TUTORIAL_ORDER`). Use `"produces"` + `"storageMin"` for a resource building, `"housing"` for beds, `"plots"` for garden plots.
 2. Text: `building.<id>.name`, `building.<id>.desc`. Sprite: `b_<id>`, width = `w*16`, height = `h*16 + 8..12`.
-3. A new *kind* of building behaviour (anything not covered by `produces`, `housing`, `plots`, `brewSlots`) is a code change in `src/core/game.ts` and needs a spec in `docs/specs/` first. Stop and ask.
+3. Upgrades: add `upgrades` (one entry per extra level: `cost` plus an optional `merge` item) and `perLevel` (what each level adds: `outputPct`, `housing`, `plots` or `brewBonus`). Add a `building.effect.<id>` text line; `buildingEffect` in `src/screens/modals.ts` fills in its numbers.
+4. A new *kind* of building behaviour (anything not covered by those fields) is a code change in `src/core/game.ts` and needs a spec in `docs/specs/` first. Stop and ask.
 4. **Verify**, and look at `p_tab_compound.png` / `l_tab_compound.png`.
 
 ### R6. Add a ritual (match-3) level
@@ -84,14 +85,23 @@ Each recipe ends with **Verify**, which is always `npm run check` plus anything 
 2. Text: add the `nameKey` and, if it uses a new `purpose`, `ritual.purpose.<purpose>`.
 3. Run `npx tsx tools/levels/validate.ts --suggest`. The level must show `ok` (win rate >= 0.70). If not, change `seed` or add moves and run again. Win rate swings a lot between seeds; always re-run after any change.
 4. Copy the printed `par` into the level, and set `starScores` to the three printed percentiles (rounded to 50).
-5. Unlocking: levels beyond the third are unlocked when the tutorial reaches `ritual3` (see `ritualUnlocked` in `game.ts`). A different unlock rule is a code change.
+5. Unlocking: set `"unlock": { "level": N }` (compound level) and/or `{ "step": "<tutorial step>" }`. A level with purpose `summon` must be named as some entity's `summonRitual` in `data/entities.json` (a test checks the two lists match).
 6. **Verify.**
 
 ### R7. Add an order
-1. `data/orders.json`: add a row with `from` set to an existing entity id. Needs may be `{ "item", "count" }` or `{ "merge": "<chain id>", "tier", "count" }`. Only ask for things the player can already make.
-2. Text: `order.<id>.text` and `order.<id>.thanks`, in the entity's voice.
-3. Known limits: orders are handed out once, when the entity is first summoned, so existing saves will not receive a new order; and the Orders screen header is written for the Mothman only. A second entity, repeating orders or a new reward type are code changes. Stop and ask.
-4. **Verify.**
+1. `data/orders.json`: add a row with `from` set to an existing entity id and a `kind`: `entity` (plain), `trial` (big ask, roughly triple pay) or `gamble` (pay is rolled on delivery). Needs may be `{ "item", "count" }` or `{ "merge": "<chain id>", "tier", "count" }`.
+2. Text: `order.<id>.text` (under about 90 characters) and `order.<id>.thanks` (under about 100), in that entity's voice. Read the entity's existing lines first and match them.
+3. Orders are only offered when the player can make everything in them, so you cannot strand anyone; but an order nobody can ever make is dead weight, so check each need against the crop, recipe and generator unlock levels.
+4. Do not add `"tutorial": true`; that is for the two scripted Mothman orders.
+5. **Verify**, and look at `p_orders_<entity>.png` and `s_orders_<entity>.png`.
+
+### R7b. Add an entity (mythical creature)
+This needs sign-off, so start by asking the owner which creature, then:
+1. Research it. Folklore figures, cryptids, public-domain literature or original creations only; nothing central to living worship or closed traditions (see `docs/TONE_AND_CONTENT.md` section 5 and DECISIONS D-104).
+2. `data/entities.json`: add the entry with `summonRitual`, `hintsRecipe` (or null), three `boons` at rising Favor, `reviewNotes` (guardrails for future writers), real `sources`, and `"reviewStatus": "pending"`.
+3. Add its summoning ritual with recipe R6 (purpose `summon`, an `unlock.level`), at least four orders with R7, a 32x32 portrait sprite keyed by the entity id (R10), and text: `entity.<id>.name`, `.blurb` (short), `.intro` (two or three sentences, in its voice), `.intro.ok` (the leader's reply on the button).
+4. Run the lore-and-sensitivity-reviewer agent on the batch. Only that review may change `reviewStatus` to `approved`; a unit test fails until it is.
+5. **Verify.** The Orders screen fits five portraits across the smallest phone; a sixth needs a layout change (stop and ask).
 
 ### R8. Add an event
 1. `data/events.json`: add `{ "id", "sprite", "choices": [...] }`. Effects supported: `suspicion`, `devotion`, `donations`, `flag`, `consume`. A choice may have `requires`.
@@ -143,6 +153,7 @@ Each recipe ends with **Verify**, which is always `npm run check` plus anything 
 
 ## 3. When to stop and ask the owner
 - A check fails and you cannot explain why after two attempts.
+- The task touches things that are still code, not data: outsider or follower orders, patron pledges and banes, questlines, event triggers, potions used on followers, land expansion.
 - The task needs a new dependency, a new entity or mythological figure, a real-world reference, or anything near the content boundaries.
 - The change is expensive to undo: save format redesigns, renaming ids that saves already contain, engine swaps, projection or resolution changes.
 - You are about to make something wait longer than 8 minutes, add a currency, or add anything that pressures the player to come back.

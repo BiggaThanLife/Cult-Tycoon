@@ -4,7 +4,8 @@ import { buildFonts } from './art/font';
 import { hex, PAL, type FontColor } from './art/palette';
 import { buildAtlas } from './art/sprites';
 import { DATA } from './core/data';
-import { suspicionBand, tabUnlocked, xpNeeded, type TabId } from './core/game';
+import { devotionCap, suspicionBand, tabUnlocked, unlocksAt, xpNeeded, type TabId } from './core/game';
+import { ritualDef } from './core/data';
 import type { Store } from './core/store';
 import { t } from './core/text';
 import type { GameEvent, TutorialStep } from './core/types';
@@ -12,7 +13,7 @@ import { bar, button, hit, img, panel, rect, txt, type C } from './ui/kit';
 import { computeLayout, type Layout } from './ui/layout';
 import { Modals } from './ui/modal';
 import { sfx } from './ui/sfx';
-import { autoModals, openMenu } from './screens/modals';
+import { autoModals, openMenu, type Notice } from './screens/modals';
 import type { Screen } from './screens/screen';
 import { CompoundScreen } from './screens/compound';
 import { RitualScreen } from './screens/rituals';
@@ -50,6 +51,8 @@ export class App extends Phaser.Scene {
   private hudText: { devotion?: Phaser.GameObjects.BitmapText; donations?: Phaser.GameObjects.BitmapText; susp?: Phaser.GameObjects.BitmapText; suspBar?: Phaser.GameObjects.Rectangle; suspW?: number } = {};
   private lastHud = '';
   private floatStack = 0;
+  /** Announcements waiting for a quiet moment (level-ups, boons). */
+  notices: Notice[] = [];
 
   constructor() { super('app'); }
 
@@ -119,7 +122,11 @@ export class App extends Phaser.Scene {
         this.screenDirty = true;
         break;
       case 'levelUp':
-        this.float(t('float.level_up', { n: e.level }), undefined, 'gain');
+        this.notices.push({ kind: 'level', level: e.level });
+        sfx.win();
+        break;
+      case 'boon':
+        this.notices.push({ kind: 'boon', entity: e.entity, index: e.index });
         break;
       case 'float': {
         const params: Record<string, string | number> = { ...(e.params ?? {}) };
@@ -240,10 +247,24 @@ export class App extends Phaser.Scene {
       rect(this, h, N.x, N.y, N.w, N.h, PAL.white);
       rect(this, h, N.x, N.y + N.h - 1, N.w, 1, PAL.ink);
       img(this, h, N.x + 2, N.y + 3, 'advisor');
-      txt(this, h, N.x + 21, N.y + 2, t(`tip.${run.tutorial}`), { width: N.w - 24, maxLines: N.h > 24 ? 3 : 2 });
+      txt(this, h, N.x + 21, N.y + 2, this.tipText(), { width: N.w - 24, maxLines: N.h > 24 ? 3 : 2 });
     }
     this.lastHud = '';
     this.refreshHud();
+  }
+
+  /** Advisor strip: the tutorial step, then the next concrete goal once the tutorial is over. */
+  private tipText(): string {
+    const run = this.store.state.run;
+    if (run.tutorial !== 'done') return t(`tip.${run.tutorial}`);
+    if (run.devotion >= devotionCap(run)) return t('float.cap');
+    for (let lv = run.level + 1; lv <= run.level + 3; lv++) {
+      const u = unlocksAt(lv)[0];
+      if (!u) continue;
+      const what = u.kind === 'crop' ? t(`item.${u.id}.name`) : u.kind === 'generator' ? t(`gen.${u.id}.name`) : t(ritualDef(u.id).nameKey);
+      return lv === run.level + 1 ? t('tip.goal.unlock', { n: lv, what }) : t('tip.goal', { n: run.level + 1 });
+    }
+    return t('tip.done');
   }
 
   private tabButton(h: C, id: TabId, x: number, y: number, w: number, hh: number, wide: boolean): void {

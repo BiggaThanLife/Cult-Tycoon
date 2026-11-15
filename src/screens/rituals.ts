@@ -15,6 +15,7 @@ import { findHint, goalProgress, MOVE_BONUS, trySwap, type Cell, type Goal, type
 import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
 import { dialog, frame, modalWidth } from '../ui/modal';
 import { sfx } from '../ui/sfx';
+import type { OrdersScreen } from './orders';
 import { Screen } from './screen';
 
 const T = 20;
@@ -92,22 +93,34 @@ export class RitualScreen extends Screen {
 
   // ---------- level list ----------
 
+  private page = 0;
+
   private buildList(): void {
     const app = this.app;
     const L = app.L;
     const B = L.body;
     const run = app.store.state.run;
-    const cardH = L.landscape ? 40 : 52;
+    const cardH = L.landscape ? 40 : 46;
+    const all = DATA.rituals;
+    const pagerH = 20;
+    let perPage = Math.max(1, Math.floor((B.h - 15) / (cardH + 3)));
+    if (perPage < all.length) perPage = Math.max(1, Math.floor((B.h - 15 - pagerH) / (cardH + 3)));
+    const pages = Math.ceil(all.length / perPage);
+    this.page = Math.max(0, Math.min(pages - 1, this.page));
     txt(app, this.c, B.x + 5, B.y + 4, t('ritual.list.title'), { color: 'white' });
-    DATA.rituals.forEach((lv, i) => {
+    all.slice(this.page * perPage, (this.page + 1) * perPage).forEach((lv, i) => {
       const y = B.y + 15 + i * (cardH + 3);
       const unlocked = ritualUnlocked(run, lv.id);
       const stars = run.rituals[lv.id] ?? 0;
       panel(app, this.c, B.x + 4, y, B.w - 8, cardH, unlocked ? PAL.robeL : PAL.robeD);
       txt(app, this.c, B.x + 8, y + 3, unlocked ? t(lv.nameKey) : t('ritual.locked'), { color: unlocked ? 'ink' : 'pale', width: B.w - 60, maxLines: 1 });
       for (let s = 0; s < 3; s++) img(app, this.c, B.x + B.w - 36 + s * 9, y + 3, s < stars ? 'ic_star' : 'ic_star_off');
-      if (!unlocked) { img(app, this.c, B.x + 8, y + 16, 'ic_lock'); return; }
-      txt(app, this.c, B.x + 8, y + 13, t(`ritual.purpose.${lv.purpose}`), { color: 'irony', width: B.w - 62, maxLines: L.landscape ? 1 : 2 });
+      if (!unlocked) {
+        img(app, this.c, B.x + 8, y + 15, 'ic_lock');
+        if (lv.unlock?.level) txt(app, this.c, B.x + 19, y + 15, t('ritual.unlock_level', { n: lv.unlock.level }), { color: 'pale' });
+        return;
+      }
+      txt(app, this.c, B.x + 8, y + 13, t(`ritual.purpose.${lv.purpose}`), { color: 'irony', width: B.w - 62, maxLines: 1 });
       txt(app, this.c, B.x + 8, y + cardH - 11, t('ritual.moves_par', { moves: lv.moves, par: lv.par }), { color: 'dim' });
       button(app, this.c, B.x + B.w - 48, y + cardH - 22, 40, 19, stars ? t('ritual.replay') : t('ritual.play'), () => {
         this.pendingIntro = true;
@@ -116,6 +129,12 @@ export class RitualScreen extends Screen {
         this.rebuild();
       }, { name: `btn_play_${lv.id}` });
     });
+    if (pages > 1) {
+      const py = B.y + B.h - pagerH + 1;
+      button(app, this.c, B.x + 4, py, 30, 17, '<', () => { this.page--; this.rebuild(); }, { disabled: this.page === 0, fill: PAL.blue, name: 'btn_page_prev' });
+      txt(app, this.c, B.x + Math.floor(B.w / 2), py + 4, t('ritual.page', { n: this.page + 1, max: pages }), { align: 'center', color: 'white' });
+      button(app, this.c, B.x + B.w - 34, py, 30, 17, '>', () => { this.page++; this.rebuild(); }, { disabled: this.page >= pages - 1, fill: PAL.blue, name: 'btn_page_next' });
+    }
     if (L.dock) {
       const D = L.dock;
       txt(app, this.c, D.x + 5, D.y + 4, t('ritual.dock.title'), { color: 'irony' });
@@ -588,6 +607,7 @@ export class RitualScreen extends Screen {
     const lines = [t('ritual.won.score', { n: score })];
     if (rw.devotion) lines.push(t('ritual.won.devotion', { n: rw.devotion }));
     if (rw.flockPct) lines.push(t('ritual.won.flock', { n: rw.flockPct }));
+    if (rw.boonPct) lines.push(t('ritual.won.boon', { n: rw.boonPct }));
     if (rw.donations) lines.push(t('ritual.won.donations', { n: rw.donations }));
     if (rw.basil) lines.push(t('ritual.won.basil', { n: rw.basil }));
     if (rw.drafts) lines.push(t('ritual.won.drafts', { n: rw.drafts }));
@@ -601,7 +621,7 @@ export class RitualScreen extends Screen {
       if (rw.entity && rw.firstTime) {
         dialog(app, {
           id: 'entity_intro', title: t(`entity.${rw.entity}.name`), body: t(`entity.${rw.entity}.intro`), sprite: rw.entity,
-          buttons: [{ label: t(`entity.${rw.entity}.intro.ok`), name: 'btn_ok', onClick: () => app.goto('orders') }],
+          buttons: [{ label: t(`entity.${rw.entity}.intro.ok`), name: 'btn_ok', onClick: () => { (app.screens.orders as OrdersScreen).selected = rw.entity; app.goto('orders'); } }],
         });
       }
     };

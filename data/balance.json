@@ -5,7 +5,7 @@
   },
   "caps": {
     "devotion": 500,
-    "donations": 300
+    "donations": 500
   },
   "offline": {
     "capSec": 28800,
@@ -26,12 +26,14 @@
   },
   "xp": {
     "base": 60,
-    "exp": 1.6,
-    "perOrderBase": 10,
-    "perOrderPerLevel": 2,
+    "exp": 1.4,
+    "perOrderBase": 15,
+    "perOrderPerLevel": 3,
     "entityOrderMult": 1.5,
     "perBuild": 10,
-    "perStar": 2
+    "perStar": 2,
+    "perUpgrade": 15,
+    "perRecipe": 10
   },
   "ritual": {
     "devotionBase": 40,
@@ -77,5 +79,16 @@
     "sanityWorkPerPoint": 0.005,
     "devotionRitualPctPerPoint": 0.1,
     "doubtDecayPenaltyPerPoint": 0.005
+  },
+  "orders": {
+    "slotsPerEntity": 2,
+    "refillSec": 20,
+    "gamble": [
+      0.5,
+      0.75,
+      1,
+      1.5,
+      2.5
+    ]
   }
 }

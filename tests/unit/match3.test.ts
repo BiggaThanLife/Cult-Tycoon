@@ -1012,12 +1012,17 @@ describe('findHint', () => {
 describe('shipped levels', () => {
   const file = new URL('../../data/levels/rituals.json', import.meta.url);
   const { levels } = JSON.parse(readFileSync(file, 'utf8')) as { levels: LevelDef[] };
-  const targets: Record<string, number> = { r1: 0.9, r2: 0.75, r3: 0.7 };
+  // every level must clear the 0.70 floor; the first two keep their stricter targets
+  const WIN_RATE_FLOOR = 0.7;
+  const targets: Record<string, number> = { r1: 0.9, r2: 0.75 };
+  const PLAYOUTS = 100;
 
-  it('has the three slice rituals with the agreed shape', () => {
-    expect(levels.map((l) => l.id)).toEqual(['r1', 'r2', 'r3']);
-    expect(levels.map((l) => l.purpose)).toEqual(['sermon', 'recruit', 'summon']);
-    expect(levels.map((l) => l.nameKey)).toEqual(['ritual.r1.name', 'ritual.r2.name', 'ritual.r3.name']);
+  it('starts with the three slice rituals in their agreed shape', () => {
+    const slice = levels.slice(0, 3);
+    expect(slice.map((l) => l.id)).toEqual(['r1', 'r2', 'r3']);
+    expect(slice.map((l) => l.purpose)).toEqual(['sermon', 'recruit', 'summon']);
+    expect(slice.map((l) => l.nameKey)).toEqual(['ritual.r1.name', 'ritual.r2.name', 'ritual.r3.name']);
+    expect(slice.map((l) => l.unlock)).toEqual([{ step: 'ritual1' }, { step: 'ritual2' }, { step: 'ritual3' }]);
     for (const l of levels) {
       expect([l.width, l.height, l.tileTypes]).toEqual([8, 8, 5]);
       expect(l.par).toBeGreaterThan(0);
@@ -1030,6 +1035,30 @@ describe('shipped levels', () => {
     expect(levels[1].goals).toEqual([{ kind: 'collect', tile: 2, count: 10 }, { kind: 'clearWebs' }]);
     expect(levels[2].goals).toEqual([{ kind: 'dropRelics', count: 2 }]);
     expect(levels[2].relics).toBe(2);
+  });
+
+  it('every level has a unique id, a matching name key and an unlock rule', () => {
+    expect(new Set(levels.map((l) => l.id)).size).toBe(levels.length);
+    for (const l of levels) {
+      expect(l.nameKey).toBe(`ritual.${l.id}.name`);
+      expect(l.unlock, `${l.id} unlock`).toBeDefined();
+      const { step, level } = l.unlock!;
+      expect(step !== undefined || level !== undefined, `${l.id} unlock is empty`).toBe(true);
+      if (step !== undefined) expect(typeof step).toBe('string');
+      if (level !== undefined) expect(Number.isInteger(level) && level >= 1).toBe(true);
+    }
+  });
+
+  it('web layouts are left-right symmetric, in bounds and one or two layers deep', () => {
+    for (const l of levels) {
+      const webs = l.webs ?? [];
+      const keys = new Set(webs.map((w) => `${w.x},${w.y}`));
+      expect(keys.size).toBe(webs.length);
+      for (const w of webs) {
+        expect([1, 2]).toContain(w.layers);
+        expect(keys.has(`${l.width - 1 - w.x},${w.y}`)).toBe(true);
+      }
+    }
   });
 
   it('r2 webs are 6-8 single layers in a left-right symmetric pattern', () => {
@@ -1056,8 +1085,8 @@ describe('shipped levels', () => {
 
   for (const l of levels) {
     it(`${l.id} validates above its target win rate`, () => {
-      const result = validateLevel(l, 150);
-      expect(result.winRate).toBeGreaterThanOrEqual(targets[l.id]);
+      const result = validateLevel(l, PLAYOUTS);
+      expect(result.winRate).toBeGreaterThanOrEqual(targets[l.id] ?? WIN_RATE_FLOOR);
       expect(result.par).toBe(Math.round(result.avgMovesUsed));
       expect(result.par).toBeGreaterThan(0);
       expect(result.par).toBeLessThanOrEqual(l.moves);

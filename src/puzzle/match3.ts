@@ -63,6 +63,11 @@ export interface LevelDef {
   purpose: 'sermon' | 'recruit' | 'summon' | 'defense';
   /** text key, e.g. "ritual.r1.name" */
   nameKey: string;
+  /**
+   * when the level becomes playable: a tutorial step name and/or a compound level; both must
+   * be satisfied if both are given. The engine itself ignores this field.
+   */
+  unlock?: { step?: string; level?: number };
 }
 
 export interface Snapshot {

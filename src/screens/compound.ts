@@ -4,11 +4,11 @@ import type { App } from '../app';
 import { ATLAS } from '../art/sprites';
 import { PAL } from '../art/palette';
 import { DATA, buildingDef } from '../core/data';
-import { buildable, canAfford, canPlace, collect, placeBuilding, storageCap } from '../core/game';
+import { buildable, canAfford, canPlace, canUpgrade, collect, nextUpgrade, placeBuilding, reached, storageCap } from '../core/game';
 import { t } from '../core/text';
 import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
 import { frame, modalWidth } from '../ui/modal';
-import { openFollower, openRoster } from './modals';
+import { openBuilding, openFollower, openRoster } from './modals';
 import { Screen } from './screen';
 
 const TILE = 16;
@@ -93,6 +93,22 @@ export class CompoundScreen extends Screen {
       }
       this.cat.sprite = app.add.image(Math.round(this.cat.x), Math.round(this.cat.y), ATLAS, 'cat').setOrigin(0.5, 1);
       this.world.add(this.cat.sprite);
+    }
+
+    // upgrade badges: a small arrow on any building that can still be upgraded; it glows when you can afford it
+    if (!this.placing && reached(run, 'away')) {
+      for (const b of run.buildings) {
+        if (!nextUpgrade(b)) continue;
+        const def = buildingDef(b.type);
+        const ready = canUpgrade(run, b);
+        const bx = (b.x + def.w) * TILE - 11;
+        const by = (b.y + def.h) * TILE - 12;
+        const badge = app.add.container(bx, by);
+        this.world.add(badge);
+        panel(app, badge, 0, 0, 12, 12, ready ? PAL.acid : PAL.robe);
+        img(app, badge, 2, 2, 'ic_up');
+        if (ready && !app.store.state.meta.settings.reducedMotion) app.tweens.add({ targets: badge, y: by - 2, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
     }
 
     // collect bubbles
@@ -290,9 +306,14 @@ export class CompoundScreen extends Screen {
       const def = buildingDef(b.type);
       const box = { x: b.x * TILE, y: b.y * TILE - 30, w: def.w * TILE, h: def.h * TILE + 30 };
       if (!inRect(box, wx, wy)) continue;
-      if (def.produces) {
-        const got = app.store.act((g, emit) => collect(g, b.id, emit));
-        if (!got) app.float(t('float.nothing_yet'), this.floatPos({ building: b.id }) ?? undefined, 'irony');
+      // tap the badge corner, or any building with nothing to collect, to open its card
+      const onBadge = reached(run, 'away') && nextUpgrade(b) && wx >= (b.x + def.w) * TILE - 14 && wy >= (b.y + def.h) * TILE - 15;
+      if (def.produces && !onBadge && Math.floor(b.stored) >= 1) {
+        app.store.act((g, emit) => collect(g, b.id, emit));
+      } else if (reached(run, 'away')) {
+        openBuilding(app, b.id);
+      } else if (def.produces) {
+        app.float(t('float.nothing_yet'), this.floatPos({ building: b.id }) ?? undefined, 'irony');
       } else if (b.type === 'greenhouse' || b.type === 'alchemy_lab') {
         app.goto('alchemy');
       } else if (b.type === 'dormitory') {

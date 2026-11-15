@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 — Expansion 1: creatures, orders, boons, upgrades
+- Four new entities to summon (Baba Yaga, the Jersey Devil, Anansi, Vorl), each with a ritual, a voice and an order pool.
+- Orders now repeat: every entity keeps two requests open. Favor unlocks three permanent boons per entity.
+- Building upgrades, two new crops, three new potions, a candle merge chain, six new ritual levels, a Grimoire screen.
+- Level-ups list what they unlocked; the advisor names the next goal. Save format v3 (old saves migrate).
+
 ## 0.2.1 — Follower stats explained
 - Every follower stat now does something, and a follower sheet says exactly what (tap a follower, a Flock card or a recruit card). A "?" button explains the letters.
 - Fixed: portrait covering a stat in the Flock list; Relics help text cut off by the tab bar on short screens.

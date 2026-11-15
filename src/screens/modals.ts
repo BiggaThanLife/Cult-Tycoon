@@ -1,8 +1,10 @@
 // State-driven and menu modals: welcome, welcome-back, draft, events, roster, menu, settings, debug, ascension.
 import type { App } from '../app';
 import { PAL } from '../art/palette';
-import { DATA, eventDef } from '../core/data';
-import { addResource, addSuspicion, choiceAvailable, debugSkip, draftPick, followerRitualPct, followerWork, housing, resolveEvent, sanityWorkPart, triggerEvent } from '../core/game';
+import { DATA, buildingDef, entityDef, eventDef, mergeItemKey, ritualDef } from '../core/data';
+import { addResource, addSuspicion, addXp, canUpgrade, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded } from '../core/game';
+import { countItems } from '../puzzle/merge';
+import type { BuildingState } from '../core/types';
 import { exportCode, importCode } from '../core/save';
 import { t } from '../core/text';
 import type { Follower } from '../core/types';
@@ -29,6 +31,8 @@ export function autoModals(app: App): void {
     return;
   }
   if (run.activeRitual && app.tab === 'rituals') return; // don't interrupt a ritual
+  const notice = app.notices.shift();
+  if (notice) { openNotice(app, notice); return; }
   if (run.draft) { openDraft(app); return; }
   if (run.event) { openEvent(app); return; }
 }
@@ -226,6 +230,126 @@ function openEvent(app: App): void {
   });
 }
 
+/** Level-up and boon announcements (queued by App so they never interrupt a ritual or another dialog). */
+export type Notice = { kind: 'level'; level: number } | { kind: 'boon'; entity: string; index: number };
+function openNotice(app: App, n: Notice): void {
+  if (n.kind === 'boon') {
+    const b = entityDef(n.entity).boons[n.index];
+    dialog(app, {
+      id: 'notice', title: t('boon.title'), sprite: n.entity,
+      body: t('boon.body', { name: t(`entity.${n.entity}.name`), boon: t(`boon.${b.field}`, { n: b.value }) }),
+      buttons: [{ label: t('boon.ok'), name: 'btn_ok' }],
+    });
+    return;
+  }
+  const lines = [t('levelup.body')];
+  const unlocks = unlocksAt(n.level);
+  if (unlocks.length) lines.push(t('levelup.unlocks'));
+  for (const u of unlocks) {
+    if (u.kind === 'crop') lines.push(t('levelup.crop', { name: t(`item.${u.id}.name`) }));
+    else if (u.kind === 'generator') lines.push(t('levelup.generator', { name: t(`gen.${u.id}.name`) }));
+    else lines.push(t('levelup.ritual', { name: t(ritualDef(u.id).nameKey) }));
+  }
+  dialog(app, { id: 'notice', title: t('levelup.title', { n: n.level }), body: lines.join('\n'), sprite: 'advisor', buttons: [{ label: t('levelup.ok'), name: 'btn_ok' }] });
+}
+
+/** What a building does at a given level, in words. */
+export function buildingEffect(type: string, level: number): string {
+  const def = buildingDef(type);
+  const fake = { id: 0, type, x: 0, y: 0, level, stored: 0 } as BuildingState;
+  if (def.produces) {
+    const mult = 1 + levelBonus(fake, 'outputPct') / 100;
+    const caps = def.devotionCap ?? [DATA.balance.caps.devotion];
+    return t(`building.effect.${type}`, { rate: Math.round(def.produces.perMin * mult * 10) / 10, cap: Math.round(def.produces.perMin * (def.storageMin ?? 10) * mult), bank: caps[Math.min(level, caps.length) - 1] });
+  }
+  if (def.housing) return t(`building.effect.${type}`, { n: def.housing + levelBonus(fake, 'housing') });
+  if (def.plots) return t(`building.effect.${type}`, { n: def.plots + levelBonus(fake, 'plots') });
+  return t(`building.effect.${type}`, { n: levelBonus(fake, 'brewBonus') });
+}
+
+/** Building card: what it does now, what the next level adds, what the upgrade costs. */
+export function openBuilding(app: App, buildingId: number): void {
+  app.modals.open({
+    id: 'building',
+    build(c, _a, close) {
+      const run = app.store.state.run;
+      const b = run.buildings.find((x) => x.id === buildingId);
+      if (!b) return;
+      const def = buildingDef(b.type);
+      const up = nextUpgrade(b);
+      const w = modalWidth(app);
+      const tw = w - 10;
+      const now = t('building.now', { text: buildingEffect(b.type, b.level) });
+      const next = up ? t('building.next', { text: buildingEffect(b.type, b.level + 1) }) : t('building.maxed');
+      const h = 16 + 12 + textHeight(now, tw) + 2 + textHeight(next, tw) + 4 + (up ? 26 : 0) + 22 + 22;
+      const r = frame(app, c, w, h, t(`building.${b.type}.name`));
+      let y = r.y;
+      txt(app, c, r.x, y, t('building.level', { n: b.level, max: maxLevel(b.type) }), { color: 'irony' });
+      y += 12;
+      txt(app, c, r.x, y, now, { width: r.w });
+      y += textHeight(now, r.w) + 2;
+      txt(app, c, r.x, y, next, { width: r.w, color: up ? 'gain' : 'dim' });
+      y += textHeight(next, r.w) + 4;
+      if (up) {
+        txt(app, c, r.x, y + 7, t('building.needs'), { color: 'dim' });
+        let x = r.x + 36;
+        img(app, c, x, y + 7, 'ic_devotion');
+        txt(app, c, x + 10, y + 7, String(up.cost.devotion), { color: run.devotion >= up.cost.devotion ? 'ink' : 'loss' });
+        x += 36;
+        img(app, c, x, y + 7, 'ic_donations');
+        txt(app, c, x + 10, y + 7, String(up.cost.donations), { color: run.donations >= up.cost.donations ? 'ink' : 'loss' });
+        x += 34;
+        if (up.merge) {
+          const have = countItems(run.reliquary, up.merge.chain, up.merge.tier);
+          img(app, c, x, y, `m_${mergeItemKey(up.merge.chain, up.merge.tier)}`);
+          txt(app, c, x + 24, y + 7, `${Math.min(have, 1)}/1`, { color: have ? 'gain' : 'loss' });
+        }
+        y += 26;
+      }
+      const bw = Math.floor((r.w - 4) / 2);
+      button(app, c, r.x, y, bw, 19, up ? t('building.upgrade') : t('building.maxed'), () => {
+        if (app.store.act((g, emit) => upgradeBuilding(g, buildingId, emit))) sfxUpgrade();
+        app.modals.rebuild();
+      }, { disabled: !up || !canUpgrade(run, b), fill: PAL.acid, icon: up ? 'ic_up' : undefined, name: 'btn_upgrade' });
+      const side: [string, () => void] = def.produces
+        ? [`${t('building.collect')} ${Math.floor(b.stored)}`, () => { app.store.act((g, emit) => collect(g, buildingId, emit)); app.modals.rebuild(); }]
+        : b.type === 'dormitory' ? [t('building.flock'), () => { close(); openRoster(app); }] : [t('building.goto_brew'), () => { close(); app.goto('alchemy'); }];
+      button(app, c, r.x + bw + 4, y, bw, 19, side[0], side[1], { fill: PAL.blue, name: 'btn_building_side' });
+      button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
+    },
+  });
+}
+function sfxUpgrade(): void { sfx.create(); sfx.buzz(20); }
+
+/** The Grimoire: every recipe, known, hinted or still a mystery. */
+export function openGrimoire(app: App): void {
+  app.modals.open({
+    id: 'grimoire',
+    build(c, _a, close) {
+      const st = app.store.state;
+      const R = DATA.recipes.recipes;
+      const land = app.L.landscape;
+      const w = land ? Math.min(app.L.w - 8, 320) : modalWidth(app);
+      const cols = land ? 2 : 1;
+      const cw = Math.floor((w - 10 - (cols - 1) * 6) / cols);
+      const rowH = 21;
+      const rows = Math.ceil(R.length / cols);
+      const r = frame(app, c, w, 16 + rows * rowH + 24, t('grimoire.title', { n: st.meta.grimoire.length, max: R.length }));
+      R.forEach((rec, i) => {
+        const x = r.x + (i % cols) * (cw + 6);
+        const y = r.y + Math.floor(i / cols) * rowH;
+        const known = st.meta.grimoire.includes(rec.id);
+        const hinted = recipeHinted(st.run, rec.id);
+        if (!known && !hinted) { img(app, c, x, y + 1, 'ic_lock'); txt(app, c, x + 11, y + 1, t('grimoire.unknown'), { color: 'dim', width: cw - 11, maxLines: 2 }); return; }
+        img(app, c, x, y, `i_${rec.output}`);
+        txt(app, c, x + 18, y, t(`item.${rec.output}.name`), { color: known ? 'ink' : 'gold', width: cw - 18, maxLines: 1 });
+        txt(app, c, x + 18, y + 9, rec.ingredients.map((id) => t(`item.${id}.name`)).join(' + '), { color: 'dim', width: cw - 18, maxLines: 1 });
+      });
+      button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
+    },
+  });
+}
+
 export function openRoster(app: App): void {
   app.modals.open({
     id: 'roster',
@@ -341,7 +465,7 @@ export function openAscension(app: App): void {
       const cw = land ? Math.floor((tw - 8) / 3) : tw;
       const descH = Math.max(...flavors.map((f) => textHeight(t(`ascension.${f}.desc`), cw - 8)));
       const ch = 14 + descH + 2;
-      const relics = 5 + 2 * run.level + (run.favor.mothman ? 1 : 0) + Math.floor(Object.values(run.rituals).filter((s) => s >= 3).length / 5);
+      const relics = 5 + 2 * run.level + run.met.length + Math.floor(Object.values(run.rituals).filter((s) => s >= 3).length / 5);
       const notes: [string, 'loss' | 'ink' | 'dim'][] = [
         [t('ascension.requires', { level: 10, now: run.level }), 'loss'],
         [t('ascension.preview', { n: relics }), 'ink'],
@@ -386,6 +510,7 @@ function openDebug(app: App): void {
         [t('debug.devotion'), act((g) => { addResource(g.run, 'devotion', 100); })],
         [t('debug.donations'), act((g) => { addResource(g.run, 'donations', 50); })],
         [t('debug.suspicion'), act((g) => { addSuspicion(g.run, 10); })],
+        [t('debug.level'), () => { close(); app.store.act((g, e) => addXp(g, xpNeeded(g.run.level) - g.run.xp, e)); }],
         [t('debug.reporter'), () => { close(); app.store.act((g, e) => triggerEvent(g, 'reporter', e)); }],
         [t('debug.cat'), () => { close(); app.store.act((g, e) => triggerEvent(g, 'cat', e)); }],
         [t('debug.win'), () => { close(); app.store.act((g) => { const r = g.run.activeRitual as { status: string; score: number; level: { starScores: number[] } } | null; if (r) { r.status = 'won'; r.score = Math.max(r.score, r.level.starScores[2]); } }); }],
@@ -393,14 +518,14 @@ function openDebug(app: App): void {
         [t('common.close'), close],
       ];
       const land = app.L.landscape;
-      const cols = land ? 3 : 2;
-      const w = land ? Math.min(app.L.w - 8, 310) : modalWidth(app);
+      const cols = land ? 4 : 2;
+      const w = land ? Math.min(app.L.w - 8, 316) : modalWidth(app);
       const rows = Math.ceil(items.length / cols);
       const s = st.meta.stats;
       const info = t('debug.stats', { play: Math.round(s.playSec), gap: Math.round(Math.max(s.longestGapSec, s.playSec - s.lastUnlockAt)), step: st.run.tutorial, v: st.saveVersion });
       const r = frame(app, c, w, 16 + rows * 20 + textHeight(info, w - 10) + 8, t('debug.title'));
       const bw = Math.floor((r.w - (cols - 1) * 3) / cols);
-      items.forEach(([label, fn], i) => button(app, c, r.x + (i % cols) * (bw + 3), r.y + Math.floor(i / cols) * 20, bw, 18, label, fn, { fill: i === items.length - 2 ? PAL.pink : PAL.blue, name: `debug_${i}` }));
+      items.forEach(([label, fn], i) => button(app, c, r.x + (i % cols) * (bw + 3), r.y + Math.floor(i / cols) * 20, bw, 18, label, fn, { fill: label === t('debug.reset') ? PAL.pink : PAL.blue, name: label === t('common.close') ? 'debug_close' : `debug_${i}` }));
       txt(app, c, r.x, r.y + rows * 20 + 2, info, { color: 'dim', width: r.w });
     },
   });

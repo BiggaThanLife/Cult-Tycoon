@@ -19,6 +19,19 @@ export const MIGRATIONS: Migrations = {
     d.meta.settings = { ...d.meta.settings, sound: d.meta.settings?.sound ?? true };
     return d;
   },
+  // v2 -> v3: orders became a live board (filled orders are counted, not kept); entities met and recipe hints are tracked per run
+  2: (d) => {
+    const run = d.run;
+    const old: { id: string; filled?: boolean }[] = run.orders ?? [];
+    run.ordersFilled = {};
+    for (const o of old) if (o.filled) run.ordersFilled[o.id] = 1;
+    run.orders = old.filter((o) => !o.filled).map((o) => ({ id: o.id }));
+    run.orderNextAt = {};
+    run.lastOrder = {};
+    run.hints = [];
+    run.met = [...(d.meta.bestiary ?? [])];
+    return d;
+  },
 };
 
 interface Envelope { saveVersion: number; savedAt: number; data: unknown }

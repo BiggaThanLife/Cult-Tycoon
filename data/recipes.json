@@ -1,7 +1,51 @@
 {
   "recipes": [
-    { "id": "amnesia_brew", "ingredients": ["basil", "nightshade"], "output": "amnesia_brew", "hinted": true },
-    { "id": "pesto", "ingredients": ["basil", "basil"], "output": "pesto", "hinted": false }
+    {
+      "id": "amnesia_brew",
+      "ingredients": [
+        "basil",
+        "nightshade"
+      ],
+      "output": "amnesia_brew",
+      "hinted": true
+    },
+    {
+      "id": "pesto",
+      "ingredients": [
+        "basil",
+        "basil"
+      ],
+      "output": "pesto",
+      "hinted": false
+    },
+    {
+      "id": "calm_draught",
+      "ingredients": [
+        "graveyard_moss",
+        "basil"
+      ],
+      "output": "calm_draught",
+      "hinted": false
+    },
+    {
+      "id": "moonlight_tincture",
+      "ingredients": [
+        "moonpetal",
+        "nightshade"
+      ],
+      "output": "moonlight_tincture",
+      "hinted": false
+    },
+    {
+      "id": "zeal_tonic",
+      "ingredients": [
+        "graveyard_moss",
+        "moonpetal",
+        "nightshade"
+      ],
+      "output": "zeal_tonic",
+      "hinted": false
+    }
   ],
   "failOutput": "sludge",
   "minIngredients": 2,

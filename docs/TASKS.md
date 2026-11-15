@@ -38,4 +38,7 @@
 ## Phase 3+ — Iterate (one system at a time)
 - [x] Ritual feel pass (docs/specs/ritual-feel.md) + sound toggle
 - [x] PLAYBOOK.md and `npm run check` for handover to other models
-- [ ] Next up (proposed): building upgrades + land expansion, then the Pilgrimage Bus and outsider orders
+- [x] Expansion 1 (docs/specs/expansion-1.md): 4 more entities, repeating orders, Favor boons, building upgrades, more crops/potions/relics, 6 more rituals
+- [ ] Next up (proposed): land expansion (brambles, parcels), then patron pledges with banes and questlines
+- [ ] Then: Pilgrimage Bus, outsider and follower orders, potions used on followers, the Merch Tent and Kitchen
+- [ ] More entities after lore review: Kitsune (folklore only), Kappa, Sphinx

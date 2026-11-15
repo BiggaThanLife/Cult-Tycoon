@@ -1,8 +1,151 @@
 {
   "buildings": [
-    { "id": "sermon_hall", "w": 3, "h": 2, "cost": { "devotion": 0, "donations": 0 }, "produces": { "resource": "devotion", "perMin": 6 }, "storageMin": 10, "max": 1, "availableFrom": "build_hall" },
-    { "id": "dormitory", "w": 2, "h": 2, "cost": { "devotion": 40, "donations": 15 }, "housing": 4, "max": 1, "availableFrom": "never" },
-    { "id": "greenhouse", "w": 2, "h": 2, "cost": { "devotion": 30, "donations": 10 }, "plots": 4, "max": 1, "availableFrom": "build_greenhouse" },
-    { "id": "alchemy_lab", "w": 2, "h": 2, "cost": { "devotion": 60, "donations": 25 }, "brewSlots": 1, "max": 1, "availableFrom": "build_lab" }
+    {
+      "id": "sermon_hall",
+      "w": 3,
+      "h": 2,
+      "cost": {
+        "devotion": 0,
+        "donations": 0
+      },
+      "produces": {
+        "resource": "devotion",
+        "perMin": 6
+      },
+      "storageMin": 10,
+      "max": 1,
+      "availableFrom": "build_hall",
+      "perLevel": {
+        "outputPct": 60
+      },
+      "devotionCap": [
+        500,
+        1500,
+        4000
+      ],
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 150,
+            "donations": 40
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 3
+          }
+        },
+        {
+          "cost": {
+            "devotion": 450,
+            "donations": 120
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "dormitory",
+      "w": 2,
+      "h": 2,
+      "cost": {
+        "devotion": 40,
+        "donations": 15
+      },
+      "housing": 4,
+      "max": 1,
+      "availableFrom": "never",
+      "perLevel": {
+        "housing": 2
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 120,
+            "donations": 50
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 2
+          }
+        },
+        {
+          "cost": {
+            "devotion": 350,
+            "donations": 140
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "greenhouse",
+      "w": 2,
+      "h": 2,
+      "cost": {
+        "devotion": 30,
+        "donations": 10
+      },
+      "plots": 4,
+      "max": 1,
+      "availableFrom": "build_greenhouse",
+      "perLevel": {
+        "plots": 2
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 100,
+            "donations": 40
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 2
+          }
+        },
+        {
+          "cost": {
+            "devotion": 300,
+            "donations": 110
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "alchemy_lab",
+      "w": 2,
+      "h": 2,
+      "cost": {
+        "devotion": 60,
+        "donations": 25
+      },
+      "brewSlots": 1,
+      "max": 1,
+      "availableFrom": "build_lab",
+      "perLevel": {
+        "brewBonus": 1
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 220,
+            "donations": 90
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 3
+          }
+        }
+      ]
+    }
   ]
 }

@@ -1,6 +1,32 @@
 {
   "crops": [
-    { "id": "basil", "growSec": 30, "yield": 3, "seedCost": 1 },
-    { "id": "nightshade", "growSec": 120, "yield": 2, "seedCost": 3 }
+    {
+      "id": "basil",
+      "growSec": 30,
+      "yield": 3,
+      "seedCost": 1,
+      "unlockLevel": 1
+    },
+    {
+      "id": "nightshade",
+      "growSec": 120,
+      "yield": 2,
+      "seedCost": 3,
+      "unlockLevel": 1
+    },
+    {
+      "id": "graveyard_moss",
+      "growSec": 90,
+      "yield": 3,
+      "seedCost": 2,
+      "unlockLevel": 2
+    },
+    {
+      "id": "moonpetal",
+      "growSec": 240,
+      "yield": 2,
+      "seedCost": 5,
+      "unlockLevel": 3
+    }
   ]
 }

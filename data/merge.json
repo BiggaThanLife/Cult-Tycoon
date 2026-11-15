@@ -1,10 +1,58 @@
 {
-  "grid": { "w": 7, "h": 7, "shelf": 6 },
+  "grid": {
+    "w": 7,
+    "h": 7,
+    "shelf": 6
+  },
   "chains": [
-    { "id": "paper", "tiers": ["pamphlet", "brochure", "manifesto", "scripture", "tome"] }
+    {
+      "id": "paper",
+      "tiers": [
+        "pamphlet",
+        "brochure",
+        "manifesto",
+        "scripture",
+        "tome"
+      ]
+    },
+    {
+      "id": "candle",
+      "tiers": [
+        "stub",
+        "taper",
+        "votive",
+        "altar_candle",
+        "eternal_flame"
+      ]
+    }
   ],
   "generators": [
-    { "id": "donation_box", "chain": "paper", "maxCharges": 6, "rechargeSec": 8, "tierWeights": [1] }
+    {
+      "id": "donation_box",
+      "chain": "paper",
+      "maxCharges": 6,
+      "rechargeSec": 8,
+      "tierWeights": [
+        1
+      ],
+      "unlockLevel": 1
+    },
+    {
+      "id": "ritual_brazier",
+      "chain": "candle",
+      "maxCharges": 6,
+      "rechargeSec": 10,
+      "tierWeights": [
+        1
+      ],
+      "unlockLevel": 3
+    }
   ],
-  "start": [ { "gen": "donation_box", "x": 3, "y": 3 } ]
+  "start": [
+    {
+      "gen": "donation_box",
+      "x": 3,
+      "y": 3
+    }
+  ]
 }

@@ -7,7 +7,7 @@ import { DATA, mergeItemKey } from '../core/data';
 import { mergeMove, mergeTap } from '../core/game';
 import { t } from '../core/text';
 import type { Loc, MergeCell } from '../puzzle/merge';
-import { img, inRect, panel, rect, txt } from '../ui/kit';
+import { hit, img, inRect, panel, rect, txt } from '../ui/kit';
 import { Screen } from './screen';
 
 const CELL = 24;
@@ -20,6 +20,7 @@ export class ReliquaryScreen extends Screen {
   private drag: { from: Loc; sprite: Phaser.GameObjects.Image; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
   private hint: Phaser.GameObjects.BitmapText | null = null;
   private showHelp = true;
+  private chainIdx = 0;
 
   private frameFor(cell: MergeCell): string {
     return cell.kind === 'gen' ? `g_${cell.gen}` : `m_${mergeItemKey(cell.chain, cell.tier)}`;
@@ -65,8 +66,12 @@ export class ReliquaryScreen extends Screen {
     this.dockBg();
     const gw = G.w * CELL;
     const gh = G.h * CELL;
-    const chain = DATA.merge.chains[0];
+    // the codex strip shows one chain at a time; tap it to switch between the chains you have a generator for
+    const chains = DATA.merge.chains.filter((ch) => DATA.merge.generators.some((gen) => gen.chain === ch.id && st.run.level >= (gen.unlockLevel ?? 1)));
+    const chain = chains[this.chainIdx % Math.max(1, chains.length)] ?? DATA.merge.chains[0];
     const best = st.meta.mergeCodex[chain.id] ?? 1;
+    const label = t('merge.codex', { chain: t(`merge.chain.${chain.id}`), n: best, max: chain.tiers.length }) + (chains.length > 1 ? ' >' : '');
+    const cycle = () => { this.chainIdx = (this.chainIdx + 1) % chains.length; this.rebuild(); };
     const codex = (x: number, y: number, vertical: boolean) => {
       chain.tiers.forEach((key, i) => {
         const perRow = L.dock ? 3 : chain.tiers.length;
@@ -85,7 +90,8 @@ export class ReliquaryScreen extends Screen {
       if (full) rect(app, this.c, B.x, L.banner.y, B.w, L.banner.h, PAL.robeDD);
       this.grid = { x: B.x + Math.floor((B.w - gw) / 2), y: top + Math.max(2, Math.floor((availH - gh) / 2)) };
       this.shelf = { x: D.x + Math.floor((D.w - 3 * CELL) / 2), y: D.y + D.h - 2 * CELL - 4, cols: 3 };
-      txt(app, this.c, D.x + 5, D.y + 3, t('merge.codex', { n: best, max: chain.tiers.length }), { color: 'irony' });
+      txt(app, this.c, D.x + 5, D.y + 3, label, { color: 'irony' });
+      if (chains.length > 1) hit(app, this.c, D.x, D.y, D.w, 64, cycle).setName('btn_chain');
       if (D.h >= 14 + 5 * 24 + 62) codex(D.x + 4, D.y + 14, true);
       else codex(D.x + Math.floor((D.w - 72) / 2), D.y + 14, false);
       txt(app, this.c, D.x + 5, this.shelf.y - 11, t('merge.shelf'), { color: 'dim' });
@@ -98,7 +104,8 @@ export class ReliquaryScreen extends Screen {
       const pad = Math.max(0, Math.floor((spare - (this.showHelp ? 22 : 0)) / 2));
       this.grid = { x: B.x + Math.floor((B.w - gw) / 2), y: B.y + top + pad };
       this.shelf = { x: B.x + Math.floor((B.w - G.shelf * CELL) / 2), y: this.grid.y + gh + 13, cols: G.shelf };
-      txt(app, this.c, B.x + 5, B.y + 3, t('merge.codex', { n: best, max: chain.tiers.length }), { color: 'white' });
+      txt(app, this.c, B.x + 5, B.y + 3, label, { color: 'white' });
+      if (chains.length > 1) hit(app, this.c, B.x, B.y, B.w, 38, cycle).setName('btn_chain');
       codex(B.x + Math.floor((B.w - chain.tiers.length * 24) / 2), B.y + 13, false);
       txt(app, this.c, this.shelf.x, this.shelf.y - 10, t('merge.shelf'), { color: 'pale' });
     }
@@ -173,6 +180,7 @@ export class ReliquaryScreen extends Screen {
     if (to) {
       const res = app.store.act((g, emit) => mergeMove(g, d.from, to, emit));
       if (res.kind === 'merge') {
+        this.chainIdx = Math.max(0, DATA.merge.chains.findIndex((ch) => ch.id === res.chain));
         const pos = this.locPos(to);
         app.float(t('merge.made', { name: t(`merge.${mergeItemKey(res.chain, res.tier)}.name`) }), { x: pos.x + 12, y: pos.y - 4 }, 'gain');
       }

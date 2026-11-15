@@ -2,7 +2,7 @@
 import { makeRng } from '../core/rng';
 
 export interface MergeChainDef { id: string; tiers: string[] }
-export interface MergeGeneratorDef { id: string; chain: string; maxCharges: number; rechargeSec: number; tierWeights: number[] }
+export interface MergeGeneratorDef { id: string; chain: string; maxCharges: number; rechargeSec: number; tierWeights: number[]; unlockLevel?: number }
 export interface MergeDefs {
   grid: { w: number; h: number; shelf: number };
   chains: MergeChainDef[];
@@ -144,4 +144,16 @@ export function removeItems(s: MergeState, chain: string, tier: number, count: n
   for (let i = 0; i < s.shelf.length && removed < count; i++) if (match(s.shelf[i])) { s.shelf[i] = null; removed++; }
   for (let i = 0; i < s.cells.length && removed < count; i++) if (match(s.cells[i])) { s.cells[i] = null; removed++; }
   return removed;
+}
+
+/** Put a generator on the grid if it is not there yet (used when one unlocks). Returns false if the grid is full. */
+export function addGenerator(s: MergeState, defs: MergeDefs, genId: string): boolean {
+  if (s.cells.some((c) => c && c.kind === 'gen' && c.gen === genId)) return true;
+  const def = defs.generators.find((d) => d.id === genId);
+  if (!def) return false;
+  const centre = Math.floor(defs.grid.h / 2) * defs.grid.w + Math.floor(defs.grid.w / 2);
+  const at = nearestEmpty(s, defs, centre);
+  if (at < 0) return false;
+  s.cells[at] = { id: s.nextId++, kind: 'gen', gen: genId, charges: def.maxCharges, cooldown: 0 };
+  return true;
 }

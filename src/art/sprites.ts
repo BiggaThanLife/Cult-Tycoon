@@ -212,6 +212,46 @@ function sprites(): SpriteDef[] {
   out.push({ key: 'mothman', w: 32, h: 32, draw: (p) => p.map(0, 0, MOTHMAN, { o: PAL.ink, k: PAL.ink2, m: PAL.robeDD, R: PAL.red, f: PAL.robeD }) });
   out.push({ key: 'advisor', w: 16, h: 16, draw: (p) => p.map(0, 0, ADVISOR, { o: PAL.ink, w: PAL.white, i: PAL.robe, e: PAL.ink, m: PAL.red }) });
 
+  // ---- more entities (32×32), drawn from shapes ----
+  out.push({ key: 'baba_yaga', w: 32, h: 32, draw: (p) => { // the hut on chicken legs; she is home
+    p.r(11, 20, 2, 8, PAL.ink).r(19, 20, 2, 8, PAL.ink).r(11, 21, 1, 7, PAL.yellow).r(19, 21, 1, 7, PAL.yellow);
+    p.r(8, 28, 7, 2, PAL.ink).r(17, 28, 7, 2, PAL.ink).r(9, 28, 5, 1, PAL.yellow).r(18, 28, 5, 1, PAL.yellow).px(8, 30, PAL.ink).px(14, 30, PAL.ink).px(17, 30, PAL.ink).px(23, 30, PAL.ink);
+    p.box(6, 9, 20, 13, PAL.woodD, PAL.ink).r(7, 13, 18, 1, PAL.woodDD).r(7, 17, 18, 1, PAL.woodDD);
+    for (let i = 0; i < 8; i++) p.r(4 + i * 2 - 1, 9 - i, 26 - i * 4, 1, i % 2 ? PAL.woodDD : PAL.ink2);
+    p.r(3, 9, 26, 2, PAL.ink).box(21, 1, 4, 7, PAL.ink2).disc(20, 0, 3, PAL.robeL).disc(23, 0, 2, PAL.robe);
+    p.box(10, 12, 8, 7, PAL.night).r(12, 14, 1, 2, PAL.acid).r(15, 14, 1, 2, PAL.acid).r(13, 17, 3, 1, PAL.bone);
+    p.box(20, 13, 4, 9, PAL.woodDD).px(22, 18, PAL.yellow);
+  } });
+  out.push({ key: 'jersey_devil', w: 32, h: 32, draw: (p) => { // winged, hooved, long-faced
+    for (let i = 0; i < 9; i++) { p.r(1 + i, 6 + i, 10 - i, 1, PAL.redD); p.r(21, 6 + i, 10 - i, 1, PAL.redD); }
+    p.r(1, 5, 10, 1, PAL.ink).r(21, 5, 10, 1, PAL.ink).r(0, 6, 1, 4, PAL.ink).r(31, 6, 1, 4, PAL.ink);
+    p.box(11, 12, 10, 12, PAL.red, PAL.ink).r(13, 14, 6, 8, PAL.pink);
+    p.box(12, 2, 8, 6, PAL.red, PAL.ink).box(13, 7, 6, 7, PAL.red, PAL.ink).r(14, 7, 4, 1, PAL.red);
+    p.r(11, 0, 2, 3, PAL.ink).r(19, 0, 2, 3, PAL.ink).px(12, 1, PAL.bone).px(19, 1, PAL.bone);
+    p.r(14, 4, 1, 2, PAL.yellow).r(17, 4, 1, 2, PAL.yellow).r(15, 11, 2, 1, PAL.ink).px(14, 12, PAL.white).px(17, 12, PAL.white);
+    p.r(12, 24, 3, 5, PAL.ink).r(17, 24, 3, 5, PAL.ink).r(13, 24, 1, 4, PAL.redD).r(18, 24, 1, 4, PAL.redD).r(11, 29, 5, 2, PAL.ink).r(16, 29, 5, 2, PAL.ink);
+    p.r(21, 20, 6, 1, PAL.ink).r(26, 17, 1, 4, PAL.ink).diamond(27, 15, 2, PAL.redD);
+  } });
+  out.push({ key: 'anansi', w: 32, h: 32, draw: (p) => { // the spider who owns every story
+    for (const [x0, y0, x1, y1] of [[13, 16, 3, 8], [13, 18, 1, 16], [13, 20, 2, 24], [14, 22, 5, 29], [18, 16, 28, 8], [18, 18, 30, 16], [18, 20, 29, 24], [17, 22, 26, 29]] as number[][]) {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let i = 0; i <= n; i++) p.r(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), 2, 2, PAL.ink);
+    }
+    p.ring(8, 12, 16, PAL.ink2).disc(11, 15, 10, PAL.night2);
+    p.diamond(16, 20, 3, PAL.yellow).diamond(16, 20, 1, PAL.ink);
+    p.ring(11, 5, 10, PAL.ink2);
+    p.r(13, 8, 2, 2, PAL.acid).r(17, 8, 2, 2, PAL.acid).px(12, 11, PAL.acid).px(19, 11, PAL.acid).px(15, 11, PAL.white).px(16, 11, PAL.white);
+    p.r(14, 13, 4, 1, PAL.bone);
+  } });
+  out.push({ key: 'vorl', w: 32, h: 32, draw: (p) => { // one patient eye in deep water
+    p.r(0, 0, 32, 32, PAL.night).r(0, 22, 32, 10, PAL.ink);
+    for (let x = 0; x < 32; x += 4) p.r(x, 21 + ((x / 4) % 2), 3, 1, PAL.night2);
+    for (const [x, h] of [[3, 12], [8, 17], [24, 16], [28, 11]] as number[][]) { p.r(x, 24 - h, 3, h, PAL.ink2).r(x + 1, 24 - h, 1, h, PAL.robeDD).px(x + (h % 2 ? 3 : -1), 24 - h, PAL.ink2).px(x + 1, 26 - h, PAL.teal); }
+    p.ring(8, 3, 16, PAL.ink2).disc(10, 5, 12, PAL.bone).disc(12, 7, 8, PAL.teal).r(15, 6, 2, 10, PAL.ink).px(14, 8, PAL.white);
+    p.px(5, 4, PAL.teal).px(27, 6, PAL.teal).px(2, 15, PAL.teal).px(29, 18, PAL.teal);
+  } });
+  out.push({ key: 'unknown_entity', w: 32, h: 32, draw: (p) => { p.ring(4, 2, 24, PAL.robeD, PAL.robeDD).box(6, 20, 20, 12, PAL.robeD, PAL.robeDD); p.r(13, 8, 6, 2, PAL.robeL).r(18, 10, 2, 4, PAL.robeL).r(15, 14, 3, 2, PAL.robeL).r(15, 16, 2, 2, PAL.robeL).r(15, 20, 2, 2, PAL.robeL); } });
+
   // ---- map tiles (16×16) ----
   out.push({ key: 'grass_0', w: 16, h: 16, draw: (p) => p.r(0, 0, 16, 16, PAL.grassL).px(3, 4, PAL.grass).px(11, 9, PAL.grass).px(7, 13, PAL.grass) });
   out.push({ key: 'grass_1', w: 16, h: 16, draw: (p) => p.r(0, 0, 16, 16, PAL.grassL).px(5, 10, PAL.grass).px(12, 3, PAL.grass).r(8, 6, 2, 1, PAL.grass) });
@@ -325,11 +365,26 @@ function sprites(): SpriteDef[] {
   out.push({ key: 'm_unknown', w: 22, h: 22, draw: (p) => { p.box(4, 3, 14, 16, PAL.robeD, PAL.robeDD); p.r(9, 6, 4, 1, PAL.robeL).r(12, 7, 1, 3, PAL.robeL).r(10, 10, 2, 1, PAL.robeL).r(10, 11, 1, 2, PAL.robeL).px(10, 15, PAL.robeL); } });
   out.push({ key: 'g_donation_box', w: 22, h: 22, draw: (p) => { p.box(2, 7, 18, 14, PAL.wood, PAL.ink).box(1, 4, 20, 5, PAL.woodD).r(7, 6, 8, 1, PAL.ink).box(8, 12, 6, 6, PAL.yellow, PAL.woodDD).r(10, 14, 2, 2, PAL.woodDD); } });
 
+  // ---- candle chain (22×22) ----
+  const flame = (p: Pen, x: number, y: number) => p.diamond(x, y, 2, PAL.ink).diamond(x, y, 1, PAL.red).px(x, y + 1, PAL.yellow);
+  out.push({ key: 'm_stub', w: 22, h: 22, draw: (p) => { p.box(8, 13, 6, 6, PAL.bone).r(10, 11, 1, 2, PAL.ink).r(5, 19, 12, 2, PAL.ink).r(6, 19, 10, 1, PAL.woodD); } });
+  out.push({ key: 'm_taper', w: 22, h: 22, draw: (p) => { p.box(9, 7, 4, 13, PAL.bone).r(10, 8, 1, 11, PAL.white); flame(p, 11, 4); p.r(6, 19, 10, 2, PAL.ink).r(7, 19, 8, 1, PAL.wood); } });
+  out.push({ key: 'm_votive', w: 22, h: 22, draw: (p) => { p.box(5, 9, 12, 11, PAL.red, PAL.ink).r(6, 10, 10, 3, PAL.pink).box(8, 6, 6, 5, PAL.bone); flame(p, 11, 3); } });
+  out.push({ key: 'm_altar_candle', w: 22, h: 22, draw: (p) => { p.box(3, 8, 4, 11, PAL.bone).box(9, 5, 4, 14, PAL.bone).box(15, 8, 4, 11, PAL.bone); flame(p, 5, 5); flame(p, 11, 2); flame(p, 17, 5); p.box(1, 18, 20, 3, PAL.yellow, PAL.woodDD); } });
+  out.push({ key: 'm_eternal_flame', w: 22, h: 22, draw: (p) => { p.ring(2, 12, 18, PAL.night2).r(2, 12, 18, 3, PAL.ink).r(3, 13, 16, 1, PAL.night2); p.diamond(11, 8, 7, PAL.ink).diamond(11, 8, 6, PAL.teal).diamond(11, 9, 4, PAL.acid).diamond(11, 10, 2, PAL.white); p.px(4, 4, PAL.acid).px(18, 3, PAL.teal).px(15, 1, PAL.acid); } });
+  out.push({ key: 'g_ritual_brazier', w: 22, h: 22, draw: (p) => { p.r(4, 9, 14, 2, PAL.ink).box(5, 10, 12, 6, PAL.woodDD, PAL.ink).r(10, 16, 2, 4, PAL.ink).box(6, 19, 10, 3, PAL.woodDD, PAL.ink); p.diamond(11, 6, 4, PAL.ink).diamond(11, 6, 3, PAL.red).diamond(11, 7, 1, PAL.yellow).px(7, 8, PAL.red).px(15, 8, PAL.red); } });
+  out.push({ key: 'ic_up', w: 8, h: 8, draw: (p) => { p.diamond(4, 3, 3, PAL.ink).r(1, 4, 7, 3, PAL.ink).r(3, 4, 3, 4, PAL.ink).r(4, 1, 1, 6, PAL.acid).r(3, 2, 3, 1, PAL.acid).r(2, 3, 5, 1, PAL.acid); } });
+
   // ---- crops, plots, potions (16×16) ----
   out.push({ key: 'i_basil', w: 16, h: 16, draw: (p) => { p.ring(4, 1, 8, PAL.grass).ring(1, 6, 7, PAL.grass).ring(8, 6, 7, PAL.grass).r(7, 9, 2, 6, PAL.ink).r(7, 9, 1, 6, PAL.grassD).px(7, 4, PAL.grassL); } });
   out.push({ key: 'i_nightshade', w: 16, h: 16, draw: (p) => { p.r(7, 2, 2, 12, PAL.ink).r(7, 3, 1, 10, PAL.grassDD).ring(1, 3, 6, PAL.grassD).ring(9, 2, 6, PAL.grassD).ring(2, 9, 6, PAL.robeDD).ring(8, 9, 6, PAL.robeDD).px(4, 11, PAL.purple).px(10, 11, PAL.purple); } });
   out.push({ key: 'plot_empty', w: 24, h: 16, draw: (p) => { p.box(0, 4, 24, 12, PAL.woodD, PAL.woodDD); for (let i = 3; i < 22; i += 5) p.r(i, 7, 2, 6, PAL.woodDD); } });
   out.push({ key: 'sprout', w: 16, h: 16, draw: (p) => { p.r(7, 9, 2, 6, PAL.grassD).ring(3, 5, 6, PAL.grass).ring(8, 6, 5, PAL.grassL); } });
+  out.push({ key: 'i_graveyard_moss', w: 16, h: 16, draw: (p) => { p.ring(1, 7, 8, PAL.grassD).ring(6, 5, 9, PAL.grassDD).ring(8, 9, 7, PAL.grassD).px(5, 10, PAL.grassL).px(10, 8, PAL.grassL).px(12, 12, PAL.grassL).box(2, 2, 5, 6, PAL.bone).r(4, 3, 1, 4, PAL.ink2).r(3, 4, 3, 1, PAL.ink2); } });
+  out.push({ key: 'i_moonpetal', w: 16, h: 16, draw: (p) => { p.r(7, 8, 2, 7, PAL.ink).r(7, 9, 1, 6, PAL.grassD).ring(5, 0, 6, PAL.blue).ring(1, 3, 6, PAL.white).ring(9, 3, 6, PAL.white).ring(5, 6, 6, PAL.blue).disc(6, 3, 4, PAL.yellow); } });
+  out.push(potion('i_calm_draught', PAL.blue, PAL.white));
+  out.push(potion('i_moonlight_tincture', PAL.white, PAL.blue));
+  out.push(potion('i_zeal_tonic', PAL.red, PAL.pink));
   out.push(potion('i_amnesia_brew', PAL.purple, PAL.white));
   out.push(potion('i_pesto', PAL.grass, PAL.grassL));
   out.push(potion('i_sludge', PAL.woodDD, PAL.woodD));

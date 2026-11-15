@@ -65,6 +65,7 @@ const check = (name, ok, detail = '') => {
   const build = async (type) => { await cat(); await tap('btn_build'); await tap(`btn_pick_${type}`); await tap('btn_place'); };
   const winRitual = async (id, { rotateMid = false } = {}) => {
     await tap('tab_rituals');
+    for (let i = 0; i < 4; i++) { if (await page.evaluate((n) => !!window.__ct.find(n), `btn_play_${id}`)) break; await tap('btn_page_next', { optional: true }); }
     await tap(`btn_play_${id}`);
     await wait(900);
     const hintMove = () => page.evaluate(() => { const a = window.__ct.app(); const h = window.__ct.findHint(window.__ct.store.state.run.activeRitual); const o = a.screens.rituals.origin; return { a: { x: o.x + h.a.x * 20 + 10, y: o.y + h.a.y * 20 + 10 }, b: { x: o.x + h.b.x * 20 + 10, y: o.y + h.b.y * 20 + 10 } }; });
@@ -221,10 +222,11 @@ const check = (name, ok, detail = '') => {
   await tap('btn_ok'); await wait(400);
   await shot('p_08_orders');
   await rotate(LANDSCAPE); await shot('l_08_orders'); await rotate(PORTRAIT);
+  await tap('btn_ok', { optional: true }); // a boon or level-up notice may be waiting
   await tap('btn_deliver_mothman_1'); await shot('p_08_order_thanks'); await tap('btn_ok');
   await tap('btn_deliver_mothman_2'); await tap('btn_ok');
   const afterOrders = await run();
-  check('orders: both Mothman orders filled', afterOrders.orders.length === 2 && afterOrders.orders.every((o) => o.filled));
+  check('orders: both Mothman orders filled', afterOrders.ordersFilled.mothman_1 === 1 && afterOrders.ordersFilled.mothman_2 === 1);
   check('orders: Favor earned and Compound Lv2', afterOrders.favor.mothman >= 40 && afterOrders.level >= 2, `favor ${afterOrders.favor.mothman} lv ${afterOrders.level}`);
   check('tutorial: asks the player to leave', afterOrders.tutorial === 'away');
   // 9. close, reopen an hour later
@@ -258,12 +260,77 @@ const check = (name, ok, detail = '') => {
   await cat();
   await tap('btn_menu'); await tap('menu_4'); await wait(300); await shot('p_11_debug');
   await rotate(LANDSCAPE); await shot('l_11_debug'); await rotate(PORTRAIT);
-  await tap('debug_11');
+  await tap('debug_close');
+
+  const bad = [];
+  const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
+  const notices = async (label) => { for (let i = 0; i < 6; i++) { await wait(350); const id = await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id); if (id !== 'notice') return; if (label) { await shot(`p_${label}_${i}`); await audit(`notice ${label}`); } await tap('btn_ok'); } };
+
+  // ---------- expansion: repeating orders, upgrades, new creatures ----------
+  await rotate(PORTRAIT);
+  await notices('notice');
+  await skip(45);
+  check('orders: the Mothman posts new requests after the tutorial', (await run()).orders.length >= 1, JSON.stringify((await run()).orders));
+  // upgrade the dormitory through its card
+  await page.evaluate(() => window.__ct.store.act((g) => { g.run.devotion = 480; g.run.donations = 400; g.run.reliquary.cells[0] = { id: 9001, kind: 'item', chain: 'paper', tier: 2 }; g.run.reliquary.cells[1] = { id: 9002, kind: 'item', chain: 'paper', tier: 3 }; }));
+  await tap('tab_compound'); await wait(300);
+  await shot('p_12_badges');
+  const dormPos = await page.evaluate(() => { const a = window.__ct.app(); const b = window.__ct.store.state.run.buildings.find((x) => x.type === 'dormitory'); return a.screens.compound.floatPos({ building: b.id }); });
+  await clickLogical({ x: dormPos.x, y: dormPos.y + 40 });
+  await shot('p_12_building'); await audit('building card');
+  await rotate(SMALL); await shot('s_12_building'); await audit('s building card'); await rotate(LANDSCAPE); await shot('l_12_building'); await audit('l building card'); await rotate(PORTRAIT);
+  await tap('btn_upgrade'); await wait(300);
+  const dorm = (await run()).buildings.find((b) => b.type === 'dormitory');
+  check('upgrade: the Dormitory reaches level 2 from its card', dorm.level === 2);
+  await shot('p_12_building_after');
+  await tap('btn_close');
+  await notices('upgrade');
+  // level up to 3: notice lists unlocks, brazier appears
+  await tap('btn_menu'); await tap('menu_4'); await wait(200);
+  await shot('p_13_debug');
+  const lvBtn = await page.evaluate(() => { const a = window.__ct.app(); return a.modals.active.id; });
+  check('debug panel opens', lvBtn === 'debug');
+  await tap('debug_close');
+  await page.evaluate(() => window.__ct.store.act((g, e) => window.__ct.core.addXp(g, window.__ct.core.xpNeeded(g.run.level) - g.run.xp, e)));
+  await wait(500);
+  await shot('p_13_levelup'); await audit('level up');
+  check('level up: a notice appears', await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id === 'notice'));
+  await notices();
+  const lv3 = await run();
+  check('level 3: the Ritual Brazier joins the Reliquary', lv3.level >= 3 && lv3.reliquary.cells.some((c) => c && c.kind === 'gen' && c.gen === 'ritual_brazier'));
+  await tap('tab_reliquary'); await tap('btn_chain'); await wait(200); await shot('p_13_reliquary_candles'); await audit('reliquary candles');
+  // summon Baba Yaga
+  await winRitual('r4');
+  await tap('btn_ok'); await wait(400);
+  await shot('p_14_baba_yaga_intro'); await audit('baba intro');
+  await tap('btn_ok'); await wait(400);
+  await notices('boon');
+  await shot('p_14_orders_baba_yaga'); await audit('orders baba');
+  const met = await run();
+  check('summon: Baba Yaga is met, hints a recipe and posts orders', met.met.includes('baba_yaga') && met.hints.includes('calm_draught') && met.orders.some((o) => o.id.startsWith('baba_yaga')));
+  // every creature's board, met or not, at four sizes
+  await page.evaluate(() => window.__ct.store.act((g) => { for (const id of ['jersey_devil', 'anansi', 'vorl']) { g.run.met.push(id); g.run.favor[id] = 45; g.run.orderNextAt[id] = 0; } g.run.level = 5; window.__ct.core.ensureGenerators(g.run); }));
+  await skip(50);
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) {
+    await rotate(vp);
+    await tap('tab_orders');
+    for (const id of ['mothman', 'baba_yaga', 'jersey_devil', 'anansi', 'vorl']) { await tap(`ent_${id}`); await wait(150); await shot(`${prefix}_orders_${id}`); await audit(`${prefix} orders ${id}`); }
+    await tap('tab_rituals'); await shot(`${prefix}_ritual_list_1`); await audit(`${prefix} ritual list`);
+    if (await tap('btn_page_next', { optional: true })) { await shot(`${prefix}_ritual_list_2`); await audit(`${prefix} ritual list 2`); await tap('btn_page_prev', { optional: true }); }
+    await tap('tab_alchemy'); await tap('btn_grimoire'); await wait(200); await shot(`${prefix}_grimoire`); await audit(`${prefix} grimoire`); await tap('btn_close');
+    await tap('plot_3', { optional: true }); await wait(200); await shot(`${prefix}_seeds`); await audit(`${prefix} seeds`); await tap('btn_close', { optional: true });
+  }
+  await rotate(PORTRAIT);
+  // a gamble order end to end
+  await page.evaluate(() => window.__ct.store.act((g) => { g.run.orders = g.run.orders.filter((o) => !o.id.startsWith('anansi')); g.run.orders.push({ id: 'anansi_4' }); g.run.reliquary.cells[2] = { id: 9003, kind: 'item', chain: 'paper', tier: 2 }; g.run.reliquary.cells[4] = { id: 9004, kind: 'item', chain: 'candle', tier: 2 }; g.run.devotion = 0; }));
+  await tap('tab_orders'); await tap('ent_anansi'); await tap('btn_deliver_anansi_4'); await wait(250);
+  await shot('p_15_gamble'); await audit('gamble result');
+  check('gamble order pays out', (await run()).ordersFilled.anansi_4 === 1 && (await run()).devotion >= 45);
+  await tap('btn_ok'); await notices('boon2');
+  await tap('tab_compound');
 
   // follower sheet and stat guide
   await rotate(PORTRAIT);
-  const bad = [];
-  const audit = async (label) => { const a = await page.evaluate(() => window.__ct.audit()); for (const x of a) bad.push(`${label} ${x}`); };
   for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) {
     await rotate(vp);
     await tap('btn_roster'); await wait(250); await shot(`${prefix}_roster`); await audit(`${prefix} roster`);

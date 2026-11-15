@@ -4,11 +4,144 @@
       "id": "mothman",
       "archetype": "omens",
       "summonRitual": "r3",
+      "hintsRecipe": "moonlight_tincture",
+      "boons": [
+        {
+          "favor": 40,
+          "field": "ritualDevotionPct",
+          "value": 10
+        },
+        {
+          "favor": 100,
+          "field": "suspicionDecayPct",
+          "value": 20
+        },
+        {
+          "favor": 200,
+          "field": "ritualDevotionPct",
+          "value": 15
+        }
+      ],
       "reviewStatus": "approved",
       "reviewNotes": "Modern American cryptid (first reported 1966). Guardrail D-111: never reference the 1967 bridge collapse, bridges, or the real town. Omens only concern in-game events.",
       "sources": [
         "Keel, John A. The Mothman Prophecies. Saturday Review Press, 1975.",
         "Sergent, Donnie Jr. & Wamsley, Jeff. Mothman: The Facts Behind the Legend. Mothman Lives Publishing, 2001 (some listings give 2002)."
+      ]
+    },
+    {
+      "id": "baba_yaga",
+      "archetype": "trials",
+      "summonRitual": "r4",
+      "hintsRecipe": "calm_draught",
+      "boons": [
+        {
+          "favor": 40,
+          "field": "cropYieldBonus",
+          "value": 1
+        },
+        {
+          "favor": 100,
+          "field": "outputPct",
+          "value": 15
+        },
+        {
+          "favor": 200,
+          "field": "cropYieldBonus",
+          "value": 1
+        }
+      ],
+      "reviewStatus": "pending",
+      "reviewNotes": "Slavic folklore witch who lives in a hut on chicken legs; ambiguous figure who tests visitors and rewards the polite and capable. Portrayed as formidable and unimpressed; the joke is the leader failing her standards. No accents, no mockery of Slavic cultures.",
+      "sources": [
+        "Johns, Andreas. Baba Yaga: The Ambiguous Mother and Witch of the Russian Folktale. Peter Lang, 2004.",
+        "Afanas'ev, Aleksandr. Russian Fairy Tales. Trans. Norbert Guterman. Pantheon, 1945."
+      ]
+    },
+    {
+      "id": "jersey_devil",
+      "archetype": "nuisance",
+      "summonRitual": "r6",
+      "hintsRecipe": null,
+      "boons": [
+        {
+          "favor": 40,
+          "field": "suspicionDecayPct",
+          "value": 15
+        },
+        {
+          "favor": 100,
+          "field": "donationsPerMin",
+          "value": 2
+        },
+        {
+          "favor": 200,
+          "field": "outputPct",
+          "value": 15
+        }
+      ],
+      "reviewStatus": "pending",
+      "reviewNotes": "American folklore creature of the New Jersey Pine Barrens (winged, hooved, horse-headed). Played as a loud, petty neighbour. No reference to real people or the 'Mother Leeds' family as individuals.",
+      "sources": [
+        "Regal, Brian & Esposito, Frank J. The Secret History of the Jersey Devil. Johns Hopkins University Press, 2018.",
+        "McCloy, James F. & Miller, Ray. The Jersey Devil. Middle Atlantic Press, 1976."
+      ]
+    },
+    {
+      "id": "anansi",
+      "archetype": "gambles",
+      "summonRitual": "r8",
+      "hintsRecipe": "zeal_tonic",
+      "boons": [
+        {
+          "favor": 40,
+          "field": "donationsPerMin",
+          "value": 2
+        },
+        {
+          "favor": 100,
+          "field": "suspicionDecayPct",
+          "value": 25
+        },
+        {
+          "favor": 200,
+          "field": "donationsPerMin",
+          "value": 3
+        }
+      ],
+      "reviewStatus": "pending",
+      "reviewNotes": "Trickster spider of Akan (Ghana) folktales, carried to the Caribbean and the Americas; owner of all stories. Use the folktale figure only: clever, charming, always a step ahead of the leader. No dialect writing, no religious practice, no caricature. The leader is the one being outwitted.",
+      "sources": [
+        "Rattray, R. S. Akan-Ashanti Folk-Tales. Clarendon Press, 1930.",
+        "Marshall, Emily Zobel. Anansi's Journey: A Story of Jamaican Cultural Resistance. University of the West Indies Press, 2012."
+      ]
+    },
+    {
+      "id": "vorl",
+      "archetype": "hunger",
+      "summonRitual": "r9",
+      "hintsRecipe": null,
+      "boons": [
+        {
+          "favor": 40,
+          "field": "outputPct",
+          "value": 20
+        },
+        {
+          "favor": 100,
+          "field": "outputPct",
+          "value": 20
+        },
+        {
+          "favor": 200,
+          "field": "ritualDevotionPct",
+          "value": 20
+        }
+      ],
+      "reviewStatus": "pending",
+      "reviewNotes": "Original creation for this game (D-104): a vast, patient thing in deep water. Cosmic-horror in tone only; no names, places or text from any published mythos.",
+      "sources": [
+        "Original to Cult Tycoon; see docs/DECISIONS.md D-104."
       ]
     }
   ]

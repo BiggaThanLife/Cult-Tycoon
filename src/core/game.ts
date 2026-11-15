@@ -1,13 +1,13 @@
 // Core game rules: new game, actions and tick. Pure TypeScript, no Phaser, no DOM.
 // Every function takes the GameState and an `emit` callback for UI notifications.
-import { DATA, buildingDef, cropDef, eventDef, orderDef, ritualDef, traitDef, type OrderNeed } from './data';
+import { DATA, buildingDef, cropDef, entityDef, eventDef, orderDef, ritualDef, traitDef, type BoonField, type OrderNeed, type UpgradeDef } from './data';
 import { deriveSeed, makeRng, type Rng } from './rng';
 import { TUTORIAL_ORDER, type BuildingState, type Emit, type Follower, type GameState, type RunState, type TutorialStep } from './types';
-import { countItems, createMerge, moveItem, removeItems, tapGenerator, tickMerge, type Loc, type MoveResult } from '../puzzle/merge';
+import { addGenerator, countItems, createMerge, moveItem, removeItems, tapGenerator, tickMerge, type Loc, type MoveResult } from '../puzzle/merge';
 import { createGame, starsFor, type Match3State } from '../puzzle/match3';
 
 const B = DATA.balance;
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const noEmit: Emit = () => {};
 
 // ---------- helpers ----------
@@ -36,6 +36,7 @@ export function addXp(g: GameState, amount: number, emit: Emit = noEmit): void {
     run.xp -= xpNeeded(run.level);
     run.level++;
     noteUnlock(g);
+    ensureGenerators(run);
     emit({ type: 'levelUp', level: run.level });
   }
 }
@@ -47,7 +48,7 @@ function noteUnlock(g: GameState): void {
 }
 
 export function addResource(run: RunState, res: 'devotion' | 'donations', amount: number): number {
-  const cap = B.caps[res];
+  const cap = res === 'devotion' ? devotionCap(run) : B.caps.donations;
   const before = run[res];
   run[res] = Math.max(0, Math.min(cap, before + amount));
   return run[res] - before;
@@ -63,7 +64,49 @@ export function suspicionBand(s: number): number {
   return s < b[0] ? 0 : s < b[1] ? 1 : s < b[2] ? 2 : 3;
 }
 
-export const housing = (run: RunState) => run.buildings.reduce((n, b) => n + (buildingDef(b.type).housing ?? 0), 0);
+/** A building's per-level bonus for one field, e.g. levelBonus(b, 'housing') = extra beds from upgrades. */
+export function levelBonus(b: BuildingState, field: 'outputPct' | 'housing' | 'plots' | 'brewBonus'): number {
+  return (buildingDef(b.type).perLevel?.[field] ?? 0) * (b.level - 1);
+}
+export const housing = (run: RunState) => run.buildings.reduce((n, b) => n + (buildingDef(b.type).housing ? buildingDef(b.type).housing! + levelBonus(b, 'housing') : 0), 0);
+export function devotionCap(run: RunState): number {
+  let cap = B.caps.devotion;
+  for (const b of run.buildings) {
+    const caps = buildingDef(b.type).devotionCap;
+    if (caps) cap = Math.max(cap, caps[Math.min(b.level, caps.length) - 1]);
+  }
+  return cap;
+}
+
+// ---------- entity boons: permanent bonuses earned with Favor ----------
+
+/** How many of an entity's boons the current Favor has unlocked. */
+export function boonsUnlocked(run: RunState, entityId: string): number {
+  const fav = run.favor[entityId] ?? 0;
+  return entityDef(entityId).boons.filter((b) => fav >= b.favor).length;
+}
+/** Sum of one boon field across every entity met this run. */
+export function boon(run: RunState, field: BoonField): number {
+  let n = 0;
+  for (const id of run.met) {
+    const fav = run.favor[id] ?? 0;
+    for (const b of entityDef(id).boons) if (b.field === field && fav >= b.favor) n += b.value;
+  }
+  return n;
+}
+/** Things that unlock on reaching a compound level, for the level-up screen. */
+export function unlocksAt(level: number): { kind: 'crop' | 'generator' | 'ritual'; id: string }[] {
+  const out: { kind: 'crop' | 'generator' | 'ritual'; id: string }[] = [];
+  for (const c of DATA.crops) if (c.unlockLevel === level && level > 1) out.push({ kind: 'crop', id: c.id });
+  for (const gen of DATA.merge.generators) if ((gen.unlockLevel ?? 1) === level && level > 1) out.push({ kind: 'generator', id: gen.id });
+  for (const r of DATA.rituals) if (r.unlock?.level === level) out.push({ kind: 'ritual', id: r.id });
+  return out;
+}
+export const cropUnlocked = (run: RunState, cropId: string) => run.level >= (cropDef(cropId)?.unlockLevel ?? 1);
+/** Place any generator the compound level has unlocked that is not on the merge grid yet. */
+export function ensureGenerators(run: RunState): void {
+  for (const gen of DATA.merge.generators) if (run.level >= (gen.unlockLevel ?? 1)) addGenerator(run.reliquary, DATA.merge, gen.id);
+}
 export const hasBuilding = (run: RunState, type: string) => run.buildings.some((b) => b.type === type);
 export const inv = (run: RunState, item: string) => run.inventory[item] ?? 0;
 
@@ -100,6 +143,11 @@ export function newGame(seed: number, nowWall: number): GameState {
     draft: null,
     reliquary: createMerge(DATA.merge, deriveSeed(seed, 'merge')),
     orders: [],
+    ordersFilled: {},
+    orderNextAt: {},
+    lastOrder: {},
+    met: [],
+    hints: [],
     favor: {},
     rituals: {},
     activeRitual: null,
@@ -180,6 +228,31 @@ export function assignJobs(run: RunState): void {
   }
 }
 
+// ---------- upgrades ----------
+
+export const nextUpgrade = (b: BuildingState): UpgradeDef | null => buildingDef(b.type).upgrades?.[b.level - 1] ?? null;
+export const maxLevel = (type: string) => 1 + (buildingDef(type).upgrades?.length ?? 0);
+export function canUpgrade(run: RunState, b: BuildingState): boolean {
+  const up = nextUpgrade(b);
+  return !!up && canAfford(run, up.cost) && (!up.merge || countItems(run.reliquary, up.merge.chain, up.merge.tier) >= 1);
+}
+export function upgradeBuilding(g: GameState, buildingId: number, emit: Emit = noEmit): boolean {
+  const run = g.run;
+  const b = run.buildings.find((x) => x.id === buildingId);
+  if (!b || !canUpgrade(run, b)) return false;
+  const up = nextUpgrade(b)!;
+  run.devotion -= up.cost.devotion;
+  run.donations -= up.cost.donations;
+  if (up.merge) removeItems(run.reliquary, up.merge.chain, up.merge.tier, 1);
+  b.level++;
+  const def = buildingDef(b.type);
+  if (b.plots && def.plots) while (b.plots.length < def.plots + levelBonus(b, 'plots')) b.plots.push({ crop: null, plantedAt: 0 });
+  addXp(g, B.xp.perUpgrade, emit);
+  noteUnlock(g);
+  emit({ type: 'float', textKey: 'float.upgraded', params: { n: b.level }, tone: 'gain', at: { building: b.id } });
+  return true;
+}
+
 // ---------- follower stats: what each one does (shown to the player in the follower sheet) ----------
 
 /** Productivity sets work speed; Sanity nudges it up or down. Returns the share of a building's base output this follower adds (0.5 = +50%). */
@@ -213,12 +286,13 @@ export function productionRate(run: RunState, b: BuildingState): number {
     if (f.job !== b.id) continue;
     mult += followerWork(f);
   }
+  mult += (levelBonus(b, 'outputPct') + boon(run, 'outputPct')) / 100;
   return (def.produces.perMin / 60) * mult;
 }
 
 export const storageCap = (b: BuildingState) => {
   const def = buildingDef(b.type);
-  return def.produces ? def.produces.perMin * (def.storageMin ?? 10) : 0;
+  return def.produces ? def.produces.perMin * (def.storageMin ?? 10) * (1 + levelBonus(b, 'outputPct') / 100) : 0;
 };
 
 export function collect(g: GameState, buildingId: number, emit: Emit = noEmit): number {
@@ -252,7 +326,7 @@ export function plant(g: GameState, buildingId: number, slot: number, crop: stri
   const b = run.buildings.find((x) => x.id === buildingId);
   const p = b?.plots?.[slot];
   const def = cropDef(crop);
-  if (!b || !p || p.crop || !def || run.donations < def.seedCost) return false;
+  if (!b || !p || p.crop || !def || !cropUnlocked(run, crop) || run.donations < def.seedCost) return false;
   run.donations -= def.seedCost;
   p.crop = crop;
   p.plantedAt = run.time;
@@ -266,7 +340,7 @@ export function harvest(g: GameState, buildingId: number, slot: number, emit: Em
   if (!b || !plotReady(run, b, slot)) return 0;
   const p = b.plots![slot];
   const crop = p.crop!;
-  const n = cropDef(crop).yield + traitMax(run, 'cropYieldBonus');
+  const n = cropDef(crop).yield + traitMax(run, 'cropYieldBonus') + boon(run, 'cropYieldBonus');
   run.inventory[crop] = inv(run, crop) + n;
   p.crop = null;
   run.flags[`harvested_${crop}`] = true;
@@ -297,18 +371,23 @@ export function brew(g: GameState, ingredients: string[], fine: boolean, emit: E
   const rid = matchRecipe(ingredients);
   const recipe = rid ? R.recipes.find((x) => x.id === rid)! : null;
   const output = recipe ? recipe.output : R.failOutput;
-  const count = recipe && fine ? 2 : 1;
+  const lab = run.buildings.find((x) => x.type === 'alchemy_lab')!;
+  const count = recipe ? 1 + (fine ? 1 : 0) + levelBonus(lab, 'brewBonus') : 1;
   run.inventory[output] = inv(run, output) + count;
   let discovered = false;
   const known = !!recipe && g.meta.grimoire.includes(recipe.id);
   if (recipe && !known) {
     g.meta.grimoire.push(recipe.id);
     discovered = true;
+    addXp(g, B.xp.perRecipe, emit);
     noteUnlock(g);
   }
   if (recipe) run.flags[`brewed_${recipe.id}`] = true;
   return { ok: true, output, count, discovered, known };
 }
+
+/** A recipe the player may be shown: hinted in data, or hinted by an entity they have met. */
+export const recipeHinted = (run: RunState, recipeId: string) => !!DATA.recipes.recipes.find((r) => r.id === recipeId)?.hinted || run.hints.includes(recipeId);
 
 // ---------- reliquary ----------
 
@@ -331,9 +410,12 @@ export function mergeMove(g: GameState, from: Loc, to: Loc, emit: Emit = noEmit)
 // ---------- rituals ----------
 
 export function ritualUnlocked(run: RunState, levelId: string): boolean {
-  const idx = DATA.rituals.findIndex((r) => r.id === levelId);
-  const gates: TutorialStep[] = ['ritual1', 'ritual2', 'ritual3'];
-  return idx >= 0 && reached(run, gates[Math.min(idx, gates.length - 1)]);
+  const lv = DATA.rituals.find((r) => r.id === levelId);
+  if (!lv) return false;
+  const u = lv.unlock ?? {};
+  if (u.step && !reached(run, u.step as TutorialStep)) return false;
+  if (u.level && run.level < u.level) return false;
+  return true;
 }
 
 export function startRitual(g: GameState, levelId: string): Match3State | null {
@@ -343,13 +425,13 @@ export function startRitual(g: GameState, levelId: string): Match3State | null {
   return st;
 }
 
-export interface RitualReward { won: boolean; stars: number; firstTime: boolean; flockPct: number; devotion: number; donations: number; basil: number; drafts: number; favor: number; entity: string | null }
+export interface RitualReward { won: boolean; stars: number; firstTime: boolean; flockPct: number; boonPct: number; devotion: number; donations: number; basil: number; drafts: number; favor: number; entity: string | null }
 
 /** Close the active ritual and pay out. Call when its status is 'won' or 'lost' (or to abandon). */
 export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
   const run = g.run;
   const st = run.activeRitual as Match3State | null;
-  const out: RitualReward = { won: false, stars: 0, firstTime: false, flockPct: 0, devotion: 0, donations: 0, basil: 0, drafts: 0, favor: 0, entity: null };
+  const out: RitualReward = { won: false, stars: 0, firstTime: false, flockPct: 0, boonPct: 0, devotion: 0, donations: 0, basil: 0, drafts: 0, favor: 0, entity: null };
   run.activeRitual = null;
   if (!st || st.status !== 'won') return out;
   const level = st.level;
@@ -362,7 +444,8 @@ export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
   let dev = (R.devotionBase + R.devotionPerIndex * idx) * R.starMult[stars];
   if (level.purpose === 'sermon') dev *= 1 + R.sermonBonus;
   out.flockPct = Math.round(ritualDevotionPct(run));
-  dev *= 1 + ritualDevotionPct(run) / 100;
+  out.boonPct = boon(run, 'ritualDevotionPct');
+  dev *= 1 + (ritualDevotionPct(run) + out.boonPct) / 100;
   out.won = true;
   out.stars = stars;
   out.firstTime = firstTime;
@@ -384,14 +467,16 @@ export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
     const ent = DATA.entities.find((e) => e.summonRitual === level.id);
     if (ent) {
       out.entity = ent.id;
-      if (!g.meta.bestiary.includes(ent.id)) {
-        g.meta.bestiary.push(ent.id);
+      if (!run.met.includes(ent.id)) {
+        run.met.push(ent.id);
+        if (!g.meta.bestiary.includes(ent.id)) g.meta.bestiary.push(ent.id);
         noteUnlock(g);
-        for (const o of DATA.orders.filter((x) => x.from === ent.id)) run.orders.push({ id: o.id, filled: false });
-      }
-      if (firstTime) {
+        if (ent.hintsRecipe && !run.hints.includes(ent.hintsRecipe)) run.hints.push(ent.hintsRecipe);
+        for (const o of DATA.orders.filter((x) => x.from === ent.id && x.tutorial)) run.orders.push({ id: o.id });
+        run.orderNextAt[ent.id] = run.time;
         out.favor = R.summonFavor;
-        run.favor[ent.id] = (run.favor[ent.id] ?? 0) + out.favor;
+        addFavor(g, ent.id, out.favor, emit);
+        refillOrders(g, emit);
       }
     }
   }
@@ -456,25 +541,82 @@ export function draftPick(g: GameState, index: number, emit: Emit = noEmit): Fol
 export function needHave(run: RunState, need: OrderNeed): number {
   return 'item' in need ? inv(run, need.item) : countItems(run.reliquary, need.merge, need.tier);
 }
-export function canFill(run: RunState, orderId: string): boolean {
-  const o = run.orders.find((x) => x.id === orderId);
-  return !!o && !o.filled && orderDef(orderId).needs.every((n) => needHave(run, n) >= n.count);
-}
-export function fillOrder(g: GameState, orderId: string, emit: Emit = noEmit): boolean {
+
+/** Can the player currently make this? Orders never ask for something out of reach. */
+export function producible(g: GameState, need: OrderNeed): boolean {
   const run = g.run;
-  if (!canFill(run, orderId)) return false;
+  if ('merge' in need) {
+    const gen = DATA.merge.generators.find((x) => x.chain === need.merge);
+    return !!gen && run.level >= (gen.unlockLevel ?? 1) && reached(run, 'merge');
+  }
+  const crop = DATA.crops.find((c) => c.id === need.item);
+  if (crop) return hasBuilding(run, 'greenhouse') && cropUnlocked(run, crop.id);
+  if (need.item === DATA.recipes.failOutput) return hasBuilding(run, 'alchemy_lab');
+  const recipe = DATA.recipes.recipes.find((r) => r.output === need.item);
+  if (!recipe || !hasBuilding(run, 'alchemy_lab')) return false;
+  if (!g.meta.grimoire.includes(recipe.id) && !recipeHinted(run, recipe.id)) return false;
+  return recipe.ingredients.every((i) => cropUnlocked(run, i));
+}
+
+export const activeOrders = (run: RunState, entityId: string) => run.orders.filter((o) => orderDef(o.id).from === entityId);
+
+/** Top each met entity's board back up to its slots from that entity's repeating pool. */
+export function refillOrders(g: GameState, emit: Emit = noEmit): void {
+  const run = g.run;
+  const O = B.orders;
+  for (const ent of run.met) {
+    let guard = 0;
+    while (activeOrders(run, ent).length < O.slotsPerEntity && run.time >= (run.orderNextAt[ent] ?? 0) && guard++ < 4) {
+      const pool = DATA.orders.filter((o) => o.from === ent && !o.tutorial && !run.orders.some((a) => a.id === o.id) && o.needs.every((n) => producible(g, n)));
+      if (pool.length === 0) break;
+      const fresh = pool.filter((o) => o.id !== run.lastOrder[ent]);
+      const pick = withRng(run, 'orders', (r) => r.pick(fresh.length ? fresh : pool));
+      run.orders.push({ id: pick.id });
+      run.lastOrder[ent] = pick.id;
+      run.orderNextAt[ent] = run.time + O.refillSec;
+    }
+  }
+}
+
+export function canFill(run: RunState, orderId: string): boolean {
+  return run.orders.some((x) => x.id === orderId) && orderDef(orderId).needs.every((n) => needHave(run, n) >= n.count);
+}
+
+function addFavor(g: GameState, entityId: string, amount: number, emit: Emit): number {
+  const run = g.run;
+  const before = boonsUnlocked(run, entityId);
+  run.favor[entityId] = (run.favor[entityId] ?? 0) + amount;
+  const after = boonsUnlocked(run, entityId);
+  for (let i = before; i < after; i++) {
+    noteUnlock(g);
+    emit({ type: 'boon', entity: entityId, index: i });
+  }
+  return after - before;
+}
+
+export interface FillResult { ok: boolean; mult: number; devotion: number; donations: number; favor: number; boons: number }
+
+export function fillOrder(g: GameState, orderId: string, emit: Emit = noEmit): FillResult {
+  const run = g.run;
+  const out: FillResult = { ok: false, mult: 1, devotion: 0, donations: 0, favor: 0, boons: 0 };
+  if (!canFill(run, orderId)) return out;
   const def = orderDef(orderId);
   for (const n of def.needs) {
     if ('item' in n) run.inventory[n.item] -= n.count;
     else removeItems(run.reliquary, n.merge, n.tier, n.count);
   }
-  run.orders.find((x) => x.id === orderId)!.filled = true;
-  if (def.reward.devotion) addResource(run, 'devotion', def.reward.devotion);
-  if (def.reward.donations) addResource(run, 'donations', def.reward.donations);
-  if (def.reward.favor) run.favor[def.from] = (run.favor[def.from] ?? 0) + def.reward.favor;
-  const xp = (B.xp.perOrderBase + B.xp.perOrderPerLevel * run.level) * (def.kind === 'entity' ? B.xp.entityOrderMult : 1);
-  addXp(g, Math.round(xp), emit);
-  return true;
+  run.orders = run.orders.filter((x) => x.id !== orderId);
+  run.ordersFilled[orderId] = (run.ordersFilled[orderId] ?? 0) + 1;
+  // a gamble order rolls its payout when delivered: higher on average, never below half
+  out.mult = def.kind === 'gamble' ? withRng(run, 'anansi', (r) => r.pick(B.orders.gamble)) : 1;
+  out.ok = true;
+  out.devotion = addResource(run, 'devotion', Math.round((def.reward.devotion ?? 0) * out.mult));
+  out.donations = addResource(run, 'donations', Math.round((def.reward.donations ?? 0) * out.mult));
+  out.favor = def.reward.favor ?? 0;
+  out.boons = addFavor(g, def.from, out.favor, emit);
+  addXp(g, Math.round((B.xp.perOrderBase + B.xp.perOrderPerLevel * run.level) * B.xp.entityOrderMult), emit);
+  run.orderNextAt[def.from] = Math.max(run.orderNextAt[def.from] ?? 0, run.time + B.orders.refillSec);
+  return out;
 }
 
 // ---------- events ----------
@@ -523,13 +665,14 @@ export function tick(g: GameState, dt: number, emit: Emit = noEmit, opts: { offl
     const rate = productionRate(run, b);
     if (rate > 0) b.stored = Math.min(storageCap(b), b.stored + rate * dt * prodMult);
   }
-  const don = traitSum(run, 'donationsPerMin');
+  const don = traitSum(run, 'donationsPerMin') + boon(run, 'donationsPerMin');
   if (don > 0) addResource(run, 'donations', (don / 60) * dt * prodMult);
   if (run.suspicion > 0) {
-    const decay = (B.suspicion.decayPerMin / 60) * dt * (1 + traitSum(run, 'suspicionDecayPct') / 100) * (1 - doubtDecayPenalty(run)) * (off ? B.offline.suspicionDecayMult : 1);
+    const decay = (B.suspicion.decayPerMin / 60) * dt * (1 + (traitSum(run, 'suspicionDecayPct') + boon(run, 'suspicionDecayPct')) / 100) * (1 - doubtDecayPenalty(run)) * (off ? B.offline.suspicionDecayMult : 1);
     run.suspicion = Math.max(0, run.suspicion - decay);
   }
   tickMerge(run.reliquary, DATA.merge, dt);
+  refillOrders(g, emit);
   if (!off) {
     g.meta.stats.playSec += dt;
     if (!run.event && !run.flags.cat_adopted && reached(run, 'build_greenhouse') && run.time >= run.catAt) {
@@ -558,7 +701,7 @@ const STEP_DONE: Record<TutorialStep, (g: GameState) => boolean> = {
   brew: (g) => !!g.run.flags.brewed_amnesia_brew,
   reporter: (g) => !!g.run.flags.reporter_done,
   ritual3: (g) => (g.run.rituals.r3 ?? 0) > 0,
-  orders: (g) => g.run.orders.length > 0 && g.run.orders.every((o) => o.filled),
+  orders: (g) => DATA.orders.filter((o) => o.tutorial).every((o) => (g.run.ordersFilled[o.id] ?? 0) > 0),
   away: (g) => !!g.run.flags.away_done,
   ascension: (g) => !!g.run.flags.ascension_viewed,
   done: () => false,
@@ -587,7 +730,7 @@ export function tabUnlocked(run: RunState, tab: TabId): boolean {
     case 'rituals': return reached(run, 'ritual1');
     case 'alchemy': return hasBuilding(run, 'greenhouse');
     case 'reliquary': return reached(run, 'merge');
-    case 'orders': return run.orders.length > 0;
+    case 'orders': return run.met.length > 0;
   }
 }
 

@@ -63,3 +63,14 @@ Format: `D-### — date — decision — why — reversible?`
 - **D-134** Owner: keep the plant names Nightshade, Mandrake and Wolfsbane (closes the question in D-129). Descriptions stay clearly fictional.
 - **D-135** Follower stats now all have an effect and the game says so: Productivity = work speed, Sanity = +/-0.25% output per point from 50, Devotion = +0.1% ritual Devotion per point, Doubt = Suspicion fades 0.5% slower per average point. Tapping a follower (map, roster or recruit card) opens a sheet that names each stat and prints its current effect; a "?" guide explains the letters.
 - **D-136** Owner-reported bugs fixed: follower portrait covered the first stat in the Flock list (cards are now 50 tall, stats sit below the portrait); Relics help text ran under the tab bar on short screens (it now shows only when it fits). The playthrough gained a text-overflow audit at four screen sizes including 360x640.
+
+## Expansion 1 (2026-11-15)
+- **D-137** Four more entities: Baba Yaga (Lv2), the Jersey Devil (Lv3), Anansi (Lv4), Vorl (Lv5), each met through its own summoning ritual. The Jersey Devil was added ahead of Kitsune because it carries no cultural sensitivity; Kitsune, Kappa and Sphinx stay in LATER pending lore review.
+- **D-138** Orders are now a live board: two open requests per met entity, refilled 20 s after a delivery from that entity's pool, and only offered if every item is makeable now. Save v3 migrates old order lists.
+- **D-139** Order styles preview the patron archetypes without pledging: Baba Yaga trials (large ask, about triple pay), Anansi gambles (x0.5 to x2.5, mean 1.25). Full pledges, banes and questlines come later.
+- **D-140** Favor now buys something: three boons per entity at 40 / 100 / 200 Favor, all additive, lasting the run.
+- **D-141** Building upgrades (2 to 3 levels) cost Devotion, Donations and one merge item. Devotion storage depends on Sermon Hall level (500 / 1500 / 4000); Donations cap raised to 500.
+- **D-142** XP retuned for the longer game: level curve exponent 1.6 to 1.4, orders pay 15 + 3 per level (x1.5), upgrades 15, a new recipe 10.
+- **D-143** New content: Graveyard Moss and Moonpetal; Calm Draught, Moonlight Tincture, Zeal Tonic; the candle merge chain from the Ritual Brazier. Entities hint one recipe each when first met; the Grimoire moved to its own screen.
+- **D-144** Potions other than Amnesia Brew are only consumed by orders for now. Using potions on followers needs its own spec (consent rules, D-110) and is in LATER.
+- **D-145** Level-ups and boons are announced by a queued dialog that waits for a quiet moment; it never interrupts a ritual.

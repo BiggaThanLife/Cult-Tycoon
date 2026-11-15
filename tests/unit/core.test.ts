@@ -58,8 +58,8 @@ function playSlice(seed = 42): GameState {
   expect((g.run.event as { id: string } | null)?.id).toBe('reporter');
   expect(G.resolveEvent(g, 0)).toBe(true); step();
   expect(win(g, 'r3').entity).toBe('mothman'); step();
-  expect(G.fillOrder(g, 'mothman_1')).toBe(true);
-  expect(G.fillOrder(g, 'mothman_2')).toBe(true); step();
+  expect(G.fillOrder(g, 'mothman_1').ok).toBe(true);
+  expect(G.fillOrder(g, 'mothman_2').ok).toBe(true); step();
   return g;
 }
 
@@ -81,6 +81,8 @@ describe('vertical slice (headless)', () => {
     expect(g.run.tutorial).toBe('away');
     expect(g.run.level).toBeGreaterThanOrEqual(2);
     expect(g.run.favor.mothman).toBe(40);
+    expect(g.run.met).toEqual(['mothman']);
+    expect(G.boonsUnlocked(g.run, 'mothman')).toBe(1); // 20 for the summon + 10 + 10: first boon at 40
     expect(g.meta.grimoire).toContain('amnesia_brew');
     expect(g.meta.mergeCodex.paper).toBe(3);
     expect(g.meta.bestiary).toContain('mothman');
@@ -161,6 +163,125 @@ describe('follower stats do what the follower sheet says', () => {
   });
 });
 
+describe('expansion: orders, boons, upgrades, unlocks', () => {
+  it('after the tutorial orders, the Mothman keeps two requests open from things you can make', () => {
+    const g = playSlice();
+    expect(g.run.orders).toHaveLength(0);
+    G.tick(g, DATA.balance.orders.refillSec + 1);
+    const open = G.activeOrders(g.run, 'mothman');
+    expect(open).toHaveLength(1); // one slot refills per timer
+    G.tick(g, DATA.balance.orders.refillSec + 1);
+    expect(G.activeOrders(g.run, 'mothman')).toHaveLength(2);
+    for (const o of g.run.orders) {
+      const def = DATA.orders.find((x) => x.id === o.id)!;
+      expect(def.tutorial).toBeFalsy();
+      expect(def.needs.every((n) => G.producible(g, n))).toBe(true);
+    }
+    // candle items and level-3 crops are out of reach at level 2
+    expect(G.producible(g, { merge: 'candle', tier: 2, count: 1 })).toBe(false);
+    expect(G.producible(g, { item: 'moonpetal', count: 1 })).toBe(false);
+    expect(G.producible(g, { item: 'moonlight_tincture', count: 1 })).toBe(false); // hinted, but moonpetal is locked
+  });
+  it('every order pool only asks for items that exist, and every entity has a pool and a summoning ritual', () => {
+    for (const e of DATA.entities) {
+      expect(DATA.orders.filter((o) => o.from === e.id && !o.tutorial).length).toBeGreaterThanOrEqual(3);
+      const lv = DATA.rituals.find((r) => r.id === e.summonRitual);
+      expect(lv?.purpose).toBe('summon');
+      expect(e.boons.map((b) => b.favor)).toEqual([...e.boons.map((b) => b.favor)].sort((a, b) => a - b));
+      if (e.hintsRecipe) expect(DATA.recipes.recipes.some((r) => r.id === e.hintsRecipe)).toBe(true);
+    }
+    const summons = DATA.rituals.filter((r) => r.purpose === 'summon').map((r) => r.id).sort();
+    expect(DATA.entities.map((e) => e.summonRitual).sort()).toEqual(summons);
+  });
+  it('gamble orders roll between half and 2.5x, deterministically for a seed', () => {
+    const roll = (seed: number) => {
+      const g = playSlice(seed);
+      g.run.met.push('anansi');
+      g.run.devotion = 0; g.run.donations = 0;
+      g.run.orders.push({ id: 'anansi_4' });
+      g.run.reliquary.cells[0] = { id: 800, kind: 'item', chain: 'paper', tier: 2 };
+      g.run.reliquary.cells[1] = { id: 801, kind: 'item', chain: 'candle', tier: 2 };
+      return G.fillOrder(g, 'anansi_4');
+    };
+    const a = roll(5);
+    expect(a.ok).toBe(true);
+    expect(DATA.balance.orders.gamble).toContain(a.mult);
+    expect(a.devotion).toBe(Math.round(90 * a.mult));
+    expect(roll(5).mult).toBe(a.mult);
+    const mean = DATA.balance.orders.gamble.reduce((x, y) => x + y, 0) / DATA.balance.orders.gamble.length;
+    expect(mean).toBeGreaterThan(1);
+    expect(Math.min(...DATA.balance.orders.gamble)).toBeGreaterThanOrEqual(0.5);
+  });
+  it('Favor unlocks boons, and boons change the numbers they claim to', () => {
+    const g = playSlice();
+    const hall = g.run.buildings.find((b) => b.type === 'sermon_hall')!;
+    const before = { rate: G.productionRate(g.run, hall), ritual: G.boon(g.run, 'ritualDevotionPct') };
+    expect(before.ritual).toBe(10); // Mothman's first boon
+    g.run.met.push('vorl');
+    g.run.favor.vorl = 100;
+    expect(G.boonsUnlocked(g.run, 'vorl')).toBe(2);
+    expect(G.boon(g.run, 'outputPct')).toBe(40);
+    expect(G.productionRate(g.run, hall)).toBeCloseTo(before.rate + (6 / 60) * 0.4, 6);
+    g.run.met.push('baba_yaga');
+    g.run.favor.baba_yaga = 40;
+    const gh = g.run.buildings.find((b) => b.type === 'greenhouse')!;
+    G.plant(g, gh.id, 0, 'basil'); G.tick(g, 31);
+    const base = DATA.crops.find((c) => c.id === 'basil')!.yield;
+    expect(G.harvest(g, gh.id, 0)).toBeGreaterThanOrEqual(base + 1);
+    const events: string[] = [];
+    g.run.favor.mothman = 95; g.run.orders.push({ id: 'mothman_3' }); g.run.inventory.nightshade = 2;
+    G.fillOrder(g, 'mothman_3', (e) => { if (e.type === 'boon') events.push(`${e.entity}:${e.index}`); });
+    expect(events).toEqual(['mothman:1']);
+  });
+  it('upgrades cost resources and a merge item, and deliver what the card promises', () => {
+    const g = playSlice();
+    const dorm = g.run.buildings.find((b) => b.type === 'dormitory')!;
+    const gh = g.run.buildings.find((b) => b.type === 'greenhouse')!;
+    const hall = g.run.buildings.find((b) => b.type === 'sermon_hall')!;
+    g.run.devotion = 500; g.run.donations = 500;
+    expect(G.canUpgrade(g.run, dorm)).toBe(false); // no Brochure yet
+    g.run.reliquary.cells[0] = { id: 900, kind: 'item', chain: 'paper', tier: 2 };
+    expect(G.housing(g.run)).toBe(4);
+    expect(G.upgradeBuilding(g, dorm.id)).toBe(true);
+    expect(G.housing(g.run)).toBe(6);
+    expect(g.run.reliquary.cells[0]).toBeNull();
+    expect(g.run.devotion).toBe(380);
+    g.run.reliquary.cells[0] = { id: 901, kind: 'item', chain: 'paper', tier: 2 };
+    expect(G.upgradeBuilding(g, gh.id)).toBe(true);
+    expect(gh.plots).toHaveLength(6);
+    const rate = G.productionRate(g.run, hall);
+    g.run.reliquary.cells[0] = { id: 902, kind: 'item', chain: 'paper', tier: 3 };
+    g.run.devotion = 500;
+    expect(G.devotionCap(g.run)).toBe(500);
+    expect(G.upgradeBuilding(g, hall.id)).toBe(true);
+    expect(G.productionRate(g.run, hall)).toBeCloseTo(rate + (6 / 60) * 0.6, 6);
+    expect(G.devotionCap(g.run)).toBe(1500);
+    expect(G.storageCap(hall)).toBe(96);
+    expect(G.maxLevel('sermon_hall')).toBe(3);
+  });
+  it('compound levels unlock crops, the brazier and rituals', () => {
+    const g = playSlice();
+    expect(g.run.level).toBe(2);
+    expect(G.cropUnlocked(g.run, 'graveyard_moss')).toBe(true);
+    expect(G.cropUnlocked(g.run, 'moonpetal')).toBe(false);
+    expect(G.ritualUnlocked(g.run, 'r4')).toBe(true);
+    expect(G.ritualUnlocked(g.run, 'r6')).toBe(false);
+    const levels: number[] = [];
+    G.addXp(g, G.xpNeeded(2) - g.run.xp, (e) => { if (e.type === 'levelUp') levels.push(e.level); });
+    expect(levels).toEqual([3]);
+    expect(g.run.reliquary.cells.some((c) => c?.kind === 'gen' && c.gen === 'ritual_brazier')).toBe(true);
+    expect(G.unlocksAt(3).map((u) => u.id)).toEqual(expect.arrayContaining(['moonpetal', 'ritual_brazier']));
+    expect(G.producible(g, { merge: 'candle', tier: 2, count: 1 })).toBe(true);
+    // summoning a second entity hints its recipe and opens its board
+    const st = G.startRitual(g, 'r4') as Match3State;
+    st.status = 'won'; st.score = st.level.starScores[0];
+    expect(G.finishRitual(g).entity).toBe('baba_yaga');
+    expect(g.run.met).toContain('baba_yaga');
+    expect(G.recipeHinted(g.run, 'calm_draught')).toBe(true);
+    expect(G.activeOrders(g.run, 'baba_yaga').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe('save', () => {
   it('round-trips, keeps a backup and survives corruption', () => {
     const kv = memoryKV();
@@ -201,6 +322,20 @@ describe('save', () => {
     expect(out.saveVersion).toBe(G.SAVE_VERSION);
     expect(out.meta.settings.sound).toBe(true);
     expect(out.meta.settings.reducedMotion).toBe(false);
+  });
+  it('migrates a v2 save: filled orders become counts, met entities and hints appear', () => {
+    const g = playSlice();
+    const env = JSON.parse(serialize(g, T0));
+    env.saveVersion = 2;
+    env.data.saveVersion = 2;
+    env.data.run.orders = [{ id: 'mothman_1', filled: true }, { id: 'mothman_2', filled: false }];
+    for (const k of ['ordersFilled', 'orderNextAt', 'lastOrder', 'met', 'hints']) delete env.data.run[k];
+    const out = parse(JSON.stringify(env));
+    expect(out.saveVersion).toBe(G.SAVE_VERSION);
+    expect(out.run.orders).toEqual([{ id: 'mothman_2' }]);
+    expect(out.run.ordersFilled).toEqual({ mothman_1: 1 });
+    expect(out.run.met).toEqual(['mothman']);
+    expect(out.run.hints).toEqual([]);
   });
   it('export/import code validates its checksum', () => {
     const g = playSlice();
@@ -333,6 +468,10 @@ describe('content integrity', () => {
     for (const tr of DATA.followers.traits) need.add(`trait.${tr.id}.name`).add(`trait.${tr.id}.desc`);
     for (const c of DATA.merge.chains) for (const k of c.tiers) need.add(`merge.${k}.name`);
     for (const o of DATA.orders) need.add(`order.${o.id}.text`).add(`order.${o.id}.thanks`);
+    for (const e of DATA.entities) for (const b of e.boons) need.add(`boon.${b.field}`);
+    for (const gen of DATA.merge.generators) need.add(`gen.${gen.id}.name`);
+    for (const c of DATA.merge.chains) need.add(`merge.chain.${c.id}`);
+    for (const b of DATA.buildings) need.add(`building.effect.${b.id}`);
     for (const e of DATA.entities) need.add(`entity.${e.id}.name`).add(`entity.${e.id}.intro`).add(`entity.${e.id}.intro.ok`).add(`entity.${e.id}.blurb`);
     for (const ev of DATA.events) {
       need.add(`event.${ev.id}.title`).add(`event.${ev.id}.body`);
@@ -362,6 +501,7 @@ describe('content integrity', () => {
     for (const g of DATA.merge.generators) need.push(`g_${g.id}`);
     for (const e of DATA.events) need.push(e.sprite);
     for (const e of DATA.entities) need.push(e.id);
+    need.push('unknown_entity', 'ic_up');
     for (let i = 0; i < 6; i++) need.push(`tile_${i}`, `p_${i}`);
     for (let s = 0; s < DATA.followers.skins; s++) for (let r = 0; r < DATA.followers.robes; r++) need.push(`fol_${s}_${r}_0`, `fol_${s}_${r}_1`);
     for (const tab of ['compound', 'rituals', 'reliquary', 'alchemy', 'orders']) need.push(`tab_${tab}`);

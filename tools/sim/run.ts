@@ -8,6 +8,7 @@ import * as G from '../../src/core/game';
 import type { GameState } from '../../src/core/types';
 import type { Match3State } from '../../src/puzzle/match3';
 import { validateLevel } from '../../src/puzzle/match3';
+import { countItems } from '../../src/puzzle/merge';
 
 const MAX_GAP_SEC = 600; // CLAUDE.md: no more than ~10 minutes of active play without an unlock
 const SEC_PER_MOVE = 4;
@@ -92,6 +93,157 @@ function simulate(name: string, opts: { seed: number; idleBetween: number; ritua
   return { name, rows, total: clock, longestGap, actions, stuck };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Long run: a simple bot keeps playing after the tutorial (orders, upgrades, summons, recruits).
+// It is not clever; if this bot never waits long for something new, a person will not either.
+// ---------------------------------------------------------------------------------------------
+interface LongResult { name: string; minutes: number; levelAt: Record<number, number>; metAt: Record<string, number>; longestGap: number; gapAt: number; unlocks: number; actions: Record<string, number>; final: string }
+
+function simulateLong(name: string, seed: number, minutes: number, stars: number): LongResult {
+  const g = playSliceFast(seed);
+  const run = g.run;
+  const actions: Record<string, number> = {};
+  const levelAt: Record<number, number> = {};
+  const metAt: Record<string, number> = {};
+  let clock = 0;
+  let lastUnlock = 0;
+  let longestGap = 0;
+  let gapAt = 0;
+  let unlocks = 0;
+  const progress = () => [run.level, run.met.length, g.meta.grimoire.length, run.buildings.reduce((n, b) => n + b.level, 0), Object.keys(run.rituals).length, Object.values(g.meta.mergeCodex).reduce((a, b) => a + b, 0), run.met.reduce((n, e) => n + G.boonsUnlocked(run, e), 0), run.followers.length].join('|');
+  let seen = progress();
+  const spend = (sec: number, kind: string) => {
+    G.debugSkip(g, sec);
+    if (run.event) G.resolveEvent(g, G.choiceAvailable(run, run.event.id, 0) ? 0 : 1);
+    clock += sec;
+    actions[kind] = (actions[kind] ?? 0) + sec;
+    const now = progress();
+    if (now !== seen) {
+      seen = now;
+      unlocks++;
+      if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
+      lastUnlock = clock;
+      if (!levelAt[run.level]) levelAt[run.level] = clock;
+      for (const e of run.met) if (metAt[e] === undefined) metAt[e] = clock;
+    }
+  };
+  const ritual = (id: string) => {
+    const st = G.startRitual(g, id) as Match3State | null;
+    if (!st) return false;
+    spend(st.level.par * SEC_PER_MOVE + 20, 'ritual');
+    st.status = 'won';
+    st.score = st.level.starScores[stars - 1];
+    st.collected = [8, 8, 8, 8, 8, 0];
+    G.finishRitual(g);
+    G.ensureDraft(g);
+    while (run.draft) { spend(10, 'draft'); G.draftPick(g, 0); }
+    return true;
+  };
+  /** Try to get one more of a merge item; returns true if it did something. */
+  const workMerge = (chain: string, tier: number): boolean => {
+    const cells = run.reliquary.cells;
+    for (let tr = tier - 1; tr >= 1; tr--) {
+      const idx = cells.map((c, i) => (c && c.kind === 'item' && c.chain === chain && c.tier === tr ? i : -1)).filter((i) => i >= 0);
+      if (idx.length >= 2) { spend(3, 'merge'); G.mergeMove(g, { area: 'grid', i: idx[0] }, { area: 'grid', i: idx[1] }); return true; }
+    }
+    const gen = cells.findIndex((c) => c && c.kind === 'gen' && DATA.merge.generators.find((d) => d.id === c.gen)!.chain === chain);
+    if (gen < 0) return false;
+    const cell = cells[gen];
+    if (cell && cell.kind === 'gen' && cell.charges > 0) { spend(2, 'merge'); return G.mergeTap(g, gen) >= 0; }
+    return false;
+  };
+  const gh = () => run.buildings.find((b) => b.type === 'greenhouse')!;
+  const want = (): G.FillResult | null => null;
+  void want;
+  const workItem = (item: string, count: number): boolean => {
+    if (G.inv(run, item) >= count) return false;
+    const crop = DATA.crops.find((c) => c.id === item);
+    const house = gh();
+    if (crop) {
+      for (let i = 0; i < house.plots!.length; i++) if (G.plotReady(run, house, i)) { spend(3, 'garden'); G.harvest(g, house.id, i); return true; }
+      const growing = house.plots!.filter((p) => p.crop === item).length;
+      if (growing * crop.yield + G.inv(run, item) >= count) return false;
+      const free = house.plots!.findIndex((p) => !p.crop);
+      if (free >= 0 && run.donations >= crop.seedCost) { spend(4, 'garden'); return G.plant(g, house.id, free, item); }
+      return false;
+    }
+    const recipe = DATA.recipes.recipes.find((r) => r.output === item);
+    if (item === DATA.recipes.failOutput) {
+      if (G.inv(run, 'basil') >= 3) { spend(12, 'brew'); return G.brew(g, ['basil', 'basil', 'basil'], false).ok; }
+      return workItem('basil', 3);
+    }
+    if (!recipe) return false;
+    const needs: Record<string, number> = {};
+    for (const i of recipe.ingredients) needs[i] = (needs[i] ?? 0) + 1;
+    if (Object.entries(needs).every(([i, n]) => G.inv(run, i) >= n)) { spend(15, 'brew'); return G.brew(g, recipe.ingredients, false).ok; }
+    for (const [i, n] of Object.entries(needs)) if (workItem(i, n)) return true;
+    return false;
+  };
+  if (!levelAt[run.level]) levelAt[run.level] = 0;
+  for (const e of run.met) metAt[e] = 0;
+  while (clock < minutes * 60) {
+    for (const b of run.buildings) if (b.stored >= 5 && run.devotion < G.devotionCap(run)) G.collect(g, b.id);
+    const house = gh();
+    let acted = false;
+    for (let i = 0; i < house.plots!.length && !acted; i++) if (G.plotReady(run, house, i)) { spend(3, 'garden'); G.harvest(g, house.id, i); acted = true; }
+    if (acted) continue;
+    const fill = run.orders.find((o) => G.canFill(run, o.id));
+    if (fill) { spend(8, 'orders'); G.fillOrder(g, fill.id); continue; }
+    const up = run.buildings.find((b) => G.canUpgrade(run, b));
+    if (up) { spend(8, 'upgrade'); G.upgradeBuilding(g, up.id); continue; }
+    const summon = DATA.entities.find((e) => !run.met.includes(e.id) && G.ritualUnlocked(run, e.summonRitual));
+    if (summon) { ritual(summon.summonRitual); continue; }
+    if (run.followers.length < G.housing(run)) { ritual(G.ritualUnlocked(run, 'r7') ? 'r7' : 'r2'); continue; }
+    // work towards open orders, then towards the cheapest upgrade's merge item
+    for (const o of run.orders) {
+      for (const need of DATA.orders.find((x) => x.id === o.id)!.needs) {
+        if (G.needHave(run, need) >= need.count) continue;
+        if ('item' in need ? workItem(need.item, need.count) : workMerge(need.merge, need.tier)) { acted = true; break; }
+      }
+      if (acted) break;
+    }
+    if (acted) continue;
+    for (const b of run.buildings) {
+      const next = G.nextUpgrade(b);
+      if (next?.merge && countItems(run.reliquary, next.merge.chain, next.merge.tier) < 1 && run.level >= (DATA.merge.generators.find((d) => d.chain === next.merge!.chain)!.unlockLevel ?? 1) && workMerge(next.merge.chain, next.merge.tier)) { acted = true; break; }
+    }
+    if (acted) continue;
+    // nothing to make right now: preach if there is room for Devotion, otherwise wait for crops and charges
+    const sermon = [...DATA.rituals].reverse().find((r) => r.purpose === 'sermon' && G.ritualUnlocked(run, r.id));
+    if (sermon && run.devotion < G.devotionCap(run) * 0.8) ritual(sermon.id);
+    else spend(10, 'wait');
+  }
+  if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
+  return { name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
+}
+
+/** The tutorial, played instantly, as the starting point for the long run. */
+function playSliceFast(seed: number): GameState {
+  const g = G.newGame(seed, 0);
+  const sync = () => { G.advanceTutorial(g); G.ensureDraft(g); };
+  const win = (id: string) => { const st = G.startRitual(g, id) as Match3State; st.status = 'won'; st.score = st.level.starScores[1]; G.finishRitual(g); sync(); };
+  g.run.flags.welcomed = true; sync();
+  G.placeBuilding(g, 'sermon_hall', 8, 10); sync();
+  G.debugSkip(g, 30); G.collect(g, g.run.buildings.find((b) => b.type === 'sermon_hall')!.id); sync();
+  win('r1'); G.draftPick(g, 0); sync();
+  win('r2'); G.draftPick(g, 0); G.draftPick(g, 0); sync();
+  G.placeBuilding(g, 'greenhouse', 12, 10); sync();
+  const gh = g.run.buildings.find((b) => b.type === 'greenhouse')!;
+  G.plant(g, gh.id, 0, 'basil'); G.plant(g, gh.id, 1, 'nightshade'); sync();
+  const gen = g.run.reliquary.cells.findIndex((c) => c?.kind === 'gen');
+  const sp = [0, 1, 2, 3].map(() => G.mergeTap(g, gen));
+  G.mergeMove(g, { area: 'grid', i: sp[0] }, { area: 'grid', i: sp[1] }); G.mergeMove(g, { area: 'grid', i: sp[2] }, { area: 'grid', i: sp[3] }); G.mergeMove(g, { area: 'grid', i: sp[1] }, { area: 'grid', i: sp[3] }); sync();
+  G.debugSkip(g, 125); if (g.run.event) G.resolveEvent(g, 0);
+  G.harvest(g, gh.id, 0); G.harvest(g, gh.id, 1); sync();
+  while (!G.canAfford(g.run, DATA.buildings.find((b) => b.id === 'alchemy_lab')!.cost)) win('r1');
+  G.placeBuilding(g, 'alchemy_lab', 8, 14); sync();
+  G.brew(g, ['basil', 'nightshade'], false); sync();
+  G.tick(g, 0.1); if (g.run.event) G.resolveEvent(g, 0); sync();
+  win('r3'); G.fillOrder(g, 'mothman_1'); G.fillOrder(g, 'mothman_2'); sync();
+  g.run.flags.away_done = true; sync(); g.run.flags.ascension_viewed = true; sync();
+  return g;
+}
+
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 const results = [
   simulate('focused (3-star, no waiting)', { seed: 11, idleBetween: 0, ritualStars: 3, failFirstTry: false }),
@@ -117,6 +269,19 @@ for (const r of results) {
   for (const row of r.rows) md += `| ${fmt(row.t)} | ${row.what} | ${row.devotion} | ${row.donations} | ${row.suspicion} | ${row.level} |\n`;
   md += '\n';
   console.log(`${okGap && okStuck ? 'PASS' : 'FAIL'}  ${r.name}: done ${fmt(r.total)}, longest gap ${fmt(r.longestGap)}, top action ${top[0]} ${(share * 100).toFixed(0)}%${r.stuck ? ', STUCK ' + r.stuck : ''}`);
+}
+// ---- long run report
+const LONG_MIN = 150;
+const longs = [simulateLong('steady player (2-star)', 21, LONG_MIN, 2), simulateLong('careful player (1-star)', 22, LONG_MIN, 1)];
+md += `# After the tutorial: ${LONG_MIN} minutes of active play\n\nA simple bot fills orders, upgrades, summons and recruits. Times are minutes after the tutorial ends.\n\n`;
+for (const r of longs) {
+  const okGap = r.longestGap <= MAX_GAP_SEC;
+  const okLevel = (r.levelAt[3] ?? Infinity) <= 45 * 60;
+  if (!okGap || !okLevel) failed = true;
+  md += `## ${r.name}\n\n- Ends at: ${r.final}\n- ${r.unlocks} new things in ${LONG_MIN} min; longest wait for one: **${fmt(r.longestGap)}** (ending at ${fmt(r.gapAt)}) ${okGap ? 'ok' : 'FAIL > 10:00'}\n`;
+  md += `- Compound levels reached at: ${Object.entries(r.levelAt).map(([l, tm]) => `Lv${l} ${fmt(tm)}`).join(', ')}\n- Entities met at: ${Object.entries(r.metAt).map(([e, tm]) => `${e} ${fmt(tm)}`).join(', ')}\n`;
+  md += `- Time by action: ${Object.entries(r.actions).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${fmt(v)}`).join(', ')}\n\n`;
+  console.log(`${okGap && okLevel ? 'PASS' : 'FAIL'}  long run, ${r.name}: ${r.final}; longest wait ${fmt(r.longestGap)} (at ${fmt(r.gapAt)}); levels ${Object.entries(r.levelAt).map(([l, tm]) => `Lv${l}@${fmt(tm)}`).join(' ')}`);
 }
 mkdirSync('docs/sim', { recursive: true });
 writeFileSync('docs/sim/latest.md', md);

@@ -1,6 +1,405 @@
 {
   "orders": [
-    { "id": "mothman_1", "from": "mothman", "kind": "entity", "needs": [ { "item": "nightshade", "count": 1 }, { "item": "basil", "count": 2 } ], "reward": { "devotion": 60, "donations": 15, "favor": 10 } },
-    { "id": "mothman_2", "from": "mothman", "kind": "entity", "needs": [ { "merge": "paper", "tier": 3, "count": 1 } ], "reward": { "devotion": 80, "donations": 20, "favor": 10 } }
+    {
+      "id": "mothman_1",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "nightshade",
+          "count": 1
+        },
+        {
+          "item": "basil",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 60,
+        "donations": 15,
+        "favor": 10
+      },
+      "tutorial": true
+    },
+    {
+      "id": "mothman_2",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 3,
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 80,
+        "donations": 20,
+        "favor": 10
+      },
+      "tutorial": true
+    },
+    {
+      "id": "mothman_3",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "nightshade",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 50,
+        "donations": 12,
+        "favor": 10
+      }
+    },
+    {
+      "id": "mothman_4",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "candle",
+          "tier": 2,
+          "count": 1
+        },
+        {
+          "item": "basil",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 70,
+        "donations": 18,
+        "favor": 12
+      }
+    },
+    {
+      "id": "mothman_5",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "moonlight_tincture",
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 110,
+        "donations": 30,
+        "favor": 18
+      }
+    },
+    {
+      "id": "mothman_6",
+      "from": "mothman",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 2,
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 60,
+        "donations": 14,
+        "favor": 10
+      }
+    },
+    {
+      "id": "baba_yaga_1",
+      "from": "baba_yaga",
+      "kind": "trial",
+      "needs": [
+        {
+          "item": "graveyard_moss",
+          "count": 4
+        },
+        {
+          "item": "basil",
+          "count": 4
+        }
+      ],
+      "reward": {
+        "devotion": 150,
+        "donations": 30,
+        "favor": 15
+      }
+    },
+    {
+      "id": "baba_yaga_2",
+      "from": "baba_yaga",
+      "kind": "trial",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 3,
+          "count": 1
+        },
+        {
+          "item": "nightshade",
+          "count": 3
+        }
+      ],
+      "reward": {
+        "devotion": 200,
+        "donations": 45,
+        "favor": 18
+      }
+    },
+    {
+      "id": "baba_yaga_3",
+      "from": "baba_yaga",
+      "kind": "trial",
+      "needs": [
+        {
+          "item": "calm_draught",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 220,
+        "donations": 50,
+        "favor": 20
+      }
+    },
+    {
+      "id": "baba_yaga_4",
+      "from": "baba_yaga",
+      "kind": "trial",
+      "needs": [
+        {
+          "merge": "candle",
+          "tier": 3,
+          "count": 1
+        },
+        {
+          "item": "graveyard_moss",
+          "count": 3
+        }
+      ],
+      "reward": {
+        "devotion": 240,
+        "donations": 60,
+        "favor": 20
+      }
+    },
+    {
+      "id": "jersey_devil_1",
+      "from": "jersey_devil",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "pesto",
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 60,
+        "donations": 25,
+        "favor": 12
+      }
+    },
+    {
+      "id": "jersey_devil_2",
+      "from": "jersey_devil",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "basil",
+          "count": 5
+        }
+      ],
+      "reward": {
+        "devotion": 45,
+        "donations": 20,
+        "favor": 10
+      }
+    },
+    {
+      "id": "jersey_devil_3",
+      "from": "jersey_devil",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "candle",
+          "tier": 2,
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 70,
+        "donations": 28,
+        "favor": 12
+      }
+    },
+    {
+      "id": "jersey_devil_4",
+      "from": "jersey_devil",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "sludge",
+          "count": 1
+        },
+        {
+          "item": "graveyard_moss",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 65,
+        "donations": 30,
+        "favor": 14
+      }
+    },
+    {
+      "id": "anansi_1",
+      "from": "anansi",
+      "kind": "gamble",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 4,
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 140,
+        "donations": 40,
+        "favor": 15
+      }
+    },
+    {
+      "id": "anansi_2",
+      "from": "anansi",
+      "kind": "gamble",
+      "needs": [
+        {
+          "item": "moonpetal",
+          "count": 2
+        },
+        {
+          "item": "nightshade",
+          "count": 2
+        }
+      ],
+      "reward": {
+        "devotion": 100,
+        "donations": 30,
+        "favor": 14
+      }
+    },
+    {
+      "id": "anansi_3",
+      "from": "anansi",
+      "kind": "gamble",
+      "needs": [
+        {
+          "item": "zeal_tonic",
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 160,
+        "donations": 45,
+        "favor": 18
+      }
+    },
+    {
+      "id": "anansi_4",
+      "from": "anansi",
+      "kind": "gamble",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 2,
+          "count": 1
+        },
+        {
+          "merge": "candle",
+          "tier": 2,
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 90,
+        "donations": 28,
+        "favor": 12
+      }
+    },
+    {
+      "id": "vorl_1",
+      "from": "vorl",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "candle",
+          "tier": 4,
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 260,
+        "donations": 40,
+        "favor": 18
+      }
+    },
+    {
+      "id": "vorl_2",
+      "from": "vorl",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "moonpetal",
+          "count": 4
+        }
+      ],
+      "reward": {
+        "devotion": 180,
+        "donations": 30,
+        "favor": 15
+      }
+    },
+    {
+      "id": "vorl_3",
+      "from": "vorl",
+      "kind": "entity",
+      "needs": [
+        {
+          "item": "calm_draught",
+          "count": 1
+        },
+        {
+          "item": "moonlight_tincture",
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 280,
+        "donations": 60,
+        "favor": 22
+      }
+    },
+    {
+      "id": "vorl_4",
+      "from": "vorl",
+      "kind": "entity",
+      "needs": [
+        {
+          "merge": "paper",
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "reward": {
+        "devotion": 400,
+        "donations": 80,
+        "favor": 30
+      }
+    }
   ]
 }

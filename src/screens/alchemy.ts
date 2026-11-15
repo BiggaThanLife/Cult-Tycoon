@@ -3,7 +3,8 @@ import type Phaser from 'phaser';
 import type { App } from '../app';
 import { PAL } from '../art/palette';
 import { DATA, cropDef } from '../core/data';
-import { brew, harvest, hasBuilding, inv, plant, plotProgress, plotReady } from '../core/game';
+import { brew, cropUnlocked, harvest, hasBuilding, inv, plant, plotProgress, plotReady, recipeHinted } from '../core/game';
+import { openGrimoire } from './modals';
 import { t } from '../core/text';
 import type { BuildingState } from '../core/types';
 import { bar, button, hit, img, panel, rect, textHeight, txt, type C } from '../ui/kit';
@@ -32,26 +33,30 @@ export class AlchemyScreen extends Screen {
     y += 10;
     if (gh && gh.plots) {
       const n = gh.plots.length;
-      const pw = Math.min(42, Math.floor((B.w - 8 - (n - 1) * 3) / n));
-      const x0 = B.x + Math.floor((B.w - (n * pw + (n - 1) * 3)) / 2);
+      const perRow = 4;
+      const pw = Math.min(42, Math.floor((B.w - 8 - (perRow - 1) * 3) / perRow));
+      const x0 = B.x + Math.floor((B.w - (perRow * pw + (perRow - 1) * 3)) / 2);
+      const rows = Math.ceil(n / perRow);
+      const ph = rows > 1 ? 40 : 46; // two rows of plots are slightly shorter so everything still fits a small phone
       gh.plots.forEach((p, i) => {
-        const x = x0 + i * (pw + 3);
-        panel(app, this.c, x, y, pw, 46, PAL.sand);
-        img(app, this.c, x + Math.floor((pw - 24) / 2), y + 11, 'plot_empty');
+        const x = x0 + (i % perRow) * (pw + 3);
+        const py = y + Math.floor(i / perRow) * (ph + 2);
+        panel(app, this.c, x, py, pw, ph, PAL.sand);
+        img(app, this.c, x + Math.floor((pw - 24) / 2), py + ph - 35, 'plot_empty');
         if (p.crop) {
           const ready = plotReady(run, gh, i);
-          img(app, this.c, x + Math.floor((pw - 16) / 2), y + 3, ready ? `i_${p.crop}` : 'sprout');
-          const fill = bar(app, this.c, x + 3, y + 29, pw - 6, 5, plotProgress(run, gh, i), PAL.grass);
-          const label = txt(app, this.c, x + Math.floor(pw / 2), y + 36, '', { align: 'center', color: ready ? 'gain' : 'dim' });
+          img(app, this.c, x + Math.floor((pw - 16) / 2), py + ph - 43, ready ? `i_${p.crop}` : 'sprout');
+          const fill = bar(app, this.c, x + 3, py + ph - 17, pw - 6, 5, plotProgress(run, gh, i), PAL.grass);
+          const label = txt(app, this.c, x + Math.floor(pw / 2), py + ph - 10, '', { align: 'center', color: ready ? 'gain' : 'dim' });
           this.plots.push({ b: gh, slot: i, fill, w: pw - 8, label, ready });
-          if (ready) hit(app, this.c, x, y, pw, 46, () => { app.store.act((g, emit) => harvest(g, gh.id, i, emit)); }).setName(`plot_${i}`);
+          if (ready) hit(app, this.c, x, py, pw, ph, () => { app.store.act((g, emit) => harvest(g, gh.id, i, emit)); }).setName(`plot_${i}`);
         } else {
-          txt(app, this.c, x + Math.floor(pw / 2), y + 2, t('garden.empty'), { align: 'center', color: 'dim' });
-          txt(app, this.c, x + Math.floor(pw / 2), y + 36, t('garden.plant'), { align: 'center', color: 'gold' });
-          hit(app, this.c, x, y, pw, 46, () => this.openSeeds(gh.id, i)).setName(`plot_${i}`);
+          if (ph > 40) txt(app, this.c, x + Math.floor(pw / 2), py + 2, t('garden.empty'), { align: 'center', color: 'dim' });
+          txt(app, this.c, x + Math.floor(pw / 2), py + ph - 10, t('garden.plant'), { align: 'center', color: 'gold' });
+          hit(app, this.c, x, py, pw, ph, () => this.openSeeds(gh.id, i)).setName(`plot_${i}`);
         }
       });
-      y += 50;
+      y += rows * (ph + 2) + 2;
     } else {
       txt(app, this.c, B.x + 5, y, t('garden.none'), { width: B.w - 10 });
       y += 20;
@@ -67,15 +72,16 @@ export class AlchemyScreen extends Screen {
     } else {
       this.pot = this.pot.filter((id, idx) => this.pot.slice(0, idx + 1).filter((x) => x === id).length <= inv(run, id));
       // ingredient chips
-      const ingredients = DATA.items.filter((it) => it.kind === 'ingredient');
+      const ingredients = DATA.items.filter((it) => it.kind === 'ingredient' && (cropUnlocked(run, it.id) || inv(run, it.id) > 0));
+      const chipW = Math.min(44, Math.floor((B.w - 10 - (ingredients.length - 1) * 2) / Math.max(1, ingredients.length)));
       let x = B.x + 5;
       for (const it of ingredients) {
         const left = inv(run, it.id) - this.pot.filter((p) => p === it.id).length;
-        panel(app, this.c, x, y, 44, 22, left > 0 ? PAL.white : PAL.robe);
-        img(app, this.c, x + 3, y + 3, `i_${it.id}`);
-        txt(app, this.c, x + 22, y + 7, `x${left}`, { color: left > 0 ? 'ink' : 'dim' });
-        if (left > 0 && this.pot.length < R.maxIngredients) hit(app, this.c, x, y, 44, 22, () => { this.pot.push(it.id); this.rebuild(); }).setName(`chip_${it.id}`);
-        x += 47;
+        panel(app, this.c, x, y, chipW, 22, left > 0 ? PAL.white : PAL.robe);
+        img(app, this.c, x + 2, y + 3, `i_${it.id}`);
+        txt(app, this.c, x + 20, y + 7, `x${left}`, { color: left > 0 ? 'ink' : 'dim' });
+        if (left > 0 && this.pot.length < R.maxIngredients) hit(app, this.c, x, y, chipW, 22, () => { this.pot.push(it.id); this.rebuild(); }).setName(`chip_${it.id}`);
+        x += chipW + 2;
       }
       y += 25;
       // cauldron + pot contents
@@ -97,33 +103,29 @@ export class AlchemyScreen extends Screen {
     if (L.dock) this.shelf(L.dock.x + 5, L.dock.y + 4, L.dock.w - 9);
   }
 
-  /** Grimoire + potion shelf. Returns the next free y. */
+  /** Grimoire button + potion shelf. Returns the next free y. */
   private shelf(x: number, y: number, w: number): number {
     const app = this.app;
     const st = app.store.state;
     const R = DATA.recipes;
-    txt(app, this.c, x, y, t('grimoire.title', { n: st.meta.grimoire.length, max: R.recipes.length }), { color: 'irony' });
-    y += 10;
-    for (const r of R.recipes) {
-      const known = st.meta.grimoire.includes(r.id);
-      if (!known && !r.hinted) { const u = t('grimoire.unknown'); txt(app, this.c, x, y, u, { color: 'dim', width: w }); y += textHeight(u, w) + 1; continue; }
-      const names = r.ingredients.map((i) => t(`item.${i}.name`)).join(' + ');
-      txt(app, this.c, x, y, t(`item.${r.output}.name`), { color: known ? 'ink' : 'gold', width: w, maxLines: 1 });
-      y += 9;
-      const line = known ? names : t('grimoire.hint', { recipe: names });
-      txt(app, this.c, x + 4, y, line, { color: 'dim', width: w - 4 });
-      y += textHeight(line, w - 4) + 1;
+    button(app, this.c, x, y, Math.min(w, 96), 18, t('grimoire.open', { n: st.meta.grimoire.length, max: R.recipes.length }), () => openGrimoire(app), { fill: PAL.purple, name: 'btn_grimoire' });
+    y += 21;
+    // the advisor repeats any recipe you have been told about but not brewed yet
+    const hint = R.recipes.find((r) => !st.meta.grimoire.includes(r.id) && recipeHinted(st.run, r.id));
+    if (hint) {
+      const line = t('grimoire.hint', { recipe: hint.ingredients.map((i) => t(`item.${i}.name`)).join(' + ') });
+      txt(app, this.c, x, y, line, { color: 'gold', width: w, maxLines: 2 });
+      y += textHeight(line, w) + 2;
     }
-    y += 2;
     const potions = DATA.items.filter((it) => it.kind === 'potion' && inv(st.run, it.id) > 0);
     let px = x;
     for (const it of potions) {
+      if (px + 34 > x + w + 1) { px = x; y += 22; }
       panel(app, this.c, px, y, 34, 20, PAL.white);
       img(app, this.c, px + 2, y + 2, `i_${it.id}`);
       txt(app, this.c, px + 20, y + 6, `x${inv(st.run, it.id)}`);
       hit(app, this.c, px, y, 34, 20, () => dialog(app, { id: 'item', title: t(`item.${it.id}.name`), body: t(`item.${it.id}.desc`), sprite: `i_${it.id}`, buttons: [{ label: t('common.ok') }] }));
       px += 37;
-      if (px + 34 > x + w) { px = x; y += 22; }
     }
     return y + 22;
   }
@@ -134,8 +136,9 @@ export class AlchemyScreen extends Screen {
       id: 'seeds',
       build: (c: C, _a, close) => {
         const run = app.store.state.run;
-        const r = frame(app, c, modalWidth(app), 16 + DATA.crops.length * 34 + 24, t('garden.seeds.title'));
-        DATA.crops.forEach((crop, i) => {
+        const crops = DATA.crops.filter((cr) => cropUnlocked(run, cr.id));
+        const r = frame(app, c, modalWidth(app), 16 + crops.length * 34 + 24, t('garden.seeds.title'));
+        crops.forEach((crop, i) => {
           const y = r.y + i * 34;
           const afford = run.donations >= crop.seedCost;
           panel(app, c, r.x, y, r.w, 32, PAL.white);

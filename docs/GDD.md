@@ -116,6 +116,8 @@ Each: personality, favorite offerings, **boon**, **bane**, questline (5 steps v1
 | **Baba Yaga** | Slavic folklore | Trials | Buildings can "walk" to a new tile once per day for free; trial orders pay triple | Fail a trial and she borrows a building for an hour |
 | **Anansi** | Akan & Caribbean folk tales | Gambles | Order rewards become dice rolls with a higher average; stories turn Doubt into Devotion | Variance; occasionally swaps two orders' requirements |
 | **Vorl, the Patient Deep** | original | Hunger | Building production ×1.6 (additive +60%) | Sanity decays fast; Kitchen and Calm Draught become essential |
+**Built so far (Expansion 1):** the Mothman, Baba Yaga, the Jersey Devil, Anansi and Vorl can all be summoned and courted at once; each has an order pool and three Favor boons (see `docs/specs/expansion-1.md`). Pledging, banes and questlines below are still to come.
+
 Pledge 1 patron in run 1; 2 patrons from Ascension 2. Other entities visit and post orders even when not pledged.
 - **Why differently?** This is the main build-archetype lever.
 

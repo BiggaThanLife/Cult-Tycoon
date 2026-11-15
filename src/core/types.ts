@@ -33,7 +33,8 @@ export interface BuildingState {
   plots?: PlotState[];
 }
 
-export interface OrderState { id: string; filled: boolean }
+/** An order currently on the board. Filled orders are counted in RunState.ordersFilled. */
+export interface OrderState { id: string }
 export interface PendingEvent { id: string }
 
 export interface Settings { reducedMotion: boolean; relaxedPuzzles: boolean; speedIndex: number; sound: boolean }
@@ -67,6 +68,11 @@ export interface RunState {
   draft: Follower[] | null;
   reliquary: MergeState;
   orders: OrderState[];
+  ordersFilled: Record<string, number>;    // order id → times filled this run
+  orderNextAt: Record<string, number>;     // entity id → game time when its next order may appear
+  lastOrder: Record<string, string>;       // entity id → last order id handed out (avoid repeats)
+  met: string[];                           // entities summoned this run
+  hints: string[];                         // recipe ids an entity has hinted at
   favor: Record<string, number>;
   rituals: Record<string, number>;         // level id → best stars
   activeRitual: unknown | null;            // serialized Match3State while a ritual is in progress
@@ -88,6 +94,7 @@ export interface GameState {
 export type GameEvent =
   | { type: 'float'; textKey: string; params?: Record<string, string | number>; tone: 'gain' | 'loss' | 'irony'; at?: { building?: number; follower?: number } }
   | { type: 'levelUp'; level: number }
+  | { type: 'boon'; entity: string; index: number }
   | { type: 'tutorial'; step: TutorialStep }
   | { type: 'unlock'; what: string }
   | { type: 'event'; id: string }
