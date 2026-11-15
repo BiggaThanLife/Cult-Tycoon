@@ -398,6 +398,36 @@ const check = (name, ok, detail = '') => {
   await tap('btn_ok'); await notices();
   await tap('tab_compound');
 
+  // ---------- the Sanctum ----------
+  await page.evaluate(() => { window.__ct.app().modals.closeAll(); window.__ct.store.act((g) => { g.run.devotion = 1400; g.run.donations = 480; g.run.omens = 30; g.run.inspection = null; g.run.event = null; }); });
+  await tap('tab_compound'); await wait(300);
+  await shot('p_18_go_inside');
+  await tap('btn_go_inside'); await wait(300);
+  check('sanctum: Go inside opens the side view', await page.evaluate(() => window.__ct.app().cur === window.__ct.app().sanctum));
+  await tap('btn_storey'); await wait(300);
+  await tap('bay_1_0'); await wait(250); await shot('p_18_build_room'); await audit('build room');
+  await tap('btn_room_kitchen'); await wait(250);
+  await tap('bay_1_1'); await tap('btn_room_kitchen'); await wait(250);
+  await tap('bay_1_2'); await tap('btn_room_bunk_room'); await wait(250);
+  const sanc = (await run()).sanctum;
+  check('sanctum: storey built and three rooms placed', sanc.storeys === 1 && sanc.rooms.length === 3, JSON.stringify(sanc.rooms.map((r) => r.type)));
+  await tap('room_kitchen_1'); await wait(250); await shot('p_18_room_card'); await audit('room card');
+  await tap('slot_0'); await wait(250); await shot('p_18_assign'); await audit('assign');
+  await tap('assign_0'); await wait(300);
+  check('sanctum: a follower works in the merged kitchen', await page.evaluate(() => { const r = window.__ct.store.state.run; const ids = r.sanctum.rooms.filter((x) => x.type === 'kitchen').map((x) => x.id); return r.followers.some((f) => ids.includes(f.job)); }));
+  await tap('btn_close'); await wait(200);
+  await page.evaluate(() => window.__ct.store.act((g) => { g.run.level = Math.max(g.run.level, 6); }));
+  await wait(300); await tap('btn_storey'); await wait(300);
+  check('sanctum: storey 2 goes up as scaffolding', await page.evaluate(() => !!window.__ct.store.state.run.sanctum.building), JSON.stringify(await page.evaluate(() => ({ lv: window.__ct.store.state.run.level, dev: window.__ct.store.state.run.devotion, om: window.__ct.store.state.run.omens }))));
+  await shot('p_18_scaffold'); await audit('scaffold');
+  await page.evaluate(() => window.__ct.store.act((g, e) => window.__ct.core.debugSkip(g, 35, e)));
+  await wait(300);
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) { await rotate(vp); await shot(`${prefix}_18_sanctum`); await audit(`${prefix} sanctum`); }
+  await rotate(PORTRAIT);
+  check('sanctum: rotating keeps the side view', await page.evaluate(() => window.__ct.app().cur === window.__ct.app().sanctum && window.__ct.store.state.run.sanctum.storeys === 2));
+  await tap('btn_grounds'); await wait(250);
+  check('sanctum: Grounds returns to the map', await page.evaluate(() => window.__ct.app().cur === window.__ct.app().screens.compound));
+
   // follower sheet and stat guide
   await rotate(PORTRAIT);
   for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) {

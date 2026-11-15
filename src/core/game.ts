@@ -2,13 +2,14 @@
 // Every function takes the GameState and an `emit` callback for UI notifications.
 import { DATA, buildingDef, cropDef, entityDef, eventDef, orderDef, riteDef, ritualDef, traitDef, type BoonField, type OrderNeed, type UpgradeDef, type VisitEffects } from './data';
 import { hashString } from './rng';
+import { omenPerWin, ritePctBonus, roomGroups, sanctumBeds, tickSanctum, useForms } from './sanctum';
 import { deriveSeed, makeRng, type Rng } from './rng';
 import { TUTORIAL_ORDER, type ActiveRite, type BuildingState, type Emit, type Follower, type GameState, type RunState, type TutorialStep } from './types';
 import { addGenerator, countItems, placeItem, createMerge, moveItem, removeItems, tapGenerator, tickMerge, type Loc, type MoveResult } from '../puzzle/merge';
 import { createGame, starsFor, type Match3State } from '../puzzle/match3';
 
 const B = DATA.balance;
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 const noEmit: Emit = () => {};
 
 // ---------- helpers ----------
@@ -69,7 +70,7 @@ export function suspicionBand(s: number): number {
 export function levelBonus(b: BuildingState, field: 'outputPct' | 'housing' | 'plots' | 'brewBonus'): number {
   return (buildingDef(b.type).perLevel?.[field] ?? 0) * (b.level - 1);
 }
-export const housing = (run: RunState) => run.buildings.reduce((n, b) => n + (buildingDef(b.type).housing ? buildingDef(b.type).housing! + levelBonus(b, 'housing') : 0), 0);
+export const housing = (run: RunState) => run.buildings.reduce((n, b) => n + (buildingDef(b.type).housing ? buildingDef(b.type).housing! + levelBonus(b, 'housing') : 0), 0) + sanctumBeds(run);
 export function devotionCap(run: RunState): number {
   let cap = B.caps.devotion;
   for (const b of run.buildings) {
@@ -167,6 +168,7 @@ export function newGame(seed: number, nowWall: number): GameState {
     visitClock: 0,
     lastVisitAt: 0,
     draftBonus: 0,
+    sanctum: { storeys: 0, building: null, rooms: [] },
     favor: {},
     rituals: {},
     activeRitual: null,
@@ -240,7 +242,7 @@ export function placeBuilding(g: GameState, type: string, x: number, y: number, 
 export function assignJobs(run: RunState): void {
   const producers = run.buildings.filter((b) => buildingDef(b.type).produces);
   for (const f of run.followers) {
-    if (f.job !== null && run.buildings.some((b) => b.id === f.job)) continue;
+    if (f.job !== null && (run.buildings.some((b) => b.id === f.job) || run.sanctum.rooms.some((r) => r.id === f.job))) continue;
     if (producers.length === 0) { f.job = null; continue; }
     const counts = producers.map((b) => run.followers.filter((o) => o.job === b.id).length);
     f.job = producers[counts.indexOf(Math.min(...counts))].id;
@@ -489,21 +491,38 @@ export function dailyLevel(run: RunState, today: string): string | null {
 
 // ---------- inspections ----------
 
-export interface VisitSummary { fine: number; sealed: string | null; sealMin: number; away: string | null; awayMin: number; suspicion: number }
+export interface VisitSummary { fine: number; sealed: string | null; sealMin: number; away: string | null; awayMin: number; suspicion: number; forms: number; formPct: number }
 
 /** Apply a visit's outcome. `cut` (0-1) shrinks fines, seals and time away (Look Busy stars). Suspicion always falls. */
 export function applyVisit(g: GameState, fx: VisitEffects, cut: number, emit: Emit = noEmit): VisitSummary {
   const run = g.run;
+  const out: VisitSummary = { fine: 0, sealed: null, sealMin: 0, away: null, awayMin: 0, suspicion: 0, forms: 0, formPct: 0 };
+  // Filed Forms from the Records Office soften any visit that would cost something
+  if ((fx.finePct || fx.sealSec || fx.awaySec) && cut < 1) {
+    const f = useForms(run);
+    out.forms = f.used;
+    out.formPct = Math.round(f.cut * 100);
+    cut = Math.min(1, cut + f.cut);
+  }
   const keep = Math.max(0, 1 - cut);
-  const out: VisitSummary = { fine: 0, sealed: null, sealMin: 0, away: null, awayMin: 0, suspicion: 0 };
   if (fx.finePct) {
     out.fine = Math.floor((run.donations * fx.finePct * keep) / 100);
     run.donations -= out.fine;
     if (out.fine > 0) emit({ type: 'float', textKey: 'float.fine', params: { n: out.fine }, tone: 'loss' });
   }
   if (fx.sealSec && keep > 0) {
-    const options = run.buildings.filter((b) => b.type !== 'dormitory');
-    const b = options.length ? withRng(run, 'events', (r) => r.pick(options)) : null;
+    // a room in the Sanctum can be sealed too (never a Bunk Room: nobody loses a bed)
+    const rooms = roomGroups(run).filter((grp) => grp.type !== 'bunk_room');
+    const options: { kind: 'b' | 'r'; i: number }[] = [...run.buildings.map((b, i) => ({ kind: 'b' as const, i })).filter((o) => run.buildings[o.i].type !== 'dormitory'), ...rooms.map((_, i) => ({ kind: 'r' as const, i }))];
+    const pick = options.length ? withRng(run, 'events', (r) => r.pick(options)) : null;
+    if (pick && pick.kind === 'r') {
+      const grp = rooms[pick.i];
+      for (const bay of grp.bays) bay.sealedUntil = Math.max(bay.sealedUntil ?? 0, run.time + fx.sealSec * keep);
+      out.sealed = `room:${grp.type}`;
+      out.sealMin = Math.max(1, Math.round((fx.sealSec * keep) / 60));
+      emit({ type: 'float', textKey: 'float.sealed', tone: 'loss' });
+    }
+    const b = pick && pick.kind === 'b' ? run.buildings[pick.i] : null;
     if (b) {
       b.sealedUntil = Math.max(b.sealedUntil ?? 0, run.time + fx.sealSec * keep);
       out.sealed = b.type;
@@ -578,8 +597,9 @@ function payRite(g: GameState, rite: ActiveRite, st: Match3State, won: boolean, 
     return res;
   }
   if (!won) return res;
+  const boost = 1 + ritePctBonus(run) / 100; // Ritual Chamber
   if (rite.id === 'sermon' && P.doubtPerTiles) {
-    res.amount = Math.floor(tiles / P.doubtPerTiles);
+    res.amount = Math.floor((tiles * boost) / P.doubtPerTiles);
     for (const f of run.followers) f.stats.doubt = Math.max(0, f.stats.doubt - res.amount);
   } else if (rite.id === 'recruit') {
     if (run.followers.length + run.pendingDrafts < housing(run)) {
@@ -588,13 +608,13 @@ function payRite(g: GameState, rite: ActiveRite, st: Match3State, won: boolean, 
       res.amount = DATA.followers.draftSize + run.draftBonus;
     }
   } else if (rite.id === 'communion' && rite.entity && run.met.includes(rite.entity)) {
-    res.amount = Math.round(tiles * (P.favorPerTile ?? 0));
+    res.amount = Math.round(tiles * (P.favorPerTile ?? 0) * boost);
     addFavor(g, rite.entity, res.amount, emit);
   } else if (rite.id === 'harvest' && rite.crop && cropUnlocked(run, rite.crop)) {
-    res.amount = Math.floor(tiles / (P.cropPerTiles ?? 3));
+    res.amount = Math.floor((tiles * boost) / (P.cropPerTiles ?? 3));
     run.inventory[rite.crop] = inv(run, rite.crop) + res.amount;
   } else if (rite.id === 'vigil') {
-    const n = Math.floor(tiles / (P.stubPerTiles ?? 4));
+    const n = Math.floor((tiles * boost) / (P.stubPerTiles ?? 4));
     for (let i = 0; i < n; i++) { if (placeItem(run.reliquary, DATA.merge, 'candle', 1)) res.amount++; else res.lost++; }
   }
   return res;
@@ -638,7 +658,7 @@ export function finishRitual(g: GameState, emit: Emit = noEmit): RitualReward {
     if (out.basil > 0) run.inventory.basil = inv(run, 'basil') + out.basil;
   }
   // Omens: only rituals make them
-  out.omens = st.relaxed ? O.relaxedFlat : stars * O.perStar;
+  out.omens = (st.relaxed ? O.relaxedFlat : stars * O.perStar) + omenPerWin(run);
   if (stars === 3 && prev < 3) out.firstThree = O.firstThreeStar;
   if (rite?.daily && run.daily.bank > 0) { out.daily = DATA.rites.daily.bonus * run.daily.bank; run.daily.bank = 0; }
   run.omens += out.omens + out.firstThree + out.daily;
@@ -679,7 +699,8 @@ export function generateRecruit(run: RunState, rng: Rng): Follower {
   const F = DATA.followers;
   const used = new Set(run.followers.map((f) => f.name));
   const free = F.names.filter((n) => !used.has(n));
-  const name = rng.pick(free.length ? free : F.names);
+  // once most names are taken, reuse any name (a draft of 3-4 needs that many distinct names to choose from)
+  const name = rng.pick(free.length >= 4 ? free : F.names);
   const pool = rng.shuffle(F.traits.map((x) => x.id));
   const traits = pool.slice(0, rng.next() < 0.45 ? 2 : 1);
   const stats = { devotion: 35 + rng.int(31), sanity: 45 + rng.int(31), productivity: 35 + rng.int(31), doubt: 15 + rng.int(26) };
@@ -900,6 +921,7 @@ export function tick(g: GameState, dt: number, emit: Emit = noEmit, opts: { offl
     run.suspicion = Math.max(0, run.suspicion - decay);
   }
   tickMerge(run.reliquary, DATA.merge, dt);
+  tickSanctum(g, dt, emit, off);
   refillOrders(g, emit);
   if (!off) {
     g.meta.stats.playSec += dt;

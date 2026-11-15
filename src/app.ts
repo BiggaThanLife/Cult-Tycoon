@@ -6,6 +6,7 @@ import { buildAtlas } from './art/sprites';
 import { DATA } from './core/data';
 import { devotionCap, suspicionBand, tabUnlocked, unlocksAt, xpNeeded, type TabId } from './core/game';
 import { ritualDef } from './core/data';
+import { sanctumUnlocked } from './core/sanctum';
 import type { Store } from './core/store';
 import { t } from './core/text';
 import type { GameEvent, TutorialStep } from './core/types';
@@ -16,6 +17,7 @@ import { sfx } from './ui/sfx';
 import { autoModals, openMenu, type Notice } from './screens/modals';
 import type { Screen } from './screens/screen';
 import { CompoundScreen } from './screens/compound';
+import { SanctumScreen } from './screens/sanctum';
 import { RitualScreen } from './screens/rituals';
 import { ReliquaryScreen } from './screens/reliquary';
 import { AlchemyScreen } from './screens/alchemy';
@@ -41,6 +43,20 @@ export class App extends Phaser.Scene {
   tab: TabId = 'compound';
   modals!: Modals;
   screens!: Record<TabId, Screen>;
+  sanctum!: SanctumScreen;
+  /** The Compound tab shows the grounds map or the Sanctum side view (a view choice, kept across rotation). */
+  compoundView: 'grounds' | 'sanctum' = 'grounds';
+  /** The screen currently on show. */
+  get cur(): Screen { return this.tab === 'compound' && this.compoundView === 'sanctum' ? this.sanctum : this.screens[this.tab]; }
+
+  setCompoundView(v: 'grounds' | 'sanctum'): void {
+    if (v === this.compoundView) return;
+    this.cur.hide();
+    this.compoundView = v;
+    if (v === 'sanctum') this.store.act((g) => { g.run.flags.sanctumSeen = true; });
+    this.cur.show();
+    this.hudDirty = true;
+  }
   private screenLayer!: C;
   private hudLayer!: C;
   private floatLayer!: C;
@@ -76,13 +92,14 @@ export class App extends Phaser.Scene {
       alchemy: new AlchemyScreen(this, this.screenLayer),
       orders: new OrdersScreen(this, this.screenLayer),
     };
+    this.sanctum = new SanctumScreen(this, this.screenLayer);
     this.store.on((e) => this.onGameEvent(e));
-    this.screens[this.tab].show();
+    this.cur.show();
 
     const route = (fn: 'pointerDown' | 'pointerMove' | 'pointerUp') => (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (this.modals.active) return;
       if (fn === 'pointerDown' && over && over.length) return;
-      this.screens[this.tab][fn](p);
+      this.cur[fn](p);
     };
     sfx.setEnabled(this.store.state.meta.settings.sound !== false);
     this.input.on('pointerdown', () => sfx.unlock());
@@ -98,7 +115,7 @@ export class App extends Phaser.Scene {
   relayout(): void {
     this.L = computeLayout();
     this.buildHud();
-    this.screens[this.tab].rebuild();
+    this.cur.rebuild();
     this.modals.rebuild();
     this.hudDirty = false;
     this.screenDirty = false;
@@ -106,9 +123,9 @@ export class App extends Phaser.Scene {
 
   goto(tab: TabId): void {
     if (tab === this.tab || !tabUnlocked(this.store.state.run, tab)) return;
-    this.screens[this.tab].hide();
+    this.cur.hide();
     this.tab = tab;
-    this.screens[tab].show();
+    this.cur.show();
     this.hudDirty = true;
   }
 
@@ -131,7 +148,7 @@ export class App extends Phaser.Scene {
       case 'float': {
         const params: Record<string, string | number> = { ...(e.params ?? {}) };
         if (typeof params.item === 'string') params.item = t(params.item);
-        const pos = e.at ? this.screens[this.tab].floatPos(e.at) : null;
+        const pos = e.at ? this.cur.floatPos(e.at) : null;
         this.float(t(e.textKey, params), pos ?? undefined, e.tone);
         break;
       }
@@ -252,7 +269,7 @@ export class App extends Phaser.Scene {
 
     // --- advisor banner ---
     const N = L.banner;
-    if (!this.screens[this.tab].fullHeight()) {
+    if (!this.cur.fullHeight()) {
       rect(this, h, N.x, N.y, N.w, N.h, PAL.white);
       rect(this, h, N.x, N.y + N.h - 1, N.w, 1, PAL.ink);
       img(this, h, N.x + 2, N.y + 3, 'advisor');
@@ -268,6 +285,8 @@ export class App extends Phaser.Scene {
     if (run.inspection) return t('inspection.waiting');
     if (run.tutorial !== 'done') return t(`tip.${run.tutorial}`);
     if (!run.flags.riteUsed) return t('tip.rites');
+    if (sanctumUnlocked(run) && !run.flags.sanctumSeen) return t('tip.sanctum');
+    if (run.sanctum.storeys > 0 && run.sanctum.rooms.length === 0) return t('tip.sanctum.room');
     if (run.devotion >= devotionCap(run)) return t('float.cap');
     for (let lv = run.level + 1; lv <= run.level + 3; lv++) {
       const u = unlocksAt(lv)[0];
@@ -320,9 +339,9 @@ export class App extends Phaser.Scene {
     this.store.update(dt, speed);
     st.meta.stats.modeSec[this.tab] = (st.meta.stats.modeSec[this.tab] ?? 0) + dt;
     if (this.hudDirty) { this.buildHud(); this.hudDirty = false; }
-    if (this.screenDirty) { this.screens[this.tab].onChanged(); this.screenDirty = false; }
+    if (this.screenDirty) { this.cur.onChanged(); this.screenDirty = false; }
     this.refreshHud();
-    this.screens[this.tab].update(dt);
+    this.cur.update(dt);
     this.modals.update(dt);
     autoModals(this);
   }

@@ -926,7 +926,8 @@ export function riteLine(rw: RitualReward): string {
 export function summaryText(s: VisitSummary): string {
   const parts: string[] = [];
   if (s.fine) parts.push(t('inspection.summary.fine', { n: s.fine }));
-  if (s.sealed) parts.push(t('inspection.summary.seal', { building: t(`building.${s.sealed}.name`), m: s.sealMin }));
+  if (s.sealed) parts.push(t('inspection.summary.seal', { building: s.sealed.startsWith('room:') ? t(`room.${s.sealed.slice(5)}.name`) : t(`building.${s.sealed}.name`), m: s.sealMin }));
   if (s.away) parts.push(t('inspection.summary.away', { name: s.away, m: s.awayMin }));
-  return parts.length ? parts.join(', ') : t('inspection.summary.none');
+  const text = parts.length ? parts.join(', ') : t('inspection.summary.none');
+  return s.forms ? `${text}. ${t('inspection.forms', { n: s.forms, pct: s.formPct })}` : text;
 }

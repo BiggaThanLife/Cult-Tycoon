@@ -85,21 +85,21 @@ A simple bot fills orders, upgrades, summons and recruits. Times are minutes aft
 
 ## steady player (2-star)
 
-- Ends at: Lv8, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
-- 48 new things in 150 min. Longest wait for one in the first 60 min: **7:51** (ending at 61:48) ok. Longest overall: 44:56 (ending at 146:21).
-- Rituals are 37% of active time ok; inspections: 9
-- Pace: Lv3 at 10:59, Lv5 at 46:10 ok
-- Compound levels reached at: Lv2 1:26, Lv3 10:59, Lv4 26:22, Lv5 46:10, Lv6 68:09, Lv7 101:25, Lv8 146:21
-- Entities met at: mothman 0:00, baba_yaga 11:01, jersey_devil 26:30, anansi 46:18, vorl 68:17
-- Time by action: ritual 55:16, orders 33:37, merge 30:18, garden 15:33, brew 14:24, upgrade 0:56, draft 0:50, visits 0:09
+- Ends at: Lv6, 48 followers, 4 storeys / 12 rooms, 5 entities, buildings 3/3/3/2, grimoire 5
+- 120 new things in 150 min. Longest wait for one in the first 60 min: **4:14** (ending at 29:43) ok. Longest overall: 7:54 (ending at 99:16).
+- Rituals are 58% of active time ok; inspections: 4
+- Pace: Lv3 at 10:09, Lv5 at 61:17 ok
+- Compound levels reached at: Lv2 1:26, Lv3 10:09, Lv4 35:37, Lv5 61:17, Lv6 99:41
+- Entities met at: mothman 0:00, baba_yaga 11:27, jersey_devil 35:40, anansi 62:32, vorl 101:04
+- Time by action: ritual 87:04, orders 19:16, merge 19:05, draft 7:30, garden 6:46, brew 5:09, sanctum 4:14, upgrade 0:56, visits 0:04
 
 ## careful player (1-star)
 
-- Ends at: Lv8, 8 followers, 5 entities, buildings 3/3/3/2, grimoire 5
-- 48 new things in 150 min. Longest wait for one in the first 60 min: **9:17** (ending at 61:31) ok. Longest overall: 36:00 (ending at 143:53).
-- Rituals are 35% of active time ok; inspections: 9
-- Pace: Lv3 at 9:32, Lv5 at 39:02 ok
-- Compound levels reached at: Lv2 1:26, Lv3 9:32, Lv4 22:43, Lv5 39:02, Lv6 61:31, Lv7 94:22, Lv8 143:53
-- Entities met at: mothman 0:00, baba_yaga 10:28, jersey_devil 22:51, anansi 40:22, vorl 61:34
-- Time by action: ritual 53:00, orders 34:20, merge 29:55, garden 16:27, brew 14:33, upgrade 0:56, draft 0:50, visits 0:09
+- Ends at: Lv7, 45 followers, 4 storeys / 12 rooms, 5 entities, buildings 3/2/3/2, grimoire 5
+- 114 new things in 150 min. Longest wait for one in the first 60 min: **4:20** (ending at 58:56) ok. Longest overall: 8:36 (ending at 86:08).
+- Rituals are 55% of active time ok; inspections: 6
+- Pace: Lv3 at 8:42, Lv5 at 58:56 ok
+- Compound levels reached at: Lv2 1:26, Lv3 8:42, Lv4 33:29, Lv5 58:56, Lv6 92:26, Lv7 146:06
+- Entities met at: mothman 0:00, baba_yaga 9:54, jersey_devil 34:44, anansi 60:16, vorl 92:29
+- Time by action: ritual 82:24, orders 20:55, merge 20:25, garden 7:55, draft 7:00, brew 6:45, sanctum 3:50, upgrade 0:48, visits 0:06
 

@@ -189,6 +189,16 @@ function icon8(key: string, rows: string[], pal: Record<string, string>): Sprite
   return { key, w: 8, h: 8, draw: (p) => p.map(0, 0, rows, pal) };
 }
 
+function brick(p: Pen, oy = 0, rows = 4): void {
+  p.r(0, oy, 16, rows * 4, PAL.woodDD);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < 2; i++) {
+    const bx = i * 8 + (j % 2 ? 4 : 0);
+    const w = 7;
+    for (const x0 of [bx, bx - 16]) if (x0 + w > 0 && x0 < 16) p.r(Math.max(0, x0), oy + j * 4, Math.min(16, x0 + w) - Math.max(0, x0), 3, (i + j) % 3 ? PAL.woodD : PAL.wood);
+    p.px(bx % 16, oy + j * 4, PAL.wood);
+  }
+}
+
 function sprites(): SpriteDef[] {
   const out: SpriteDef[] = [];
 
@@ -538,6 +548,224 @@ function sprites(): SpriteDef[] {
   out.push({ key: 'seal_tape', w: 32, h: 16, draw: (p) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.px(x, y, (x + y) % 8 < 4 ? PAL.sand : PAL.bone);
     p.r(0, 0, 32, 1, PAL.woodD).r(0, 15, 32, 1, PAL.woodD);
+  } });
+  // ---- Sanctum: room interiors (48x44), tower pieces ----
+  // A bay: back wall (vertical stripes, period 8), ceiling shadow, baseboard, floor band y36..43 (plank seams, period 12).
+  // Everything tiles: no prop touches x<2 or x>45. Lower ~20 px stay clear for 16x16 followers.
+  const bay = (p: Pen, wall: string, stripe: string, trim: string, floor: string, seam: string) => {
+    p.r(0, 0, 48, 36, wall);
+    for (let x = 0; x < 48; x += 8) p.r(x + 3, 2, 2, 32, stripe);
+    p.r(0, 0, 48, 2, trim).r(0, 2, 48, 1, stripe);
+    p.r(0, 34, 48, 2, trim);
+    p.r(0, 36, 48, 8, floor).r(0, 36, 48, 1, seam);
+    for (let x = 6; x < 48; x += 12) p.r(x, 38, 1, 3, seam).r(x + 6, 41, 1, 3, seam);
+  };
+  const flameS = (p: Pen, x: number, y: number) => p.px(x, y, PAL.yellow).px(x, y + 1, PAL.red).px(x, y - 1, PAL.yellow);
+  const eye = (p: Pen, cx: number, cy: number, iris: string) => {
+    p.r(cx - 4, cy, 9, 1, PAL.ink).r(cx - 3, cy - 1, 7, 3, PAL.white).r(cx - 2, cy - 2, 5, 1, PAL.ink).r(cx - 2, cy + 2, 5, 1, PAL.ink);
+    p.r(cx - 1, cy - 1, 3, 3, iris).px(cx, cy, PAL.ink);
+  };
+  const room = (key: string, draw: (p: Pen) => void) => out.push({ key, w: 48, h: 44, draw });
+
+  room('room_main_hall', (p) => {
+    bay(p, PAL.sand, PAL.wood, PAL.woodD, PAL.woodD, PAL.woodDD);
+    // banner with the eye, centred; hangs from a rod
+    p.r(17, 3, 14, 2, PAL.woodDD).r(19, 5, 10, 15, PAL.ink).r(20, 5, 8, 14, PAL.redD).r(21, 19, 6, 1, PAL.redD).r(22, 20, 4, 1, PAL.ink);
+    eye(p, 24, 11, PAL.teal);
+    p.r(20, 16, 8, 1, PAL.yellow);
+    // pulpit
+    p.box(19, 22, 10, 6, PAL.woodD, PAL.ink).r(20, 23, 8, 1, PAL.wood).r(23, 25, 2, 2, PAL.yellow);
+    // pews in rows (backs seen from the front)
+    for (const x of [3, 33]) {
+      p.box(x, 22, 12, 4, PAL.woodD, PAL.ink).r(x + 1, 23, 10, 1, PAL.wood);
+      p.box(x - 1, 29, 14, 4, PAL.woodD, PAL.ink).r(x, 30, 12, 1, PAL.wood);
+    }
+    // candle sconces with ritual candles
+    for (const x of [10, 37]) {
+      p.r(x - 1, 8, 4, 1, PAL.ink).r(x, 9, 2, 2, PAL.woodDD).r(x, 6, 2, 3, PAL.bone);
+      flameS(p, x, 4);
+    }
+  });
+
+  room('room_bunk_room', (p) => {
+    bay(p, PAL.robeL, PAL.robe, PAL.robeD, PAL.woodD, PAL.woodDD);
+    const bunk = (x: number, top: string, bot: string) => {
+      p.r(x, 6, 2, 28, PAL.woodDD).r(x + 17, 6, 2, 28, PAL.woodDD);
+      for (const [y, c] of [[12, top], [23, bot]] as [number, string][]) {
+        p.r(x, y + 3, 19, 2, PAL.woodD).r(x + 2, y, 15, 3, c).r(x + 2, y, 15, 1, PAL.ink2).box(x + 2, y - 2, 5, 3, PAL.white);
+        p.r(x + 9, y + 1, 1, 2, PAL.ink2);
+      }
+      p.r(x + 17, 3, 2, 3, PAL.wood).r(x, 3, 2, 3, PAL.wood);
+    };
+    bunk(3, PAL.pink, PAL.teal);
+    bunk(27, PAL.yellow, PAL.robeD);
+    p.r(14, 39, 20, 4, PAL.ink2).r(15, 40, 18, 2, PAL.red).r(18, 40, 2, 2, PAL.sand).r(28, 40, 2, 2, PAL.sand).r(23, 40, 2, 2, PAL.pink);
+  });
+
+  room('room_kitchen', (p) => {
+    bay(p, PAL.bone, PAL.sand, PAL.woodD, PAL.woodD, PAL.woodDD);
+    for (let y = 8; y < 34; y += 8) p.r(0, y, 48, 1, PAL.sand); // tile grout
+    // ladles on a rail
+    p.r(15, 3, 18, 1, PAL.ink2);
+    for (const x of [17, 22, 27, 31]) p.r(x, 4, 1, 6, PAL.ink2).r(x - 1, 10, 3, 2, PAL.ink2);
+    // shelves of jars (left, right)
+    const jars = [PAL.grass, PAL.red, PAL.yellow, PAL.purple];
+    for (const [sx, sy] of [[2, 14], [36, 14], [36, 6]] as number[][]) {
+      p.r(sx, sy + 6, 10, 1, PAL.woodDD);
+      for (let i = 0; i < 3; i++) p.box(sx + 1 + i * 3, sy + 1, 3, 5, jars[(i + sx + sy) % 4]!);
+    }
+    p.r(2, 6, 10, 1, PAL.woodDD);
+    for (let i = 0; i < 3; i++) p.box(3 + i * 3, 1 + 1 + 3, 3, 2, jars[(i + 1) % 4]!);
+    // basil pot
+    p.box(39, 24, 6, 5, PAL.red, PAL.ink).ring(38, 19, 5, PAL.grass).ring(42, 20, 5, PAL.grass).r(41, 22, 1, 3, PAL.grassD);
+    // stove + stockpot
+    p.box(14, 24, 20, 10, PAL.ink2, PAL.ink).r(16, 27, 3, 2, PAL.red).r(22, 27, 3, 2, PAL.red).r(28, 27, 3, 2, PAL.red).r(15, 25, 18, 1, PAL.robeD);
+    p.ring(16, 13, 16, PAL.ink2).r(16, 18, 16, 6, PAL.ink2).r(15, 14, 18, 2, PAL.ink).r(17, 15, 14, 2, PAL.acid).px(20, 15, PAL.white).px(26, 16, PAL.white);
+    p.px(18, 12, PAL.white).px(20, 10, PAL.bone).px(25, 11, PAL.white).px(28, 9, PAL.bone);
+  });
+
+  room('room_records_office', (p) => {
+    bay(p, PAL.bone, PAL.sand, PAL.wood, PAL.woodD, PAL.woodDD);
+    // filing cabinets
+    for (const [x, y, w] of [[3, 8, 10], [15, 13, 10]] as number[][]) {
+      p.box(x, y, w, 27 - y + 8 - 8 + 0, PAL.robe, PAL.ink).r(x + 1, y + 1, w - 2, 1, PAL.robeL);
+      for (let j = y + 3; j + 5 < 35 && j < y + 22; j += 6) p.r(x + 1, j + 5, w - 2, 1, PAL.robeD).r(x + w / 2 - 1, j + 2, 2, 1, PAL.ink);
+    }
+    // folder stack on the short cabinet
+    p.box(16, 10, 8, 3, PAL.wood).box(17, 7, 7, 3, PAL.white).box(16, 4, 8, 3, PAL.wood);
+    // desk, lamp, stamp, folders
+    p.r(28, 25, 18, 2, PAL.woodD).r(28, 24, 18, 1, PAL.wood).r(29, 27, 2, 8, PAL.woodDD).r(43, 27, 2, 8, PAL.woodDD);
+    p.r(30, 22, 1, 2, PAL.ink).r(31, 15, 1, 8, PAL.ink2).r(31, 15, 5, 1, PAL.ink2).box(34, 15, 6, 3, PAL.yellow).px(37, 19, PAL.yellow).px(36, 20, PAL.sand).px(38, 20, PAL.sand);
+    p.box(41, 20, 4, 4, PAL.red).r(42, 18, 2, 2, PAL.woodDD);
+    p.box(31, 22, 8, 2, PAL.white);
+  });
+
+  room('room_reading_room', (p) => {
+    bay(p, PAL.robeDD, PAL.night2, PAL.night, PAL.ink2, PAL.night);
+    // shelf of identical pamphlets, floor to near ceiling
+    p.box(2, 4, 22, 29, PAL.woodDD, PAL.ink);
+    for (const y of [5, 14, 23]) {
+      p.r(3, y + 7, 20, 2, PAL.woodDD);
+      for (let x = 4; x < 22; x += 3) p.r(x, y + 1, 2, 6, PAL.robeL).px(x, y + 2, PAL.red).px(x + 1, y + 5, PAL.robe);
+    }
+    p.r(13, 15, 3, 6, PAL.ink).px(13, 17, PAL.acid).px(15, 17, PAL.acid); // a gap, something is looking out
+    // pendant lamp
+    p.r(35, 2, 1, 7, PAL.ink).box(32, 9, 7, 4, PAL.yellow, PAL.ink).r(33, 13, 5, 1, PAL.sand);
+    // two reading chairs
+    for (const x of [26, 37]) {
+      p.box(x, 20, 8, 9, PAL.red, PAL.ink).r(x + 1, 21, 6, 1, PAL.pink);
+      p.box(x - 1, 28, 10, 5, PAL.redD, PAL.ink).r(x, 33, 2, 2, PAL.ink).r(x + 7, 33, 2, 2, PAL.ink);
+    }
+  });
+
+  room('room_ritual_chamber', (p) => {
+    bay(p, PAL.night, PAL.night2, PAL.robeDD, PAL.ink2, PAL.ink);
+    // runes on the wall
+    const rune = (x: number, y: number, c: string) => p.r(x + 2, y, 1, 7, c).r(x, y + 2, 2, 1, c).r(x + 3, y + 4, 2, 1, c).px(x + 1, y + 1, c).px(x + 4, y + 6, c);
+    rune(4, 6, PAL.teal); rune(13, 10, PAL.purple); rune(30, 10, PAL.purple); rune(39, 6, PAL.teal);
+    p.diamond(24, 12, 6, PAL.ink).diamond(24, 12, 5, PAL.robeDD).diamond(24, 12, 3, PAL.purple).px(24, 12, PAL.white).px(24, 11, PAL.teal);
+    // candles on stands, glowing
+    for (const x of [5, 41]) {
+      p.r(x, 24, 2, 9, PAL.ink2).r(x - 1, 33, 4, 1, PAL.ink2).r(x - 1, 21, 4, 3, PAL.bone);
+      flameS(p, x, 19); p.px(x - 2, 19, PAL.teal).px(x + 3, 19, PAL.teal);
+    }
+    // chalk circle: flat ellipse on the floor
+    for (let y = 36; y < 44; y++) for (let x = 0; x < 48; x++) {
+      const dx = (x + 0.5 - 24) / 21;
+      const dy = (y + 0.5 - 40) / 4.4;
+      const d = dx * dx + dy * dy;
+      if (d <= 1 && d > 0.8) p.px(x, y, PAL.bone);
+      else if (d <= 0.8 && d > 0.7) p.px(x, y, PAL.teal);
+      else if (d <= 0.7 && (x + y) % 5 === 0) p.px(x, y, PAL.purple);
+    }
+  });
+
+  room('room_wellness_retreat', (p) => {
+    bay(p, PAL.pink, PAL.robeL, PAL.white, PAL.sand, PAL.wood);
+    // pictogram sign: lotus over water
+    p.box(17, 3, 14, 12, PAL.white, PAL.ink2);
+    p.diamond(24, 8, 2, PAL.pink).diamond(20, 9, 1, PAL.pink).diamond(28, 9, 1, PAL.pink).px(24, 8, PAL.red);
+    p.r(19, 12, 4, 1, PAL.teal).r(24, 12, 5, 1, PAL.teal).r(21, 13, 6, 1, PAL.blue);
+    // plants
+    const plant = (x: number, y: number) => {
+      p.ring(x, y, 6, PAL.grass).ring(x - 3, y + 3, 6, PAL.grassD).ring(x + 3, y + 3, 6, PAL.grass);
+      p.box(x - 1, y + 9, 8, 6, PAL.woodD, PAL.ink);
+    };
+    plant(4, 8); plant(37, 14);
+    // towel shelf
+    p.r(3, 27, 12, 1, PAL.woodD).box(4, 21, 9, 3, PAL.white).box(4, 24, 9, 3, PAL.blue).r(6, 22, 5, 1, PAL.blue);
+    // cash register on a counter
+    p.box(18, 24, 18, 10, PAL.wood, PAL.ink).r(19, 25, 16, 1, PAL.sand);
+    p.box(22, 17, 10, 7, PAL.ink2).r(24, 18, 6, 2, PAL.acid).r(24, 21, 2, 1, PAL.yellow).r(27, 21, 2, 1, PAL.yellow).r(30, 21, 1, 1, PAL.red);
+  });
+
+  room('room_empty', (p) => {
+    bay(p, PAL.bone, PAL.sand, PAL.sand, PAL.robe, PAL.robeD);
+    // exposed brick patch
+    p.r(5, 9, 16, 15, PAL.woodDD).r(7, 7, 11, 2, PAL.woodDD).r(9, 24, 8, 2, PAL.woodDD);
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) {
+      const bx = 6 + i * 5 + (j % 2 ? 2 : 0);
+      p.r(bx, 9 + j * 4, 4, 3, PAL.woodD);
+    }
+    p.px(8, 11, PAL.wood).px(15, 15, PAL.wood);
+    // bare bulb
+    p.r(34, 2, 1, 8, PAL.ink).box(32, 10, 5, 4, PAL.yellow, PAL.ink).px(33, 11, PAL.white);
+    // dust bunny
+    p.r(32, 40, 6, 3, PAL.robe).r(33, 39, 4, 1, PAL.robe).px(32, 39, PAL.robeL).px(37, 42, PAL.robeL).px(34, 41, PAL.ink).px(36, 41, PAL.ink);
+  });
+
+  room('room_scaffold', (p) => {
+    for (let y = 0; y < 44; y += 16) for (let x = 0; x < 48; x += 16) brick(new Pen((p as any).ctx, (p as any).ox + x, (p as any).oy), y, Math.min(4, 11 - y / 4));
+    for (const x of [3, 21, 40]) p.r(x, 0, 3, 44, PAL.ink).r(x + 1, 0, 1, 44, PAL.robe);
+    for (const y of [10, 25]) {
+      p.r(0, y, 48, 4, PAL.ink).r(0, y + 1, 48, 2, PAL.wood).r(0, y + 1, 48, 1, PAL.sand);
+      for (let x = 6; x < 48; x += 12) p.px(x, y + 2, PAL.woodD);
+    }
+    for (let i = 0; i < 12; i++) p.px(6 + i, 24 - i, PAL.ink).px(24 + i, 12 + i, PAL.ink);
+    p.r(0, 40, 48, 4, PAL.ink2).r(0, 40, 48, 1, PAL.robeD);
+  });
+
+  out.push({ key: 'brick', w: 16, h: 16, draw: (p) => brick(p) });
+  out.push({ key: 'slab', w: 16, h: 4, draw: (p) => p.r(0, 0, 16, 4, PAL.robeD).r(0, 0, 16, 1, PAL.robe).r(0, 3, 16, 1, PAL.ink2).px(5, 1, PAL.robe).px(12, 2, PAL.robeDD) });
+  out.push({ key: 'sky_strip', w: 16, h: 16, draw: (p) => {
+    p.r(0, 0, 16, 16, PAL.night).r(0, 11, 16, 5, PAL.night2).r(0, 10, 16, 1, PAL.night2);
+    for (let x = 0; x < 16; x += 2) p.px(x, 10, PAL.night);
+    p.px(3, 3, PAL.white).px(11, 6, PAL.white).px(12, 6, PAL.robeL).px(11, 5, PAL.robeL).px(11, 7, PAL.robeL).px(7, 1, PAL.yellow).px(14, 13, PAL.robe).px(1, 8, PAL.robe);
+  } });
+  out.push({ key: 'roof_cap', w: 160, h: 16, draw: (p) => {
+    for (let j = 0; j < 9; j++) {
+      const l = 24 - j * 3;
+      p.r(l, 6 + j, 160 - l * 2, 1, j % 3 === 0 ? PAL.redD : PAL.red);
+      for (let x = l + (j % 2) * 4; x < 160 - l; x += 8) p.px(x, 6 + j, PAL.redD);
+      p.px(l, 6 + j, PAL.ink).px(159 - l, 6 + j, PAL.ink);
+    }
+    p.r(0, 6, 1, 1, PAL.ink); p.r(24, 5, 112, 1, PAL.ink);
+    p.r(0, 14, 160, 2, PAL.ink).r(0, 14, 160, 1, PAL.redD);
+    p.box(72, 0, 16, 8, PAL.sand).ring(77, 1, 6, PAL.white).r(79, 3, 2, 2, PAL.ink).px(79, 3, PAL.teal);
+  } });
+  out.push({ key: 'stairs', w: 16, h: 48, draw: (p) => {
+    p.r(0, 0, 16, 48, PAL.robe).r(0, 4, 16, 44, PAL.robeL);
+    for (let y = 8; y < 48; y += 8) for (let x = (y / 8) % 2 ? 0 : 4; x < 16; x += 8) p.px(x, y, PAL.robe);
+    p.r(0, 0, 16, 4, PAL.robeD).r(0, 0, 16, 1, PAL.robe).r(0, 3, 16, 1, PAL.ink2);
+    for (let k = 0; k < 4; k++) { // lower flight: solid wedge climbing right
+      const y = 47 - 6 * (k + 1) + 1;
+      p.r(k * 4, y, 4, 48 - y, PAL.woodDD).r(k * 4, y, 4, 1, PAL.wood).r(k * 4, y + 1, 4, 1, PAL.woodD);
+    }
+    for (let k = 0; k < 3; k++) { // upper flight: thin stringer climbing left
+      const y = 17 - 6 * k;
+      p.r(12 - k * 4, y, 4, 1, PAL.wood).r(12 - k * 4, y + 1, 4, 2, PAL.woodDD).r(12 - k * 4, y + 3, 1, 3, PAL.ink2);
+    }
+    p.r(15, 18, 1, 6, PAL.ink2); // rail post at the landing
+    // fire-safety exit pictogram: running figure + arrow
+    p.box(8, 4, 8, 6, PAL.grassD, PAL.ink).r(9, 5, 6, 4, PAL.grass);
+    p.px(9, 5, PAL.white).r(9, 6, 1, 2, PAL.white).px(10, 8, PAL.white).px(10, 6, PAL.white);
+    p.r(11, 7, 3, 1, PAL.white).px(13, 6, PAL.white).px(13, 8, PAL.white);
+  } });
+  const I2 = { o: PAL.ink, w: PAL.bone, g: PAL.grassD, r: PAL.red };
+  out.push(icon8('ic_form', ['.oooooo.', 'owwwwwwo', 'owwwwgwo', 'owgwgwwo', 'owwgwwwo', 'owrrrrwo', 'owwwwwwo', '.oooooo.'], I2));
+  out.push({ key: 'i_filed_form', w: 16, h: 16, draw: (p) => { p.box(3, 1, 10, 14, PAL.bone); p.r(5, 3, 6, 1, PAL.woodD).r(5, 5, 6, 1, PAL.woodD); p.r(10, 9, 1, 1, PAL.grassD).r(9, 10, 1, 1, PAL.grassD).r(11, 8, 1, 1, PAL.grassD).r(7, 9, 1, 1, PAL.grassD).r(8, 10, 1, 1, PAL.grassD); p.r(5, 12, 4, 2, PAL.red); } });
+  out.push({ key: 'ic_bed', w: 8, h: 8, draw: (p) => {
+    p.box(0, 0, 2, 8, PAL.woodD).box(2, 4, 6, 3, PAL.purple).box(2, 3, 3, 2, PAL.white).r(6, 7, 2, 1, PAL.ink);
   } });
   return out;
 }

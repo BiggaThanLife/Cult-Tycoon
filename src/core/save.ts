@@ -37,6 +37,11 @@ export const MIGRATIONS: Migrations = {
     Object.assign(d.run, { omens: 0, audiences: [], activeRite: null, inspection: null, daily: { day: '', bank: 0 }, visitClock: 0, lastVisitAt: 0, draftBonus: 0 });
     return d;
   },
+  // v4 -> v5: the Sanctum (storeys and rooms); nothing existing moves
+  4: (d) => {
+    d.run.sanctum = { storeys: 0, building: null, rooms: [] };
+    return d;
+  },
 };
 
 interface Envelope { saveVersion: number; savedAt: number; data: unknown }

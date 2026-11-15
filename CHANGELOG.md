@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 — The Sanctum
+- From Compound Level 3, tap "Go inside" (or the Sermon Hall's card) for a side view of the Hall. Build storeys upward and fill bays with rooms: Bunk Room, Kitchen, Records Office, Reading Room, Ritual Chamber, Wellness Retreat.
+- Matching rooms side by side merge into bigger rooms with a bonus. Assign followers to rooms; each room cares about one stat.
+- Rooms feed the rest: beds, Sanity, Filed Forms that soften inspections, less Doubt, stronger rites, Donations. Tall buildings and spas draw Suspicion.
+- Fixed: a recruit draft could freeze the game once the flock was very large.
+
 ## 0.4.1
 - Fixed: the rite counter on the ritual board was drawn over the score. The playthrough now also fails on text drawn over other text.
 

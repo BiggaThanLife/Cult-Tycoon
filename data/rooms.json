@@ -1,0 +1,346 @@
+{
+  "storeys": [
+    {
+      "level": 3,
+      "cost": {
+        "devotion": 0,
+        "donations": 0
+      },
+      "omens": 0,
+      "sec": 0
+    },
+    {
+      "level": 4,
+      "cost": {
+        "devotion": 250,
+        "donations": 60
+      },
+      "omens": 2,
+      "sec": 30
+    },
+    {
+      "level": 5,
+      "cost": {
+        "devotion": 600,
+        "donations": 120
+      },
+      "omens": 4,
+      "sec": 45
+    },
+    {
+      "level": 6,
+      "cost": {
+        "devotion": 1200,
+        "donations": 200
+      },
+      "omens": 6,
+      "sec": 60
+    },
+    {
+      "level": 8,
+      "cost": {
+        "devotion": 2200,
+        "donations": 300
+      },
+      "omens": 9,
+      "sec": 60
+    },
+    {
+      "level": 10,
+      "cost": {
+        "devotion": 3500,
+        "donations": 450
+      },
+      "omens": 12,
+      "sec": 60
+    }
+  ],
+  "baysPerStorey": 3,
+  "heightSuspicion": {
+    "fromStorey": 4,
+    "perStoreyPerMin": 0.05
+  },
+  "mergeBonusPct": [
+    0,
+    10,
+    20
+  ],
+  "demolishRefund": 0.5,
+  "formCutPct": 25,
+  "formMaxPerVisit": 2,
+  "rooms": [
+    {
+      "id": "bunk_room",
+      "key": null,
+      "slots": [
+        0,
+        0,
+        0
+      ],
+      "unlockLevel": 3,
+      "cost": {
+        "devotion": 60,
+        "donations": 20
+      },
+      "effect": {
+        "beds": [
+          3,
+          4,
+          5
+        ]
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 150,
+            "donations": 50
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 2
+          }
+        },
+        {
+          "cost": {
+            "devotion": 400,
+            "donations": 120
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 3
+          },
+          "omens": 4
+        }
+      ]
+    },
+    {
+      "id": "kitchen",
+      "key": "sanity",
+      "slots": [
+        2,
+        2,
+        3
+      ],
+      "unlockLevel": 4,
+      "cost": {
+        "devotion": 100,
+        "donations": 40
+      },
+      "effect": {
+        "sanityPerMin": [
+          1,
+          1.5,
+          2
+        ],
+        "basilPerMin": 0.5
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 250,
+            "donations": 80
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 2
+          }
+        },
+        {
+          "cost": {
+            "devotion": 600,
+            "donations": 160
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 3
+          },
+          "omens": 4
+        }
+      ]
+    },
+    {
+      "id": "records_office",
+      "key": "doubt",
+      "slots": [
+        2,
+        2,
+        3
+      ],
+      "unlockLevel": 4,
+      "cost": {
+        "devotion": 120,
+        "donations": 40
+      },
+      "effect": {
+        "formEverySec": [
+          240,
+          180,
+          120
+        ],
+        "formCapPerBay": 2
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 300,
+            "donations": 90
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 3
+          }
+        },
+        {
+          "cost": {
+            "devotion": 700,
+            "donations": 180
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 4
+          },
+          "omens": 5
+        }
+      ]
+    },
+    {
+      "id": "reading_room",
+      "key": "devotion",
+      "slots": [
+        2,
+        2,
+        3
+      ],
+      "unlockLevel": 5,
+      "cost": {
+        "devotion": 150,
+        "donations": 50
+      },
+      "effect": {
+        "doubtPerMin": [
+          1,
+          1.5,
+          2
+        ]
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 350,
+            "donations": 100
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 3
+          }
+        },
+        {
+          "cost": {
+            "devotion": 800,
+            "donations": 200
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 4
+          },
+          "omens": 5
+        }
+      ]
+    },
+    {
+      "id": "ritual_chamber",
+      "key": "devotion",
+      "slots": [
+        2,
+        2,
+        3
+      ],
+      "unlockLevel": 6,
+      "cost": {
+        "devotion": 300,
+        "donations": 120
+      },
+      "effect": {
+        "ritePct": [
+          5,
+          8,
+          12
+        ],
+        "omenPerWin": [
+          0,
+          0,
+          1
+        ]
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 700,
+            "donations": 200
+          },
+          "merge": {
+            "chain": "candle",
+            "tier": 4
+          },
+          "omens": 4
+        },
+        {
+          "cost": {
+            "devotion": 1500,
+            "donations": 350
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 4
+          },
+          "omens": 8
+        }
+      ]
+    },
+    {
+      "id": "wellness_retreat",
+      "key": "sanity",
+      "slots": [
+        2,
+        2,
+        3
+      ],
+      "unlockLevel": 7,
+      "cost": {
+        "devotion": 300,
+        "donations": 150
+      },
+      "effect": {
+        "donationsPerMin": [
+          5,
+          8,
+          12
+        ],
+        "suspicionPerMin": 0.4
+      },
+      "upgrades": [
+        {
+          "cost": {
+            "devotion": 800,
+            "donations": 250
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 3
+          }
+        },
+        {
+          "cost": {
+            "devotion": 1800,
+            "donations": 400
+          },
+          "merge": {
+            "chain": "paper",
+            "tier": 5
+          },
+          "omens": 8
+        }
+      ]
+    }
+  ]
+}

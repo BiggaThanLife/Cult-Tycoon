@@ -12,6 +12,7 @@ import type { GameState } from '../../src/core/types';
 import { countItems, createMerge, moveItem, tapGenerator, tickMerge } from '../../src/puzzle/merge';
 import type { Match3State } from '../../src/puzzle/match3';
 import { layoutFor } from '../../src/ui/layout';
+import * as S from '../../src/core/sanctum';
 import { spriteKeys } from '../../src/art/sprites';
 
 const T0 = 1_700_000_000_000;
@@ -446,6 +447,131 @@ describe('rites, omens, daily rite, inspections (docs/specs/rites.md)', () => {
     expect(keys.length).toBeGreaterThan(20);
     expect(keys.filter((k) => banned.test(DATA.text[k]))).toEqual([]);
     expect(Object.values(DATA.text).filter((v) => /\bOMC\b/.test(v))).toEqual([]);
+  });
+});
+
+describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
+  const ready = () => { const g = playSlice(); g.run.level = 4; g.run.devotion = 4000; g.run.donations = 500; g.run.omens = 20; return g; };
+  it('opens at compound level 3; storeys cost what rooms.json says and take time', () => {
+    const g = playSlice();
+    g.run.level = 2;
+    expect(S.sanctumUnlocked(g.run)).toBe(false);
+    g.run.level = 4; g.run.devotion = 1000; g.run.donations = 200; g.run.omens = 2;
+    expect(S.buildStorey(g)).toBe(true); // storey 1 is free and instant
+    expect(g.run.sanctum.storeys).toBe(1);
+    expect(S.buildStorey(g)).toBe(true); // storey 2: 250 / 60 / 2 Omens, 30 s
+    expect(g.run.devotion).toBe(750);
+    expect(g.run.omens).toBe(0);
+    expect(g.run.sanctum.storeys).toBe(1);
+    expect(S.canBuildStorey(g.run)).toBe(false); // one at a time
+    G.tick(g, 31);
+    expect(g.run.sanctum.storeys).toBe(2);
+    expect(S.canBuildStorey(g.run)).toBe(false); // storey 3 needs Lv5
+  });
+  it('identical neighbours of the same level merge, with a bonus; different levels do not', () => {
+    const g = ready();
+    S.buildStorey(g);
+    const a = S.buildRoom(g, 1, 0, 'kitchen')!;
+    const b = S.buildRoom(g, 1, 1, 'kitchen')!;
+    const grp = S.groupOf(g.run, a.id)!;
+    expect(grp.bays.map((x) => x.id)).toEqual([a.id, b.id]);
+    expect(S.mergePct(grp)).toBe(10);
+    expect(S.slotsOf(grp)).toBe(4);
+    g.run.reliquary.cells[0] = { id: 991, kind: 'item', chain: 'paper', tier: 2 };
+    const before = g.run.devotion;
+    expect(S.upgradeRoom(g, a.id)).toBe(true); // the whole merged room upgrades, cost x2
+    expect(before - g.run.devotion).toBe(500);
+    S.buildRoom(g, 1, 2, 'kitchen');
+    expect(S.roomGroups(g.run).filter((x) => x.storey === 1).map((x) => x.bays.length)).toEqual([2, 1]); // level 2 + level 1
+    expect(S.canBuildRoom(g.run, 1, 0, 'kitchen')).toBe(false); // occupied
+    expect(S.canBuildRoom(g.run, 2, 0, 'kitchen')).toBe(false); // storey not built
+    expect(S.roomUnlocked(g.run, 'wellness_retreat')).toBe(false);
+  });
+  it('workers follow the key stat; slots are enforced; demolish refunds half and frees workers', () => {
+    const g = ready();
+    S.buildStorey(g);
+    const r = S.buildRoom(g, 1, 0, 'records_office')!;
+    const grp = () => S.groupOf(g.run, r.id)!;
+    const [f1, f2, f3] = g.run.followers;
+    expect(S.roomWork({ ...f1, stats: { ...f1.stats, doubt: 100, sanity: 50 } }, 'doubt')).toBeCloseTo(0.75, 6);
+    expect(S.assignFollower(g, f1.id, r.id)).toBe(true);
+    expect(S.assignFollower(g, f2.id, r.id)).toBe(true);
+    expect(S.assignFollower(g, f3.id, r.id)).toBe(false); // 2 slots
+    expect(S.groupMult(g.run, grp())).toBeGreaterThan(1);
+    g.run.devotion = 100; // stay under the storage cap so the refund is visible
+    const dev = g.run.devotion;
+    expect(S.demolishRoom(g, r.id)).toBe(true);
+    expect(g.run.devotion - dev).toBe(60);
+    expect(g.run.followers.find((f) => f.id === f1.id)!.job).toBe(g.run.buildings.find((b) => b.type === 'sermon_hall')!.id);
+  });
+  it('rooms do their jobs: beds, Sanity for Basil, forms that soften visits, Doubt, rite bonus, Donations and heat', () => {
+    const g = ready();
+    g.run.level = 8;
+    for (let i = 0; i < 4; i++) { S.buildStorey(g); G.tick(g, 61); }
+    expect(g.run.sanctum.storeys).toBe(4);
+    const beds = G.housing(g.run);
+    S.buildRoom(g, 1, 0, 'bunk_room');
+    expect(G.housing(g.run)).toBe(beds + 3);
+    S.buildRoom(g, 1, 1, 'kitchen');
+    g.run.followers.forEach((f) => (f.stats.sanity = 40));
+    g.run.inventory.basil = 5;
+    G.tick(g, 120);
+    expect(g.run.followers[0].stats.sanity).toBeGreaterThan(40);
+    expect(g.run.inventory.basil).toBeLessThan(5);
+    S.buildRoom(g, 2, 0, 'records_office');
+    G.tick(g, 600);
+    expect(G.inv(g.run, 'filed_form')).toBe(2); // capped at 2 per bay
+    g.run.donations = 400; g.run.suspicion = 60;
+    g.run.event = { id: 'auditor' };
+    G.resolveEvent(g, DATA.events.find((e) => e.id === 'auditor')!.choices.findIndex((c) => c.id === 'settle'));
+    expect(G.inv(g.run, 'filed_form')).toBe(0);
+    expect(g.run.donations).toBe(400 - Math.floor(400 * 0.15 * 0.5)); // two forms: 50% off the fine
+    const ch = S.buildRoom(g, 2, 1, 'ritual_chamber')!;
+    expect(S.ritePctBonus(g.run)).toBe(5);
+    void ch;
+    const susp = g.run.suspicion;
+    S.buildRoom(g, 3, 0, 'wellness_retreat');
+    const don = g.run.donations;
+    G.tick(g, 60);
+    expect(g.run.donations).toBeGreaterThan(don);
+    expect(S.sanctumHeat(g.run)).toBeCloseTo(0.05 + 0.4, 6); // one storey above 3, one retreat bay
+    expect(g.run.suspicion).toBeGreaterThan(susp - 1);
+  });
+  it('a visit can seal a Sanctum room (never a Bunk Room), which then stops working', () => {
+    const g = ready();
+    S.buildStorey(g);
+    const k = S.buildRoom(g, 1, 0, 'kitchen')!;
+    S.buildRoom(g, 1, 1, 'bunk_room');
+    g.run.buildings = g.run.buildings.filter((b) => b.type === 'dormitory'); // only the kitchen can be sealed
+    G.applyVisit(g, { sealSec: 300 }, 0);
+    expect(S.groupSealed(g.run, S.groupOf(g.run, k.id)!)).toBe(true);
+    expect(S.groupMult(g.run, S.groupOf(g.run, k.id)!)).toBe(0);
+  });
+  it('migrates a v4 save to an empty Sanctum without moving anything', () => {
+    const g = playSlice();
+    const env = JSON.parse(serialize(g, T0));
+    env.saveVersion = 4; env.data.saveVersion = 4;
+    delete env.data.run.sanctum;
+    const out = parse(JSON.stringify(env));
+    expect(out.run.sanctum).toEqual({ storeys: 0, building: null, rooms: [] });
+    expect(out.run.buildings).toEqual(g.run.buildings);
+  });
+});
+
+describe('big flocks', () => {
+  it('a draft can always be drawn, even when nearly every name is taken (used to loop forever)', () => {
+    const g = G.newGame(1, T0);
+    for (const [i, name] of DATA.followers.names.slice(0, DATA.followers.names.length - 1).entries()) {
+      g.run.followers.push({ id: 1000 + i, name, traits: ['gullible'], stats: { devotion: 50, sanity: 50, productivity: 50, doubt: 10 }, skin: 0, robe: 0, job: null });
+    }
+    g.run.buildings.push({ id: 999, type: 'dormitory', x: 0, y: 0, level: 3, stored: 0 });
+    g.run.sanctum.storeys = 1;
+    g.run.sanctum.rooms.push({ id: 998, type: 'bunk_room', storey: 1, bay: 0, level: 3, progress: 0 }, { id: 997, type: 'bunk_room', storey: 1, bay: 1, level: 3, progress: 0 }, { id: 996, type: 'bunk_room', storey: 1, bay: 2, level: 3, progress: 0 });
+    expect(G.housing(g.run)).toBeGreaterThan(g.run.followers.length);
+    g.run.pendingDrafts = 1;
+    g.run.draftBonus = 1;
+    G.ensureDraft(g);
+    expect(g.run.draft).toHaveLength(4);
   });
 });
 

@@ -45,6 +45,9 @@ export interface ActiveRite { id: string; entity?: string; crop?: string; daily?
 /** A visit the player chose to answer with Look Busy; its outcome waits for the ritual (or for settling). */
 export interface PendingInspection { event: string; choice: string; level: string }
 export interface DailyState { day: string; bank: number }
+/** One bay of the Sanctum. `progress` and `fed` are per-room work counters (forms, Basil). */
+export interface RoomState { id: number; type: string; storey: number; bay: number; level: number; progress: number; fed?: number; sealedUntil?: number }
+export interface SanctumState { storeys: number; building: { storey: number; doneAt: number } | null; rooms: RoomState[] }
 
 export interface Settings { reducedMotion: boolean; relaxedPuzzles: boolean; speedIndex: number; sound: boolean }
 
@@ -90,6 +93,7 @@ export interface RunState {
   visitClock: number;                      // seconds since the last visit roll
   lastVisitAt: number;                     // game time of the last visit
   draftBonus: number;                      // extra cards on the next draft
+  sanctum: SanctumState;                   // the side view: storeys and rooms
   favor: Record<string, number>;
   rituals: Record<string, number>;         // level id → best stars
   activeRitual: unknown | null;            // serialized Match3State while a ritual is in progress

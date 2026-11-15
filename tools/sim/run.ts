@@ -9,6 +9,7 @@ import type { GameState } from '../../src/core/types';
 import type { Match3State } from '../../src/puzzle/match3';
 import { validateLevel } from '../../src/puzzle/match3';
 import { countItems } from '../../src/puzzle/merge';
+import * as S from '../../src/core/sanctum';
 
 const MAX_GAP_SEC = 600; // CLAUDE.md: no more than ~10 minutes of active play without an unlock
 const SEC_PER_MOVE = 4;
@@ -115,7 +116,7 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   let earlyGap = 0;
   let visits = 0;
   let earlyGapAt = 0;
-  const progress = () => [run.level, run.met.length, g.meta.grimoire.length, run.buildings.reduce((n, b) => n + b.level, 0), Object.keys(run.rituals).length, Object.values(g.meta.mergeCodex).reduce((a, b) => a + b, 0), run.met.reduce((n, e) => n + G.boonsUnlocked(run, e), 0), run.followers.length].join('|');
+  const progress = () => [run.sanctum.storeys, run.sanctum.rooms.length, run.sanctum.rooms.reduce((n, r) => n + r.level, 0), run.level, run.met.length, g.meta.grimoire.length, run.buildings.reduce((n, b) => n + b.level, 0), Object.keys(run.rituals).length, Object.values(g.meta.mergeCodex).reduce((a, b) => a + b, 0), run.met.reduce((n, e) => n + G.boonsUnlocked(run, e), 0), run.followers.length].join('|');
   let seen = progress();
   const spend = (sec: number, kind: string) => {
     G.debugSkip(g, sec);
@@ -142,6 +143,7 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   };
   /** Pick the rite a sensible player would: recruit if beds are free, harvest what an open order lacks, else commune. */
   let vigilNext = false;
+  const settleStuck = () => { G.settleInspection(g); spend(5, 'visits'); };
   const pickRite = (): { id: string; entity?: string; crop?: string } => {
     if (vigilNext) { vigilNext = false; return { id: 'vigil' }; }
     if (!G.riteBlocked(g, 'recruit')) return { id: 'recruit' };
@@ -215,8 +217,13 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   };
   if (!levelAt[run.level]) levelAt[run.level] = 0;
   for (const e of run.met) metAt[e] = 0;
+  let lastClock = -1;
+  let stuck = 0;
   while (clock < minutes * 60) {
-    if (run.inspection) { ritual(run.inspection.level); continue; }
+    // guard: a bot step that spends no time would loop forever
+    if (process.env.SIM_TRACE && Math.floor(clock / 300) !== Math.floor(lastClock / 300)) console.error(`t=${Math.round(clock / 60)}m lv${run.level} storeys ${run.sanctum.storeys} rooms ${run.sanctum.rooms.length} omens ${run.omens} dev ${Math.round(run.devotion)} don ${Math.round(run.donations)} ${new Date().toISOString().slice(14, 19)}`);
+    if (clock === lastClock) { if (++stuck > 500) throw new Error(`sim bot stuck at ${clock}s: inspection=${JSON.stringify(run.inspection)} event=${JSON.stringify(run.event)} storey=${S.canBuildStorey(run)}`); } else { stuck = 0; lastClock = clock; }
+    if (run.inspection) { if (!ritual(run.inspection.level)) settleStuck(); continue; }
     for (const b of run.buildings) if (b.stored >= 5 && run.devotion < G.devotionCap(run)) G.collect(g, b.id);
     const house = gh();
     let acted = false;
@@ -224,6 +231,25 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
     if (acted) continue;
     const fill = run.orders.find((o) => G.canFill(run, o.id));
     if (fill) { spend(8, 'orders'); G.fillOrder(g, fill.id); continue; }
+    // the Sanctum: storeys when affordable, then fill bays (beds when full, otherwise what is missing), then staff them
+    if (S.canBuildStorey(run)) { spend(6, 'sanctum'); S.buildStorey(g); continue; }
+    {
+      const order = ['bunk_room', 'records_office', 'kitchen', 'ritual_chamber', 'reading_room', 'wellness_retreat'];
+      const have = new Set(run.sanctum.rooms.map((r) => r.type));
+      const want = order.filter((t) => S.roomUnlocked(run, t) && (t === 'bunk_room' ? run.followers.length >= G.housing(run) - 1 : !have.has(t)));
+      let built = false;
+      for (let st = 1; st <= run.sanctum.storeys && !built; st++) for (let bay = 0; bay < 3 && !built; bay++) {
+        const type = want.find((t) => S.canBuildRoom(run, st, bay, t));
+        if (type && !S.roomAt(run, st, bay)) { spend(6, 'sanctum'); built = !!S.buildRoom(g, st, bay, type); }
+      }
+      if (built) continue;
+      const hallId = run.buildings.find((b) => b.type === 'sermon_hall')!.id;
+      const grp = S.roomGroups(run).find((x) => S.slotsOf(x) > S.workersOf(run, x).length);
+      const free = run.followers.filter((f) => f.job === hallId);
+      if (grp && free.length > 2) { spend(4, 'sanctum'); S.assignFollower(g, free[0].id, grp.bays[0].id); continue; }
+      const up = S.roomGroups(run).find((x) => S.canUpgradeRoom(run, x.bays[0].id));
+      if (up) { spend(6, 'sanctum'); S.upgradeRoom(g, up.bays[0].id); continue; }
+    }
     const aud = run.met.find((e) => G.canAudience(run, e));
     if (aud) { spend(5, 'orders'); G.grantAudience(g, aud); continue; }
     const up = run.buildings.find((b) => G.canUpgrade(run, b));
@@ -259,7 +285,7 @@ function simulateLong(name: string, seed: number, minutes: number, stars: number
   if (clock - lastUnlock > longestGap) { longestGap = clock - lastUnlock; gapAt = clock; }
   if (lastUnlock < CHECK_MIN * 60 && clock - lastUnlock > earlyGap) { earlyGap = clock - lastUnlock; earlyGapAt = clock; }
   actions.visits = visits;
-  return { earlyGap, earlyGapAt, lastNewAt: lastUnlock, name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
+  return { earlyGap, earlyGapAt, lastNewAt: lastUnlock, name, minutes, levelAt, metAt, longestGap, gapAt, unlocks, actions, final: `Lv${run.level}, ${run.followers.length} followers, ${run.sanctum.storeys} storeys / ${run.sanctum.rooms.length} rooms, ${run.met.length} entities, buildings ${run.buildings.map((b) => b.level).join('/')}, grimoire ${g.meta.grimoire.length}` };
 }
 
 /** The tutorial, played instantly, as the starting point for the long run. */
@@ -316,7 +342,7 @@ for (const r of results) {
   console.log(`${okGap && okStuck ? 'PASS' : 'FAIL'}  ${r.name}: done ${fmt(r.total)}, longest gap ${fmt(r.longestGap)}, top action ${top[0]} ${(share * 100).toFixed(0)}%${r.stuck ? ', STUCK ' + r.stuck : ''}`);
 }
 // ---- long run report
-const LONG_MIN = 150;
+const LONG_MIN = Number(process.env.SIM_MIN ?? 150);
 const longs = [simulateLong('steady player (2-star)', 21, LONG_MIN, 2), simulateLong('careful player (1-star)', 22, LONG_MIN, 1)];
 md += `# After the tutorial: ${LONG_MIN} minutes of active play\n\nA simple bot fills orders, upgrades, summons and recruits. Times are minutes after the tutorial ends.\n\n`;
 for (const r of longs) {

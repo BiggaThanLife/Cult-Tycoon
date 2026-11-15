@@ -115,6 +115,12 @@ This needs sign-off, so start by asking the owner which creature, then:
 3. Text: `event.<id>.title|body`, `event.<id>.choice.<c>`, `event.<id>.result.<c>`. A 16x16 civilian sprite (no badges, uniforms or weapons).
 4. Have the lore-and-sensitivity-reviewer check it. **Verify** (a unit test bans siege/raid vocabulary in visit text).
 
+### R7e. Add a Sanctum room type
+1. `data/rooms.json`: add `{ id, key (a stat or null), slots per level, unlockLevel, cost, effect, upgrades }`. `effect` values are per bay, one number or one per level.
+2. What an effect *does* is code in `tickSanctum` (or a reader like `sanctumBeds`, `ritePctBonus`) in `src/core/sanctum.ts`. A new effect field is a code change (R12) with a unit test in "the Sanctum".
+3. Text: `room.<id>.name`, `.desc`, `.effect` (and the card's effect line in `effectText` in `src/screens/sanctum.ts`). Art: `room_<id>`, 48x44, tiling cleanly left to right, the bottom 10 px clear for followers.
+4. Nothing that confines, hides or hurts followers (lore review). **Verify**, and look at `p_18_sanctum.png`, `s_18_sanctum.png`.
+
 ### R8. Add an event
 1. `data/events.json`: add `{ "id", "sprite", "choices": [...] }`. Effects supported: `suspicion`, `devotion`, `donations`, `flag`, `consume`. A choice may have `requires`.
 2. Text: `event.<id>.title`, `.body`, and for each choice `.choice.<choiceId>` and `.result.<choiceId>`.

@@ -39,6 +39,10 @@
     {
       "id": "sludge",
       "kind": "potion"
+    },
+    {
+      "id": "filed_form",
+      "kind": "document"
     }
   ]
 }

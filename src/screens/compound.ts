@@ -9,6 +9,7 @@ import { t } from '../core/text';
 import { button, img, inRect, panel, rect, txt, type C } from '../ui/kit';
 import { frame, modalWidth } from '../ui/modal';
 import { openBuilding, openFollower, openRoster } from './modals';
+import { sanctumUnlocked } from '../core/sanctum';
 import { Screen } from './screen';
 
 const TILE = 16;
@@ -149,6 +150,16 @@ export class CompoundScreen extends Screen {
       button(app, this.c, B.x + 11 + bw, y + 21, bw, 18, t('common.cancel'), () => { this.placing = null; this.rebuild(); }, { fill: PAL.pink, name: 'btn_cancel' });
     } else {
       button(app, this.c, B.x + B.w - 50, B.y + B.h - 24, 46, 21, t('build.button'), () => this.openBuildMenu(), { icon: 'ic_build', name: 'btn_build' });
+      if (sanctumUnlocked(run)) {
+        // the Sermon Hall is the door into the Sanctum
+        const gx = B.x + Math.floor((B.w - 64) / 2);
+        button(app, this.c, gx, B.y + B.h - 24, 64, 21, t('sanctum.go_inside'), () => app.setCompoundView('sanctum'), { fill: PAL.acid, name: 'btn_go_inside' });
+        if (!run.flags.sanctumSeen && !app.store.state.meta.settings.reducedMotion) {
+          const glow = app.add.rectangle(gx - 1, B.y + B.h - 25, 66, 23).setOrigin(0, 0).setStrokeStyle(2, parseInt(PAL.yellow.slice(1), 16));
+          this.c.add(glow);
+          app.tweens.add({ targets: glow, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
+        }
+      }
       button(app, this.c, B.x + 4, B.y + B.h - 24, 46, 21, String(run.followers.length), () => openRoster(app), { icon: 'ic_follower', fill: PAL.robe, name: 'btn_roster' });
     }
     if (L.dock) { this.dockBg(); this.buildDock(); }

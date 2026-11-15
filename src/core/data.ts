@@ -11,6 +11,7 @@ import events from '../../data/events.json';
 import followers from '../../data/followers.json';
 import rituals from '../../data/levels/rituals.json';
 import rites from '../../data/rites.json';
+import rooms from '../../data/rooms.json';
 import text from '../../data/text/en.json';
 import type { MergeDefs } from '../puzzle/merge';
 import type { LevelDef } from '../puzzle/match3';
@@ -53,6 +54,15 @@ export interface EventChoiceDef {
 }
 /** band: Suspicion band (1-3) a visit belongs to, 4 = Full Review. visitor: an inspection-style visit. */
 export interface EventDef { id: string; sprite: string; choices: EventChoiceDef[]; band?: number; visitor?: boolean }
+export interface RoomDef {
+  id: string; key: string | null; slots: number[]; unlockLevel: number; cost: { devotion: number; donations: number };
+  effect: Record<string, number | number[]>; upgrades: UpgradeDef[];
+}
+export interface RoomsData {
+  storeys: { level: number; cost: { devotion: number; donations: number }; omens: number; sec: number }[];
+  baysPerStorey: number; heightSuspicion: { fromStorey: number; perStoreyPerMin: number }; mergeBonusPct: number[];
+  demolishRefund: number; formCutPct: number; formMaxPerVisit: number; rooms: RoomDef[];
+}
 export interface RiteDef {
   id: string; focus: number; choose?: 'entity' | 'crop';
   pays: { doubtPerTiles?: number; draft?: number; bigDraftAt?: number; bigDraftSize?: number; favorPerTile?: number; cropPerTiles?: number; stubPerTiles?: number; cutPerStar?: number; winSuspicion?: number };
@@ -71,6 +81,7 @@ export const DATA = {
   events: events.events as EventDef[],
   followers: followers as { names: string[]; traits: TraitDef[]; skins: number; robes: number; draftSize: number },
   rituals: (rituals as unknown as { levels: LevelDef[] }).levels,
+  rooms: rooms as unknown as RoomsData,
   rites: rites as unknown as { rites: RiteDef[]; omens: { perStar: number; relaxedFlat: number; firstThreeStar: number; rerollCost: number; audienceCost: number; audienceFavor: number }; daily: { bonus: number; bankMax: number } },
   text: text as Record<string, string>,
 };

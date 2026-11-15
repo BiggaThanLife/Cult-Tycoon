@@ -4,6 +4,7 @@ import { PAL } from '../art/palette';
 import { DATA, buildingDef, entityDef, eventDef, mergeItemKey, ritualDef } from '../core/data';
 import { addResource, addSuspicion, addXp, canUpgrade, isAway, isSealed, sealLeft, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded } from '../core/game';
 import { countItems } from '../puzzle/merge';
+import { sanctumUnlocked } from '../core/sanctum';
 import type { BuildingState } from '../core/types';
 import { exportCode, importCode } from '../core/save';
 import { t } from '../core/text';
@@ -350,7 +351,9 @@ export function openBuilding(app: App, buildingId: number): void {
           app.modals.rebuild();
         }, { disabled: !up || missing.length > 0, fill: PAL.acid, icon: up && !missing.length ? 'ic_up' : undefined, name: 'btn_upgrade' });
       }
-      const side: [string, () => void] = def.produces
+      const side: [string, () => void] = b.type === 'sermon_hall' && sanctumUnlocked(run) && app.cur !== app.sanctum
+        ? [t('sanctum.go_inside'), () => { close(); app.setCompoundView('sanctum'); }]
+        : def.produces
         ? [`${t('building.collect')} ${Math.floor(b.stored)}`, () => { app.store.act((g, emit) => collect(g, buildingId, emit)); app.modals.rebuild(); }]
         : b.type === 'dormitory' ? [t('building.flock'), () => { close(); openRoster(app); }] : [t('building.goto_brew'), () => { close(); app.goto('alchemy'); }];
       button(app, c, r.x + bw + 4, y, bw, 19, side[0], side[1], { fill: PAL.blue, name: 'btn_building_side' });
