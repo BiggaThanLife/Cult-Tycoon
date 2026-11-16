@@ -2,6 +2,7 @@
 // Every function takes the GameState and an `emit` callback for UI notifications.
 import { DATA, buildingDef, cropDef, entityDef, eventDef, orderDef, riteDef, ritualDef, traitDef, type BoonField, type OrderNeed, type UpgradeDef, type VisitEffects } from './data';
 import { hashString } from './rng';
+import { conductWalk, walkApplies } from './inspection';
 import { omenPerWin, ritePctBonus, roomGroups, sanctumBeds, tickSanctum, useForms } from './sanctum';
 import { deriveSeed, makeRng, type Rng } from './rng';
 import { TUTORIAL_ORDER, type ActiveRite, type BuildingState, type Emit, type Follower, type GameState, type RunState, type TutorialStep } from './types';
@@ -9,7 +10,7 @@ import { addGenerator, countItems, placeItem, createMerge, moveItem, removeItems
 import { createGame, starsFor, type Match3State } from '../puzzle/match3';
 
 const B = DATA.balance;
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 const noEmit: Emit = () => {};
 
 // ---------- helpers ----------
@@ -169,6 +170,7 @@ export function newGame(seed: number, nowWall: number): GameState {
     lastVisitAt: 0,
     draftBonus: 0,
     sanctum: { storeys: 0, building: null, rooms: [] },
+    walk: null,
     favor: {},
     rituals: {},
     activeRitual: null,
@@ -553,9 +555,19 @@ export function settleInspection(g: GameState, emit: Emit = noEmit): VisitSummar
   const run = g.run;
   const ins = run.inspection;
   if (!ins) return null;
+  if (walkApplies(run, ins.event)) {
+    const settle = eventDef(ins.event).choices.find((c) => c.effects.walk)!;
+    const w = conductWalk(g, ins.event, settle.id, 0, 0, emit);
+    return walkSummary(w);
+  }
   run.inspection = null;
   const ch = eventDef(ins.event).choices.find((c) => c.id === ins.choice)!;
   return applyVisit(g, ch.effects, 0, emit);
+}
+
+/** A walkthrough result in the shape older code shows (fine, seal, away). */
+export function walkSummary(w: import('./inspection').WalkResult): VisitSummary {
+  return { fine: w.fine, sealed: w.sealed ? `room:${w.sealed}` : null, sealMin: w.sealMin, away: w.away, awayMin: w.awayMin, suspicion: w.suspicion, forms: w.forms, formPct: 0 };
 }
 
 /** Roll for a visit once a minute while the game is open and nothing else is going on. */
@@ -589,10 +601,15 @@ function payRite(g: GameState, rite: ActiveRite, st: Match3State, won: boolean, 
     // win: stars cut the outcome; loss: the normal outcome, never a worse one
     const ins = run.inspection;
     if (!ins) return res;
-    run.inspection = null;
     const ch = eventDef(ins.event).choices.find((c) => c.id === ins.choice)!;
     const cut = won ? Math.min(1, stars * (P.cutPerStar ?? 0)) : 0;
     res.cutPct = Math.round(cut * 100);
+    if (walkApplies(run, ins.event)) {
+      const settle = eventDef(ins.event).choices.find((c) => c.effects.walk)!;
+      res.visit = walkSummary(conductWalk(g, ins.event, settle.id, cut, won ? P.winSuspicion ?? 0 : 0, emit));
+      return res;
+    }
+    run.inspection = null;
     res.visit = applyVisit(g, { ...ch.effects, suspicion: (ch.effects.suspicion ?? 0) + (won ? P.winSuspicion ?? 0 : 0) }, cut, emit);
     return res;
   }
@@ -886,6 +903,7 @@ export function resolveEvent(g: GameState, choice: number, emit: Emit = noEmit):
     run.event = null;
     // Look Busy: the visitor waits; the outcome is decided by the ritual (or by settling)
     if (fx.lookBusy) run.inspection = { event: id, choice: def.choices[choice].id, level: fx.lookBusy };
+    else if (fx.walk && walkApplies(run, id)) conductWalk(g, id, def.choices[choice].id, 0, 0, emit);
     else applyVisit(g, fx, 0, emit);
     return true;
   }

@@ -40,7 +40,8 @@
 ## Owner-approved plan (2026-11-15): Rites -> Sanctum -> Ley Lines
 - [x] Increment 1: Rites, Omens, Daily Rite, inspections and Look Busy (docs/specs/rites.md)
 - [x] Increment 2a: Sanctum side view, storeys, six rooms, merging, workers, Omen costs, Filed Forms and room seals (D-157 to D-161)
-- [ ] Increment 2b: inspection walkthrough in the Sanctum (agenda, officials on the stairs, findings, undeclared items, Storeroom), Room Rites / Blessings, drag-to-assign, landscape Grounds strip
+- [x] Increment 2b: inspection walkthrough (agenda, findings, stamps, report) (D-163 to D-165)
+- [ ] Increment 2c: undeclared items + Storeroom, named officials (after a name search), Room Rites / Blessings, drag-to-assign, landscape Grounds strip
 - [ ] Increment 3: Ley Lines replaces the merge Reliquary (docs/specs/puzzle-replacement.md), saves convert relics to inventory
 - [ ] Loop audit fixes still open: Devotion sinks (Sanctum storeys), compound levels 7-10 unlocks, worker slots beyond the Hall, Tithe rite with coin boards
 

@@ -42,6 +42,11 @@ export const MIGRATIONS: Migrations = {
     d.run.sanctum = { storeys: 0, building: null, rooms: [] };
     return d;
   },
+  // v5 -> v6: inspection walkthroughs
+  5: (d) => {
+    d.run.walk = null;
+    return d;
+  },
 };
 
 interface Envelope { saveVersion: number; savedAt: number; data: unknown }

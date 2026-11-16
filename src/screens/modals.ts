@@ -2,8 +2,9 @@
 import type { App } from '../app';
 import { PAL } from '../art/palette';
 import { DATA, buildingDef, entityDef, eventDef, mergeItemKey, ritualDef } from '../core/data';
-import { addResource, addSuspicion, addXp, canUpgrade, isAway, isSealed, sealLeft, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded } from '../core/game';
+import { addResource, addSuspicion, addXp, canUpgrade, isAway, isSealed, sealLeft, choiceAvailable, collect, debugSkip, draftPick, followerRitualPct, followerWork, housing, levelBonus, maxLevel, nextUpgrade, recipeHinted, resolveEvent, sanityWorkPart, triggerEvent, unlocksAt, upgradeBuilding, xpNeeded, inv, settleInspection } from '../core/game';
 import { countItems } from '../puzzle/merge';
+import { agenda, HALL, projectedFindings, walkApplies, type WalkResult } from '../core/inspection';
 import { sanctumUnlocked } from '../core/sanctum';
 import type { BuildingState } from '../core/types';
 import { exportCode, importCode } from '../core/save';
@@ -217,15 +218,18 @@ function openEvent(app: App): void {
   dialog(app, {
     id: `event_${ev.id}`,
     title: t(`event.${ev.id}.title`),
-    body: t(`event.${ev.id}.body`),
+    // with rooms in the Sanctum the official walks an agenda: say roughly how it will go
+    body: t(`event.${ev.id}.body`) + (walkApplies(app.store.state.run, ev.id) ? `\n${t('inspection.agenda.line', { room: t('inspection.agenda.title'), n: projectedFindings(app.store.state.run, ev.id) })}` : ''),
     sprite: def.sprite,
     buttons: def.choices.map((ch, i) => ({
-      label: t(`event.${ev.id}.choice.${ch.id}`),
+      label: walkApplies(app.store.state.run, ev.id) && ch.effects.walk ? t('inspection.let_in') : walkApplies(app.store.state.run, ev.id) && ch.effects.lookBusy ? t('inspection.prepare') : t(`event.${ev.id}.choice.${ch.id}`),
       name: `btn_choice_${ch.id}`,
       disabled: !choiceAvailable(app.store.state.run, ev.id, i),
       onClick: () => {
         app.store.act((g, emit) => resolveEvent(g, i, emit));
         const waiting = !!app.store.state.run.inspection;
+        if (app.store.state.run.walk) return; // the walkthrough plays in the Sanctum and ends with its own report
+        if (waiting && walkApplies(app.store.state.run, ev.id)) { openAgenda(app); return; }
         dialog(app, { id: 'event_result', title: t(`event.${ev.id}.title`), body: t(`event.${ev.id}.result.${ch.id}`), sprite: def.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok', onClick: () => { if (waiting) app.goto('rituals'); } }] });
       },
     })),
@@ -390,6 +394,56 @@ export function openGrimoire(app: App): void {
       button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
     },
   });
+}
+
+/** The waiting official's agenda: rooms in order, projected findings and why. */
+export function openAgenda(app: App): void {
+  app.modals.open({
+    id: 'agenda',
+    build(c, _a, close) {
+      const run = app.store.state.run;
+      const ins = run.inspection;
+      if (!ins) { close(); return; }
+      const steps = agenda(run, ins.event);
+      const w = app.L.landscape ? Math.min(app.L.w - 8, 316) : modalWidth(app);
+      const tw = w - 10;
+      const lines = [t('inspection.agenda.intro', { visitor: t(`visitor.${ins.event}`) })];
+      for (const s of steps) {
+        const name = s.room === HALL ? t('inspection.hall') : t(`room.${s.type}.name`);
+        lines.push(s.findings ? t(s.findings === 1 ? 'inspection.agenda.line.one' : 'inspection.agenda.line', { room: name, n: s.findings }) : t('inspection.agenda.clean', { room: name }));
+        for (const r of s.reasons) lines.push(`- ${t(`inspection.reason.${r.key}`)}`);
+      }
+      if (inv(run, 'filed_form')) lines.push(t('inspection.reason.forms', { n: Math.min(inv(run, 'filed_form'), steps.reduce((n, s) => n + s.findings, 0)) }));
+      lines.push(t('inspection.agenda.tip'));
+      const body = lines.join('\n');
+      const r = frame(app, c, w, 16 + textHeight(body, tw) + 6 + 18 + 22, t('inspection.agenda.title'));
+      txt(app, c, r.x, r.y, body, { width: tw });
+      const by = r.y + r.h - 40;
+      const bw = Math.floor((tw - 4) / 2);
+      button(app, c, r.x, by, bw, 18, t('rite.look_busy.name'), () => { close(); app.goto('rituals'); }, { fill: PAL.acid, name: 'btn_agenda_look_busy' });
+      button(app, c, r.x + bw + 4, by, bw, 18, t('inspection.let_in'), () => { close(); app.store.act((g, e) => settleInspection(g, e)); }, { fill: PAL.yellow, name: 'btn_let_in' });
+      button(app, c, r.x + r.w - 50, r.y + r.h - 18, 50, 18, t('common.close'), close, { name: 'btn_close' });
+    },
+  });
+}
+
+/** The findings report shown after a walkthrough. */
+export function openWalkReport(app: App, w: WalkResult, onClose: () => void): void {
+  const lines: string[] = [];
+  const noted = w.steps.filter((s) => s.findings > 0);
+  for (const s of noted.slice(0, 5)) {
+    const name = s.room === HALL ? t('inspection.hall') : t(`room.${s.type}.name`);
+    lines.push(`${name}: ${t('inspection.stamp.noted', { n: s.findings })}`);
+  }
+  if (noted.length > 5) lines.push(`+${noted.length - 5}`);
+  if (w.forms) lines.push(t('inspection.reason.forms', { n: w.forms }));
+  lines.push(w.total ? t('inspection.report.total', { n: w.total }) : t('inspection.report.clean'));
+  if (w.cutPct) lines.push(t('inspection.report.look_busy', { pct: w.cutPct }));
+  if (w.fine) lines.push(t('inspection.report.fine', { n: w.fine }));
+  if (w.sealed) lines.push(t('inspection.report.seal', { room: t(`room.${w.sealed}.name`), m: w.sealMin }));
+  if (w.away) lines.push(t('inspection.report.away', { name: w.away, m: w.awayMin }));
+  if (w.suspicion < 0) lines.push(t('inspection.report.suspicion', { n: -w.suspicion }));
+  dialog(app, { id: 'walk_report', title: t('inspection.report.title'), body: lines.join('\n'), sprite: eventDef(w.event).sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }], onClose });
 }
 
 export function openRoster(app: App): void {

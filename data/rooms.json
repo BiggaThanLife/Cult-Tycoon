@@ -111,7 +111,10 @@
           },
           "omens": 4
         }
-      ]
+      ],
+      "exposure": {
+        "zoning": 1
+      }
     },
     {
       "id": "kitchen",
@@ -156,7 +159,10 @@
           },
           "omens": 4
         }
-      ]
+      ],
+      "exposure": {
+        "health": 1
+      }
     },
     {
       "id": "records_office",
@@ -201,7 +207,8 @@
           },
           "omens": 5
         }
-      ]
+      ],
+      "exposure": {}
     },
     {
       "id": "reading_room",
@@ -245,7 +252,10 @@
           },
           "omens": 5
         }
-      ]
+      ],
+      "exposure": {
+        "zoning": 1
+      }
     },
     {
       "id": "ritual_chamber",
@@ -295,7 +305,10 @@
           },
           "omens": 8
         }
-      ]
+      ],
+      "exposure": {
+        "zoning": 1
+      }
     },
     {
       "id": "wellness_retreat",
@@ -340,7 +353,22 @@
           },
           "omens": 8
         }
-      ]
+      ],
+      "exposure": {
+        "tax": 2
+      }
     }
-  ]
+  ],
+  "hall": {
+    "exposure": {
+      "zoning": 1
+    }
+  },
+  "inspection": {
+    "doubtAt": 60,
+    "calmBelow": 30,
+    "maxFinePct": 25,
+    "cleanSuspicionMult": 1.5,
+    "awayDoubtAt": 70
+  }
 }

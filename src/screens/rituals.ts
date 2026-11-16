@@ -12,6 +12,7 @@ import { DATA } from '../core/data';
 import { cropUnlocked, dailyLevel, finishRitual, riteBlocked, ritesOpen, ritesVisible, ritualUnlocked, settleInspection, startRitual, updateDaily, type RitualReward, type VisitSummary } from '../core/game';
 import { eventDef, ritualDef, riteDef } from '../core/data';
 import type { ActiveRite } from '../core/types';
+import { walkApplies } from '../core/inspection';
 import { t } from '../core/text';
 import { findHint, goalProgress, MOVE_BONUS, trySwap, type Cell, type Goal, type Match3State, type Snapshot } from '../puzzle/match3';
 import { button, hit, img, inRect, panel, rect, textHeight, txt, type C } from '../ui/kit';
@@ -161,9 +162,9 @@ export class RitualScreen extends Screen {
       const by = y + bh - (narrow ? 41 : 21);
       const bw = narrow ? w - 6 : Math.floor((w - 10) / 2);
       button(app, this.c, x + 3, by, bw, 18, t('rite.look_busy.name'), () => this.begin(run.inspection!.level), { fill: PAL.acid, icon: narrow ? undefined : 'rite_look_busy', name: 'btn_look_busy' });
-      button(app, this.c, narrow ? x + 3 : x + 7 + bw, narrow ? by + 20 : by, bw, 18, t('inspection.settle'), () => {
+      button(app, this.c, narrow ? x + 3 : x + 7 + bw, narrow ? by + 20 : by, bw, 18, walkApplies(run, run.inspection.event) ? t('inspection.let_in') : t('inspection.settle'), () => {
         const sum = app.store.act((gg, e) => settleInspection(gg, e));
-        if (sum) dialog(app, { id: 'inspection_result', title: t(`event.${ev.id}.title`), body: t('inspection.result.loss', { summary: summaryText(sum) }), sprite: ev.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
+        if (sum && !app.store.state.run.walk) dialog(app, { id: 'inspection_result', title: t(`event.${ev.id}.title`), body: t('inspection.result.loss', { summary: summaryText(sum) }), sprite: ev.sprite, buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
         this.rebuild();
       }, { fill: PAL.robe, name: 'btn_settle' });
       y += bh + 3;
@@ -723,7 +724,9 @@ export class RitualScreen extends Screen {
     const rw = app.store.act((g, emit) => finishRitual(g, emit));
     this.ending = false;
     this.rebuild();
-    if (rw.rite?.id === 'look_busy' && rw.rite.visit) {
+    if (rw.rite?.id === 'look_busy' && app.store.state.run.walk) {
+      // the walkthrough plays in the Sanctum next and ends with the findings report
+    } else if (rw.rite?.id === 'look_busy' && rw.rite.visit) {
       const v = rw.rite.visit;
       dialog(app, { id: 'inspection_result', title: t(level.nameKey), body: won ? t('inspection.result.win', { stars: rw.stars, summary: summaryText(v) }) + '\n' + t('rite.result.look_busy', { stars: rw.stars, pct: rw.rite.cutPct ?? 0 }) + (rw.omens ? '\n' + t('ritual.won.omens', { n: rw.omens + rw.firstThree }) : '') : t('inspection.result.loss', { summary: summaryText(v) }), sprite: 'advisor', buttons: [{ label: t('common.ok'), name: 'btn_ok' }] });
     } else if (won) this.showReward(rw, level.nameKey, score);

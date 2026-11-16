@@ -95,11 +95,11 @@ A simple bot fills orders, upgrades, summons and recruits. Times are minutes aft
 
 ## careful player (1-star)
 
-- Ends at: Lv7, 45 followers, 4 storeys / 12 rooms, 5 entities, buildings 3/2/3/2, grimoire 5
-- 114 new things in 150 min. Longest wait for one in the first 60 min: **4:20** (ending at 58:56) ok. Longest overall: 8:36 (ending at 86:08).
-- Rituals are 55% of active time ok; inspections: 6
+- Ends at: Lv7, 44 followers, 4 storeys / 12 rooms, 5 entities, buildings 3/2/3/2, grimoire 5
+- 111 new things in 150 min. Longest wait for one in the first 60 min: **4:20** (ending at 58:56) ok. Longest overall: 9:08 (ending at 124:57).
+- Rituals are 54% of active time ok; inspections: 6
 - Pace: Lv3 at 8:42, Lv5 at 58:56 ok
-- Compound levels reached at: Lv2 1:26, Lv3 8:42, Lv4 33:29, Lv5 58:56, Lv6 92:26, Lv7 146:06
+- Compound levels reached at: Lv2 1:26, Lv3 8:42, Lv4 33:29, Lv5 58:56, Lv6 92:26, Lv7 144:32
 - Entities met at: mothman 0:00, baba_yaga 9:54, jersey_devil 34:44, anansi 60:16, vorl 92:29
-- Time by action: ritual 82:24, orders 20:55, merge 20:25, garden 7:55, draft 7:00, brew 6:45, sanctum 3:50, upgrade 0:48, visits 0:06
+- Time by action: ritual 81:12, orders 21:59, merge 20:58, brew 7:27, garden 7:23, draft 6:50, sanctum 3:34, upgrade 0:48, visits 0:06
 

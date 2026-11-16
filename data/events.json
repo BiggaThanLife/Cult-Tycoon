@@ -70,7 +70,8 @@
           "id": "settle",
           "effects": {
             "suspicion": -6,
-            "finePct": 10
+            "finePct": 10,
+            "walk": true
           }
         },
         {
@@ -81,7 +82,16 @@
             "finePct": 10
           }
         }
-      ]
+      ],
+      "inspect": {
+        "rooms": 2,
+        "tags": [
+          "zoning"
+        ],
+        "finePerFinding": 4,
+        "sealAt": 99,
+        "sealSec": 0
+      }
     },
     {
       "id": "auditor",
@@ -93,7 +103,8 @@
           "id": "settle",
           "effects": {
             "suspicion": -10,
-            "finePct": 15
+            "finePct": 15,
+            "walk": true
           }
         },
         {
@@ -104,7 +115,16 @@
             "finePct": 15
           }
         }
-      ]
+      ],
+      "inspect": {
+        "rooms": 3,
+        "tags": [
+          "tax"
+        ],
+        "finePerFinding": 8,
+        "sealAt": 6,
+        "sealSec": 300
+      }
     },
     {
       "id": "expose",
@@ -167,7 +187,8 @@
           "id": "settle",
           "effects": {
             "suspicion": -12,
-            "sealSec": 300
+            "sealSec": 300,
+            "walk": true
           }
         },
         {
@@ -178,7 +199,17 @@
             "sealSec": 300
           }
         }
-      ]
+      ],
+      "inspect": {
+        "rooms": 5,
+        "tags": [
+          "zoning",
+          "health"
+        ],
+        "finePerFinding": 8,
+        "sealAt": 4,
+        "sealSec": 600
+      }
     },
     {
       "id": "full_review",
@@ -191,7 +222,8 @@
           "effects": {
             "suspicionTo": 50,
             "finePct": 25,
-            "sealSec": 600
+            "sealSec": 600,
+            "walk": true
           }
         },
         {
@@ -203,7 +235,19 @@
             "sealSec": 600
           }
         }
-      ]
+      ],
+      "inspect": {
+        "rooms": 99,
+        "tags": [
+          "zoning",
+          "health",
+          "tax"
+        ],
+        "finePerFinding": 10,
+        "sealAt": 8,
+        "sealSec": 900,
+        "awaySec": 900
+      }
     }
   ]
 }

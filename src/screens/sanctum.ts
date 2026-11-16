@@ -17,7 +17,9 @@ import type { Follower } from '../core/types';
 import { countItems } from '../puzzle/merge';
 import { button, hit, img, inRect, panel, rect, textHeight, txt, type C } from '../ui/kit';
 import { dialog, frame, modalWidth } from '../ui/modal';
-import { openBuilding, openFollower } from './modals';
+import { openAgenda, openBuilding, openFollower, openWalkReport } from './modals';
+import { agenda, clearWalk, HALL, walkApplies } from '../core/inspection';
+import { sfx } from '../ui/sfx';
 import { Screen } from './screen';
 
 const W = 160;
@@ -61,6 +63,8 @@ export class SanctumScreen extends Screen {
     this.c.add(this.tower);
     this.scroll = Math.max(0, Math.min(this.maxScroll, this.scroll));
     const floorY = (s: number) => B.y + this.view.h - (s + 1) * H + this.scroll; // top of storey s (0 = Hall)
+    this.x0 = x0;
+    this.floorY = floorY;
 
     // ground floor: the Main Hall (the Sermon Hall's interior)
     const hall = run.buildings.find((b) => b.type === 'sermon_hall');
@@ -73,7 +77,7 @@ export class SanctumScreen extends Screen {
       hit(app, this.tower, x0 + STAIR, floorY(0), 3 * BAY, H, () => openBuilding(app, hall.id)).setName('room_hall');
     }
     // a visitor waiting in the lobby
-    if (run.inspection) {
+    if (run.inspection && !this.walking) {
       const ev = eventDef(run.inspection.event);
       this.tower.add(app.add.image(x0 + W - 18, floorY(0) + H - 17, ATLAS, ev.sprite).setOrigin(0, 0));
     }
@@ -93,6 +97,17 @@ export class SanctumScreen extends Screen {
         }
       }
       for (const grp of roomGroups(run).filter((gg) => gg.storey === s)) this.drawGroup(grp, x0, y);
+    }
+
+    // agenda markers: a clipboard and the expected findings on each room the waiting official will check
+    if (run.inspection && walkApplies(run, run.inspection.event) && !this.walking) {
+      for (const st of agenda(run, run.inspection.event)) {
+        const pos = this.roomCentre(st.room, st.storey);
+        if (!pos) continue;
+        panel(app, this.tower, pos.x - 14, pos.y - 6, 28, 12, st.findings ? PAL.yellow : PAL.grassL);
+        img(app, this.tower, pos.x - 12, pos.y - 4, 'ic_check');
+        txt(app, this.tower, pos.x + 11, pos.y - 4, st.findings ? `?${st.findings}` : '0', { align: 'right' });
+      }
     }
 
     // roof cap above the highest finished storey (scaffolding sits on top of it)
@@ -136,10 +151,95 @@ export class SanctumScreen extends Screen {
     rect(app, this.c, B.x, sy, B.w, 1, PAL.ink);
     button(app, this.c, B.x + 3, sy + 3, 58, 20, t('sanctum.go_out'), () => app.setCompoundView('grounds'), { fill: PAL.blue, name: 'btn_grounds' });
     if (formCap(run) > 0) { img(app, this.c, B.x + 66, sy + 9, 'ic_form'); txt(app, this.c, B.x + 76, sy + 9, `${inv(run, 'filed_form')}/${formCap(run)}`, { color: 'white' }); }
+    if (run.inspection && walkApplies(run, run.inspection.event)) button(app, this.c, B.x + 64, sy + 3, 56, 20, t('inspection.agenda.button'), () => openAgenda(app), { fill: PAL.yellow, name: 'btn_agenda' });
     const heat = sanctumHeat(run);
     if (heat > 0) { img(app, this.c, B.x + B.w - 96, sy + 9, 'ic_suspicion'); txt(app, this.c, B.x + B.w - 86, sy + 9, `+${heat.toFixed(2)}`, { color: 'loss' }); }
     if (!L.dock) button(app, this.c, B.x + B.w - 46, sy + 3, 43, 20, '', () => this.scrollTo(0), { fill: PAL.robe, icon: 'tab_compound', name: 'btn_hall' });
     if (L.dock) this.buildDock();
+  }
+
+  /** Where a room (or the Hall, id 0) sits on screen right now. */
+  private roomCentre(room: number, storey: number): { x: number; y: number } | null {
+    const run = this.app.store.state.run;
+    if (room === HALL) return { x: this.x0 + STAIR + Math.floor((3 * BAY) / 2), y: this.floorY(0) + 24 };
+    const grp = roomGroups(run).find((gg) => gg.bays[0].id === room);
+    if (!grp) return null;
+    return { x: this.x0 + STAIR + grp.bays[0].bay * BAY + Math.floor((grp.bays.length * BAY) / 2), y: this.floorY(storey) + 24 };
+  }
+
+  // ---------- inspection walkthrough playback ----------
+
+  private x0 = 0;
+  private floorY: (s: number) => number = () => 0;
+  private walking = false;
+  private walkObjs: Phaser.GameObjects.GameObject[] = [];
+  private walkTimer: Phaser.Time.TimerEvent | null = null;
+
+  /** Play the last walkthrough: the official enters the Hall, climbs to each agenda room and stamps it. */
+  private playWalk(): void {
+    const app = this.app;
+    const w = app.store.state.run.walk;
+    if (!w || this.walking) return;
+    this.walking = true;
+    const reduced = app.store.state.meta.settings.reducedMotion;
+    // keep the camera low enough to see the Hall, then follow the climb
+    this.scroll = 0;
+    this.rebuild();
+    const sprite = app.add.image(this.x0 + W - 18, this.floorY(0) + H - 17, ATLAS, eventDef(w.event).sprite).setOrigin(0, 0);
+    this.tower.add(sprite);
+    this.walkObjs = [sprite];
+    const tip = txt(app, this.c, this.view.x + Math.floor(this.view.w / 2), this.view.y + 4, t('inspection.walking'), { align: 'center', color: 'white', width: this.view.w - 8, maxLines: 2 });
+    this.walkObjs.push(tip);
+    let i = 0;
+    const stampAt = (st: (typeof w.steps)[number]) => {
+      const pos = this.roomCentre(st.room, st.storey);
+      if (!pos) return;
+      const label = st.findings ? t('inspection.stamp.noted', { n: st.findings }) : t('inspection.stamp.pass');
+      const c = app.add.container(pos.x, pos.y);
+      this.tower.add(c);
+      const tw = Math.max(30, label.length * 6 + 6);
+      c.add(app.add.rectangle(0, 0, tw + 2, 13, parseInt(PAL.ink.slice(1), 16)));
+      c.add(app.add.rectangle(0, 0, tw, 11, parseInt((st.findings ? PAL.pink : PAL.grassL).slice(1), 16)));
+      const tx = txt(app, c, 0, -4, label, { align: 'center', color: st.findings ? 'loss' : 'gain' });
+      void tx;
+      c.setAngle(-6);
+      if (!reduced) { c.setScale(2); app.tweens.add({ targets: c, scale: 1, duration: 160, ease: 'Back.easeOut' }); }
+      sfx.tap();
+      if (st.findings) sfx.invalid(); else sfx.collect();
+      this.walkObjs.push(c);
+    };
+    const next = () => {
+      if (!this.walking) return;
+      const st = w.steps[i++];
+      if (!st) { this.endWalk(); return; }
+      const pos = this.roomCentre(st.room, st.storey);
+      if (!pos) { next(); return; }
+      // bring the storey into view by shifting the tower
+      const want = this.view.y + this.view.h / 2 - pos.y;
+      const shift = Math.max(0, Math.min(this.maxScroll, want));
+      const go = () => {
+        const target = this.roomCentre(st.room, st.storey)!;
+        const dur = reduced ? 0 : 520;
+        app.tweens.add({ targets: sprite, x: target.x - 8, y: target.y + 7, duration: dur, ease: 'Sine.easeInOut', onComplete: () => { stampAt(st); this.walkTimer = app.time.delayedCall(reduced ? 250 : 520, next); } });
+      };
+      if (Math.abs(shift - this.tower.y) > 1 && !reduced) app.tweens.add({ targets: this.tower, y: shift, duration: 380, ease: 'Sine.easeInOut', onComplete: go });
+      else { this.tower.y = shift; go(); }
+    };
+    next();
+  }
+
+  /** Tap to skip, or the last room is done: show the findings report. */
+  private endWalk(): void {
+    if (!this.walking) return;
+    const app = this.app;
+    this.walking = false;
+    this.walkTimer?.remove();
+    this.walkTimer = null;
+    for (const o of this.walkObjs) { app.tweens.killTweensOf(o); }
+    app.tweens.killTweensOf(this.tower);
+    const w = app.store.state.run.walk;
+    if (!w) { this.rebuild(); return; }
+    openWalkReport(app, w, () => { app.store.act((g) => clearWalk(g)); this.rebuild(); });
   }
 
   private scrollTo(v: number): void {
@@ -376,6 +476,7 @@ export class SanctumScreen extends Screen {
   // ---------- input: vertical drag to scroll ----------
 
   override pointerDown(p: Phaser.Input.Pointer): void {
+    if (this.walking) { this.endWalk(); return; }
     if (!inRect(this.view, p.x, p.y)) return;
     this.drag = { sy: p.y, s0: this.scroll, moved: false };
   }
@@ -389,11 +490,14 @@ export class SanctumScreen extends Screen {
   }
   override pointerUp(): void { this.drag = null; }
 
-  override onChanged(): void { if (!this.drag) this.rebuild(); }
+  override onChanged(): void { if (!this.drag && !this.walking) this.rebuild(); }
+  override hide(): void { if (this.walking) { this.walking = false; this.walkTimer?.remove(); } super.hide(); }
 
   override update(dt: number): void {
     if (!this.visible) return;
     const run = this.app.store.state.run;
+    if (run.walk && !this.walking && !this.app.modals.active) { this.playWalk(); return; }
+    if (this.walking) return;
     // scaffolding: redraw once a second so the time left stays honest
     if (run.sanctum.building) {
       this.anim += dt;

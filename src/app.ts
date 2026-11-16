@@ -343,6 +343,11 @@ export class App extends Phaser.Scene {
     this.refreshHud();
     this.cur.update(dt);
     this.modals.update(dt);
+    // a finished inspection plays back inside the Sanctum
+    if (this.store.state.run.walk && !this.modals.active && this.cur !== this.sanctum) {
+      if (this.tab !== 'compound') this.goto('compound');
+      this.setCompoundView('sanctum');
+    }
     autoModals(this);
   }
 }

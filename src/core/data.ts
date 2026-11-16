@@ -50,7 +50,7 @@ export interface VisitEffects {
 }
 export interface EventChoiceDef {
   id: string; requires?: { item: string; count: number };
-  effects: VisitEffects & { devotion?: number; donations?: number; flag?: string; consume?: { item: string; count: number }; lookBusy?: string };
+  effects: VisitEffects & { walk?: boolean; devotion?: number; donations?: number; flag?: string; consume?: { item: string; count: number }; lookBusy?: string };
 }
 /** band: Suspicion band (1-3) a visit belongs to, 4 = Full Review. visitor: an inspection-style visit. */
 export interface EventDef { id: string; sprite: string; choices: EventChoiceDef[]; band?: number; visitor?: boolean }
@@ -62,6 +62,8 @@ export interface RoomsData {
   storeys: { level: number; cost: { devotion: number; donations: number }; omens: number; sec: number }[];
   baysPerStorey: number; heightSuspicion: { fromStorey: number; perStoreyPerMin: number }; mergeBonusPct: number[];
   demolishRefund: number; formCutPct: number; formMaxPerVisit: number; rooms: RoomDef[];
+  hall: { exposure: Record<string, number> };
+  inspection: { doubtAt: number; calmBelow: number; maxFinePct: number; cleanSuspicionMult: number; awayDoubtAt: number };
 }
 export interface RiteDef {
   id: string; focus: number; choose?: 'entity' | 'crop';

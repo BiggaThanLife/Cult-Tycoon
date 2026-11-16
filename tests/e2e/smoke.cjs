@@ -425,6 +425,26 @@ const check = (name, ok, detail = '') => {
   for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE], ['d', DESKTOP]]) { await rotate(vp); await shot(`${prefix}_18_sanctum`); await audit(`${prefix} sanctum`); }
   await rotate(PORTRAIT);
   check('sanctum: rotating keeps the side view', await page.evaluate(() => window.__ct.app().cur === window.__ct.app().sanctum && window.__ct.store.state.run.sanctum.storeys === 2));
+  // ---------- inspection walkthrough ----------
+  await page.evaluate(() => window.__ct.store.act((g, e) => { g.run.donations = 400; g.run.suspicion = 80; g.run.followers.forEach((f) => (f.stats.doubt = 65)); window.__ct.core.triggerEvent(g, 'inspector', e); }));
+  await wait(500); await shot('p_19_visit'); await audit('walk visit');
+  await tap('btn_choice_look_busy'); await wait(400);
+  check('walkthrough: preparing opens the agenda', await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id === 'agenda'));
+  for (const [prefix, vp] of [['p', PORTRAIT], ['s', SMALL], ['l', LANDSCAPE]]) { await rotate(vp); await shot(`${prefix}_19_agenda`); await audit(`${prefix} agenda`); }
+  await rotate(PORTRAIT);
+  await tap('btn_close'); await wait(200);
+  await page.evaluate(() => window.__ct.app().setCompoundView('sanctum'));
+  await wait(300); await shot('p_19_agenda_markers'); await audit('agenda markers');
+  await tap('btn_agenda'); await tap('btn_let_in'); await wait(900);
+  await shot('p_19_walking');
+  check('walkthrough: the official walks the Sanctum', await page.evaluate(() => !!window.__ct.store.state.run.walk && window.__ct.app().cur === window.__ct.app().sanctum));
+  await wait(6000);
+  await shot('p_19_walk_report'); await audit('walk report');
+  const rep = await page.evaluate(() => window.__ct.app().modals.active && window.__ct.app().modals.active.id);
+  check('walkthrough: ends with a findings report', rep === 'walk_report', String(rep));
+  await tap('btn_ok'); await wait(300);
+  check('walkthrough: the report clears the walk', await page.evaluate(() => window.__ct.store.state.run.walk === null && window.__ct.store.state.run.inspection === null));
+
   await tap('btn_grounds'); await wait(250);
   check('sanctum: Grounds returns to the map', await page.evaluate(() => window.__ct.app().cur === window.__ct.app().screens.compound));
 

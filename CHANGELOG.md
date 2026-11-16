@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 — Inspections walk the Sanctum
+- Officials now check an agenda of rooms. Clipboards in the Sanctum show which rooms and how many findings to expect; the Agenda card explains why (zoning, health, tax, empty rooms, doubtful staff).
+- Let them in, or prepare first: restaff rooms, use Filed Forms, play Look Busy. The official then walks the rooms, stamping each PASS or NOTED, and leaves a findings report.
+
 ## 0.5.0 — The Sanctum
 - From Compound Level 3, tap "Go inside" (or the Sermon Hall's card) for a side view of the Hall. Build storeys upward and fill bays with rooms: Bunk Room, Kitchen, Records Office, Reading Room, Ritual Chamber, Wellness Retreat.
 - Matching rooms side by side merge into bigger rooms with a bonus. Assign followers to rooms; each room cares about one stat.

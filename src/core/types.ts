@@ -94,6 +94,7 @@ export interface RunState {
   lastVisitAt: number;                     // game time of the last visit
   draftBonus: number;                      // extra cards on the next draft
   sanctum: SanctumState;                   // the side view: storeys and rooms
+  walk: import('./inspection').WalkResult | null; // the last inspection walkthrough, until the screen has shown it
   favor: Record<string, number>;
   rituals: Record<string, number>;         // level id → best stars
   activeRitual: unknown | null;            // serialized Match3State while a ritual is in progress

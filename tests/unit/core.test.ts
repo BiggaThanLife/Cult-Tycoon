@@ -13,6 +13,7 @@ import { countItems, createMerge, moveItem, tapGenerator, tickMerge } from '../.
 import type { Match3State } from '../../src/puzzle/match3';
 import { layoutFor } from '../../src/ui/layout';
 import * as S from '../../src/core/sanctum';
+import * as I from '../../src/core/inspection';
 import { spriteKeys } from '../../src/art/sprites';
 
 const T0 = 1_700_000_000_000;
@@ -522,10 +523,11 @@ describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
     G.tick(g, 600);
     expect(G.inv(g.run, 'filed_form')).toBe(2); // capped at 2 per bay
     g.run.donations = 400; g.run.suspicion = 60;
-    g.run.event = { id: 'auditor' };
-    G.resolveEvent(g, DATA.events.find((e) => e.id === 'auditor')!.choices.findIndex((c) => c.id === 'settle'));
+    g.run.event = { id: 'expose' }; // a reporter is not a walkthrough: forms cut her outcome by 25% each
+    const before = g.run.followers.filter((f) => (f.awayUntil ?? 0) > g.run.time).length;
+    G.resolveEvent(g, DATA.events.find((e) => e.id === 'expose')!.choices.findIndex((c) => c.id === 'interview'));
     expect(G.inv(g.run, 'filed_form')).toBe(0);
-    expect(g.run.donations).toBe(400 - Math.floor(400 * 0.15 * 0.5)); // two forms: 50% off the fine
+    expect(g.run.followers.filter((f) => (f.awayUntil ?? 0) > g.run.time).length).toBe(before + 1);
     const ch = S.buildRoom(g, 2, 1, 'ritual_chamber')!;
     expect(S.ritePctBonus(g.run)).toBe(5);
     void ch;
@@ -561,12 +563,91 @@ describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
     G.tick(g, 600);
     expect(f.stats.doubt).toBeLessThan(50);
   });
+  it('walkthrough: the agenda starts in the Hall, picks the most exposed rooms, and findings follow staffing', () => {
+    const g = ready();
+    g.run.level = 8;
+    for (let i = 0; i < 3; i++) { S.buildStorey(g); G.tick(g, 61); }
+    const retreat = S.buildRoom(g, 1, 0, 'wellness_retreat')!;
+    const records = S.buildRoom(g, 2, 0, 'records_office')!;
+    S.buildRoom(g, 3, 0, 'kitchen');
+    const ag = I.agenda(g.run, 'auditor'); // tax, 3 places
+    expect(ag.map((x) => x.type)).toEqual(['main_hall', 'wellness_retreat', 'records_office']);
+    const r = ag[1];
+    expect(r.reasons).toEqual(expect.arrayContaining([{ key: 'tax', n: 2 }, { key: 'empty', n: 1 }]));
+    // staffing the empty room with calm workers removes 'empty' and earns 'calm'
+    g.run.followers.forEach((f) => (f.stats.doubt = 10));
+    S.assignFollower(g, g.run.followers[0].id, retreat.id);
+    S.assignFollower(g, g.run.followers[1].id, retreat.id);
+    const r2 = I.agenda(g.run, 'auditor')[1];
+    expect(r2.reasons.map((x) => x.key)).toEqual(expect.arrayContaining(['tax', 'calm']));
+    expect(r2.findings).toBe(1);
+    // a doubtful worker is 'very helpful'
+    g.run.followers[0].stats.doubt = 80;
+    expect(I.agenda(g.run, 'auditor')[1].reasons.map((x) => x.key)).toContain('doubt');
+    void records;
+  });
+  it('walkthrough: fines per finding (capped at 25%), forms cancel findings, seals the worst room, always lowers Suspicion', () => {
+    const g = ready();
+    g.run.level = 8;
+    for (let i = 0; i < 3; i++) { S.buildStorey(g); G.tick(g, 61); }
+    S.buildRoom(g, 1, 0, 'kitchen'); S.buildRoom(g, 1, 1, 'reading_room'); S.buildRoom(g, 2, 0, 'ritual_chamber'); S.buildRoom(g, 2, 1, 'bunk_room');
+    g.run.followers.forEach((f) => (f.job = null));
+    g.run.donations = 400; g.run.suspicion = 80; g.run.flags.cat_adopted = true;
+    const projected = I.projectedFindings(g.run, 'inspector');
+    expect(projected).toBeGreaterThanOrEqual(4);
+    g.run.inventory.filed_form = 1;
+    g.run.event = { id: 'inspector' };
+    G.resolveEvent(g, DATA.events.find((e) => e.id === 'inspector')!.choices.findIndex((c) => c.id === 'settle'));
+    const w = g.run.walk!;
+    expect(w.forms).toBe(1);
+    expect(w.total).toBe(projected - 1);
+    expect(w.fine).toBe(Math.min(8 * w.total, 100));
+    expect(w.sealed).not.toBeNull();
+    expect(w.sealed).not.toBe('bunk_room');
+    expect(w.suspicion).toBeLessThan(0);
+    expect(g.run.inspection).toBeNull();
+    I.clearWalk(g);
+    expect(g.run.walk).toBeNull();
+  });
+  it('walkthrough with Look Busy: the visitor waits; 3 stars cut the fine and seal by 75%', () => {
+    const play = (won: boolean) => {
+      const g = ready();
+      g.run.level = 8;
+      S.buildStorey(g);
+      S.buildRoom(g, 1, 0, 'wellness_retreat'); S.buildRoom(g, 1, 1, 'kitchen');
+      g.run.followers.forEach((f) => (f.job = null));
+      g.run.donations = 400; g.run.suspicion = 60;
+      g.run.event = { id: 'auditor' };
+      G.resolveEvent(g, DATA.events.find((e) => e.id === 'auditor')!.choices.findIndex((c) => c.id === 'look_busy'));
+      expect(g.run.walk).toBeNull();
+      const st = G.startRitual(g, 'lb1') as Match3State;
+      st.status = won ? 'won' : 'lost';
+      st.score = st.level.starScores[2];
+      G.finishRitual(g);
+      return g.run.walk!;
+    };
+    const lost = play(false);
+    const won = play(true);
+    expect(won.cutPct).toBe(75);
+    expect(won.fine).toBe(Math.floor(lost.fine * 0.25));
+    expect(won.suspicion).toBeLessThan(lost.suspicion);
+  });
+  it('without any Sanctum rooms a visit uses the simple outcome (no walkthrough)', () => {
+    const g = ready();
+    g.run.donations = 400; g.run.suspicion = 60;
+    g.run.event = { id: 'auditor' };
+    G.resolveEvent(g, DATA.events.find((e) => e.id === 'auditor')!.choices.findIndex((c) => c.id === 'settle'));
+    expect(g.run.walk).toBeNull();
+    expect(g.run.donations).toBe(340);
+  });
   it('migrates a v4 save to an empty Sanctum without moving anything', () => {
     const g = playSlice();
     const env = JSON.parse(serialize(g, T0));
     env.saveVersion = 4; env.data.saveVersion = 4;
     delete env.data.run.sanctum;
+    delete env.data.run.walk;
     const out = parse(JSON.stringify(env));
+    expect(out.run.walk).toBeNull();
     expect(out.run.sanctum).toEqual({ storeys: 0, building: null, rooms: [] });
     expect(out.run.buildings).toEqual(g.run.buildings);
   });
