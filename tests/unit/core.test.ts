@@ -581,9 +581,15 @@ describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
     const r2 = I.agenda(g.run, 'auditor')[1];
     expect(r2.reasons.map((x) => x.key)).toEqual(expect.arrayContaining(['tax', 'calm']));
     expect(r2.findings).toBe(1);
-    // a doubtful worker is 'very helpful'
+    // high Doubt anywhere on the premises is one finding in the Hall, and moving that person changes nothing
     g.run.followers[0].stats.doubt = 80;
-    expect(I.agenda(g.run, 'auditor')[1].reasons.map((x) => x.key)).toContain('doubt');
+    const withDoubt = I.agenda(g.run, 'auditor');
+    expect(withDoubt[0].reasons.map((x) => x.key)).toContain('doubt');
+    expect(withDoubt.slice(1).every((st) => !st.reasons.some((x) => x.key === 'doubt'))).toBe(true);
+    const total = I.projectedFindings(g.run, 'auditor');
+    S.assignFollower(g, g.run.followers[0].id, null); // off shift
+    expect(I.agenda(g.run, 'auditor')[0].reasons.map((x) => x.key)).toContain('doubt');
+    expect(I.projectedFindings(g.run, 'auditor')).toBeGreaterThanOrEqual(total); // the room is emptier, never better
     void records;
   });
   it('walkthrough: fines per finding (capped at 25%), forms cancel findings, seals the worst room, always lowers Suspicion', () => {
@@ -604,6 +610,8 @@ describe('the Sanctum (docs/specs/sanctum-view.md)', () => {
     expect(w.fine).toBe(Math.min(8 * w.total, 100));
     expect(w.sealed).not.toBeNull();
     expect(w.sealed).not.toBe('bunk_room');
+    const sealedIds = g.run.sanctum.rooms.filter((r) => (r.sealedUntil ?? 0) > g.run.time).map((r) => r.id);
+    expect(g.run.followers.some((f) => f.job !== null && sealedIds.includes(f.job))).toBe(false); // nobody behind the tape
     expect(w.suspicion).toBeLessThan(0);
     expect(g.run.inspection).toBeNull();
     I.clearWalk(g);

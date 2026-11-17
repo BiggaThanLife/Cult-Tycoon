@@ -174,6 +174,12 @@ export function demolishRoom(g: GameState, roomId: number): boolean {
   return true;
 }
 
+/** Workers of a sealed room go back to the Hall: nobody is left behind the tape (review D-166). */
+export function sendToHall(run: RunState, roomIds: number[]): void {
+  for (const f of run.followers) if (f.job !== null && roomIds.includes(f.job)) f.job = null;
+  assignJobs(run);
+}
+
 /** Move a follower into a merged room (or back to the Hall with null). */
 export function assignFollower(g: GameState, followerId: number, roomId: number | null): boolean {
   const run = g.run;
@@ -181,7 +187,7 @@ export function assignFollower(g: GameState, followerId: number, roomId: number 
   if (!f) return false;
   if (roomId === null) { f.job = null; assignJobs(run); return true; }
   const grp = groupOf(run, roomId);
-  if (!grp || workersOf(run, grp).length >= slotsOf(grp)) return false;
+  if (!grp || groupSealed(run, grp) || workersOf(run, grp).length >= slotsOf(grp)) return false;
   f.job = roomId;
   return true;
 }

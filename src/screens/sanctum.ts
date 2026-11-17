@@ -267,7 +267,7 @@ export class SanctumScreen extends Screen {
     txt(app, this.tower, bx + w - 3, y + 6, `L${grp.level}`, { align: 'right', color: 'glow' });
     // merged rooms: hide the inner walls with a light band so they read as one room
     if (grp.bays.length > 1) for (let i = 1; i < grp.bays.length; i++) rect(app, this.tower, bx + i * BAY - 1, y + 16, 2, H - 18, PAL.robeL, 0.25);
-    const workers = workersOf(run, grp).filter((f) => !isAway(run, f));
+    const workers = groupSealed(run, grp) ? [] : workersOf(run, grp).filter((f) => !isAway(run, f));
     this.drawWorkers(workers, bx, y, w);
     // empty worker slots as small pips
     const slots = slotsOf(grp);

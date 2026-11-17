@@ -5,7 +5,7 @@
 // Every visit lowers Suspicion. No timers anywhere.
 import { DATA, eventDef } from './data';
 import { addSuspicion, inv, isAway } from './game';
-import { roomDef, roomGroups, slotsOf, workersOf, type RoomGroup } from './sanctum';
+import { roomDef, roomGroups, sendToHall, slotsOf, workersOf, type RoomGroup } from './sanctum';
 import type { Emit, Follower, GameState, RunState } from './types';
 
 const noEmit: Emit = () => {};
@@ -45,7 +45,6 @@ function findingsFor(s: Spot, tags: string[], bays: number): { n: number; reason
   const staffed = s.workers.length;
   if (s.slots > 0 && staffed === 0) reasons.push({ key: 'empty', n: 1 });
   if (s.id === HALL && staffed === 0) reasons.push({ key: 'empty', n: 1 });
-  if (s.workers.some((f) => f.stats.doubt >= R.doubtAt)) reasons.push({ key: 'doubt', n: 1 });
   const full = s.id === HALL ? staffed >= 2 : s.slots > 0 && staffed >= s.slots;
   const avgDoubt = staffed ? s.workers.reduce((n, f) => n + f.stats.doubt, 0) / staffed : 100;
   if (full && avgDoubt < R.calmBelow) reasons.push({ key: 'calm', n: -1 });
@@ -63,10 +62,17 @@ export function agenda(run: RunState, eventId: string): WalkStep[] {
   // most exposed first; ties go to the lower storey (the official is climbing)
   const ordered = [...rooms].sort((a, b) => score(b) - score(a) || a.storey - b.storey || a.id - b.id);
   const picked = [hall, ...ordered.slice(0, Math.max(0, rules.rooms - 1))];
-  return picked.map((s) => {
+  const steps = picked.map((s) => {
     const f = findingsFor(s, rules.tags, s.group ? s.group.bays.length : 1);
     return { room: s.id, type: s.type, storey: s.storey, findings: f.n, reasons: f.reasons };
   });
+  // Doubt counts presence, not placement (review D-166): one finding in the Hall if anyone on the premises has
+  // high Doubt, wherever they work. Moving people around can never change it.
+  if (run.followers.some((f) => !isAway(run, f) && f.stats.doubt >= RI().doubtAt)) {
+    steps[0].reasons.push({ key: 'doubt', n: 1 });
+    steps[0].findings += 1;
+  }
+  return steps;
 }
 
 export const projectedFindings = (run: RunState, eventId: string) => agenda(run, eventId).reduce((n, s) => n + s.findings, 0);
@@ -96,6 +102,7 @@ export function conductWalk(g: GameState, eventId: string, choiceId: string, cut
     const grp = worst ? roomGroups(run).find((gg) => gg.bays[0].id === worst.room) : null;
     if (grp) {
       for (const bay of grp.bays) bay.sealedUntil = Math.max(bay.sealedUntil ?? 0, run.time + rules.sealSec * keep);
+      sendToHall(run, grp.bays.map((b) => b.id));
       out.sealed = grp.type;
       out.sealMin = Math.max(1, Math.round((rules.sealSec * keep) / 60));
       emit({ type: 'float', textKey: 'float.sealed', tone: 'loss' });
@@ -103,9 +110,8 @@ export function conductWalk(g: GameState, eventId: string, choiceId: string, cut
   }
   // Full Review: a very doubtful worker on the agenda may choose to help with the inquiry, and comes back
   if (rules.awaySec && rules.awaySec * keep >= 60) {
-    const agendaIds = new Set(steps.map((s) => s.room));
-    const hallB = run.buildings.find((b) => b.type === 'sermon_hall');
-    const pool = run.followers.filter((f) => !isAway(run, f) && f.stats.doubt >= RI().awayDoubtAt && (agendaIds.has(HALL) && f.job === hallB?.id || run.sanctum.rooms.some((r) => r.id === f.job && agendaIds.has(roomGroups(run).find((gg) => gg.bays.some((b) => b.id === r.id))!.bays[0].id))));
+    // anyone present with high Doubt may choose to help, whatever their job (review D-166)
+    const pool = run.followers.filter((f) => !isAway(run, f) && f.stats.doubt >= RI().awayDoubtAt);
     const f = pool.sort((a, b) => b.stats.doubt - a.stats.doubt)[0];
     if (f) {
       f.awayUntil = run.time + rules.awaySec * keep;

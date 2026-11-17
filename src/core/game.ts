@@ -3,6 +3,7 @@
 import { DATA, buildingDef, cropDef, entityDef, eventDef, orderDef, riteDef, ritualDef, traitDef, type BoonField, type OrderNeed, type UpgradeDef, type VisitEffects } from './data';
 import { hashString } from './rng';
 import { conductWalk, walkApplies } from './inspection';
+import { sendToHall } from './sanctum';
 import { omenPerWin, ritePctBonus, roomGroups, sanctumBeds, tickSanctum, useForms } from './sanctum';
 import { deriveSeed, makeRng, type Rng } from './rng';
 import { TUTORIAL_ORDER, type ActiveRite, type BuildingState, type Emit, type Follower, type GameState, type RunState, type TutorialStep } from './types';
@@ -520,6 +521,7 @@ export function applyVisit(g: GameState, fx: VisitEffects, cut: number, emit: Em
     if (pick && pick.kind === 'r') {
       const grp = rooms[pick.i];
       for (const bay of grp.bays) bay.sealedUntil = Math.max(bay.sealedUntil ?? 0, run.time + fx.sealSec * keep);
+      sendToHall(run, grp.bays.map((b) => b.id));
       out.sealed = `room:${grp.type}`;
       out.sealMin = Math.max(1, Math.round((fx.sealSec * keep) / 60));
       emit({ type: 'float', textKey: 'float.sealed', tone: 'loss' });
